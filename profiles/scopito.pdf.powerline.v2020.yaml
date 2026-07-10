@@ -1,0 +1,46 @@
+# SourceProfile: Scopito PDF powerline export, 2020 demo structure (A1, A3).
+# Anchors are DATA: a structural change in Scopito exports is a NEW profile
+# version file, never a parser patch (design §4/§9, research R4).
+#
+# Verified 2026-07-11 against both real demo PDFs, which are layout VARIANTS
+# of one structure: Distribution uses an inline header label row and has a
+# "User tags" table column; Transmission stacks labels and omits "User tags".
+# Extraction is label-anchored + word-position based to cover both.
+
+key: scopito.pdf.powerline
+structural_version: v2020
+platform: scopito
+export_kind: pdf
+job_type: powerline
+extractor_ref: rmu.extract.scopito_pdf_powerline
+effective_from: 2026-07-11
+
+fingerprint:
+  # All must appear in the first pages for detection (FR-002).
+  required_text:
+    - "Report date:"
+    - "Severity overview"
+    - "Annotation overview"
+  # Annotation table header line; 'User tags' column is optional (A1 variants).
+  table_header_regex: '^Id\s+Severity\s+(User tags\s+)?Issues\s+Comments\s+Page$'
+
+header:
+  # Label variants for word-position value lookup (nearest number below with
+  # x-overlap). Feeds declared_vs_extracted integrity check (FR-016).
+  annotations_labels: ["Annotations:"]
+  images_labels: ["images:", "Images:"]
+  date_label: "Report date:"
+  type_label: "Type:"
+  company_label: "Company:"
+  severity_row_tokens: ["Severity 1", "POI"]
+
+severity_vocabulary: ["1", "2", "3", "4", "5", "?"]  # A3
+
+annotation_table:
+  columns: ["Id", "Severity", "User tags", "Issues", "Comments", "Page"]
+  optional_columns: ["User tags"]
+  id_pattern: '^\d{4,}$'
+  list_separator: "|"
+
+detail_page:
+  marker: "File name:"

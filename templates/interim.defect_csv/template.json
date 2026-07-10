@@ -1,0 +1,18 @@
+{
+  "kind": "csv",
+  "label": "INTERIM structured defect CSV (stand-in for SAP defect records, TBD-2)",
+  "interim": true,
+  "columns": [
+    "finding_id",
+    "asset_name",
+    "inspection_date",
+    "defect_code",
+    "priority",
+    "source_severity",
+    "contract_number",
+    "inspection_method",
+    "user_tags",
+    "comments",
+    "source_page"
+  ]
+}

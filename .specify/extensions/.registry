@@ -1,0 +1,49 @@
+{
+  "schema_version": "1.0",
+  "extensions": {
+    "companion": {
+      "version": "0.11.0",
+      "source": "local",
+      "manifest_hash": "sha256:5dbb68ca7625445a205d1db182e9f87d5010142958ca7a59f0748ad3e857afcd",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {
+        "claude": [
+          "speckit.companion.capture",
+          "speckit.companion.capture-plan",
+          "speckit.companion.capture-tasks",
+          "speckit.companion.capture-implement",
+          "speckit.companion.status",
+          "speckit.companion.resume",
+          "speckit.companion.specify",
+          "speckit.companion.plan",
+          "speckit.companion.tasks",
+          "speckit.companion.implement",
+          "speckit.companion.classify",
+          "speckit.companion.mark-complete",
+          "speckit.companion.auto"
+        ]
+      },
+      "registered_skills": [],
+      "installed_at": "2026-07-10T18:07:35.813359+00:00"
+    },
+    "superspec": {
+      "version": "1.0.1",
+      "source": "local",
+      "manifest_hash": "sha256:6ff197d827bfeb39eefb659d148628a40c3220cfd7d2a36ac625b2f8194bd21b",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {
+        "claude": [
+          "speckit.superspec.status",
+          "speckit.superspec.brainstorm",
+          "speckit.superspec.tasks",
+          "speckit.superspec.execute",
+          "speckit.superspec.review"
+        ]
+      },
+      "registered_skills": [],
+      "installed_at": "2026-07-10T18:23:30.742166+00:00"
+    }
+  }
+}

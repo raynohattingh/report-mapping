@@ -1,0 +1,11 @@
+{
+  "record_scope": "report",
+  "required": [
+    "inspection_name",
+    "inspection_date",
+    "contract_number",
+    "inspection_method"
+  ],
+  "optional": ["company", "inspection_type"],
+  "finding_fields": ["finding_id", "defect_code", "priority", "source_severity", "comments"]
+}

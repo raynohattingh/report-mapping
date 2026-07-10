@@ -1,0 +1,14 @@
+{
+  "record_scope": "finding",
+  "required": [
+    "finding_id",
+    "asset_name",
+    "inspection_date",
+    "defect_code",
+    "priority",
+    "source_severity",
+    "contract_number",
+    "inspection_method"
+  ],
+  "optional": ["user_tags", "comments", "source_page"]
+}
