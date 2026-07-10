@@ -1,0 +1,69 @@
+code,category,category_name,item,label,check_description,notes,source,version,effective_date
+A1,A,Tower/Mast,1,Galvanizing discoloration,Is there reddish/whitish discoloration?,Galvanizing group,DST 34-1441 Annex C,1,2013-02-01
+A2,A,Tower/Mast,2,Partial or whole rust,Are the whole members or only a portion showing rust?,Galvanizing group,DST 34-1441 Annex C,1,2013-02-01
+A3,A,Tower/Mast,3,Metal corroded away,Does the metal appear to be corroded away?,Galvanizing group,DST 34-1441 Annex C,1,2013-02-01
+A4,A,Tower/Mast,4,Rust streaking off bolts,Is there rust streaking off the bolts?,Galvanizing group,DST 34-1441 Annex C,1,2013-02-01
+A5,A,Tower/Mast,5,Galvanizing sandblasted,Does the galvanizing appear to be sandblasted?,Galvanizing group,DST 34-1441 Annex C,1,2013-02-01
+A6,A,Tower/Mast,6,UNSPECIFIED,Item 6 not legible in source copy,Verify against current 240-138196972 when obtained,DST 34-1441 Annex C,1,2013-02-01
+A7,A,Tower/Mast,7,Foundation subsiding,Is there any subsiding at the foundation?,Foundations group,DST 34-1441 Annex C,1,2013-02-01
+A8,A,Tower/Mast,8,Erosion at footing,Is there any erosion at the footing?,Foundations group,DST 34-1441 Annex C,1,2013-02-01
+A9,A,Tower/Mast,9,Erosion approaching tower,Is any erosion getting close to the tower?,Foundations group,DST 34-1441 Annex C,1,2013-02-01
+A10,A,Tower/Mast,10,Concrete height above ground,Is the concrete 150 mm above ground level?,Foundations group,DST 34-1441 Annex C,1,2013-02-01
+A11,A,Tower/Mast,11,Soil over concrete foundation,Is there sand/soil over the concrete foundation?,Foundations group,DST 34-1441 Annex C,1,2013-02-01
+A12,A,Tower/Mast,12,Hairline cracks footing/benching,Are there any hairline cracks on the footing/benching?,Foundations group,DST 34-1441 Annex C,1,2013-02-01
+A13,A,Tower/Mast,13,Loose members,Look for loose members; if none seen hit structure with rubber mallet and listen for bolt ringing,Members group,DST 34-1441 Annex C,1,2013-02-01
+A14,A,Tower/Mast,14,Missing members,Are there missing members?,Members group,DST 34-1441 Annex C,1,2013-02-01
+A15,A,Tower/Mast,15,Bottom members bent/damaged,Are the bottom members bent or damaged?,Members group,DST 34-1441 Annex C,1,2013-02-01
+A16,A,Tower/Mast,16,Loose step bolts,Is there any loose step bolts?,Members group,DST 34-1441 Annex C,1,2013-02-01
+A17,A,Tower/Mast,17,Paint blistering,Is the paint blistering?,Paint group,DST 34-1441 Annex C,1,2013-02-01
+A18,A,Tower/Mast,18,Paint peeling,Is the paint peeling?,Paint group,DST 34-1441 Annex C,1,2013-02-01
+B1,B,Earthing,1,Earth bolt tight,Is it bolted tightly?,,DST 34-1441 Annex C,1,2013-02-01
+B2,B,Earthing,2,Earth bolt rusting,Is the bolt rusting?,,DST 34-1441 Annex C,1,2013-02-01
+B3,B,Earthing,3,Earth strap corrosion at ground,Remove some soil where the earth strap enters; is the metal corroding?,,DST 34-1441 Annex C,1,2013-02-01
+C1,C,Stays/Guys,1,Guy housing/U-bolt rust,Is the guy/cross head housing or U-bolt rusting?,,DST 34-1441 Annex C,1,2013-02-01
+C2,C,Stays/Guys,2,Slip between guy wire and rods,Is there visible slip between guy wire and preformed rods?,,DST 34-1441 Annex C,1,2013-02-01
+C3,C,Stays/Guys,3,Tamper guards,Are the tamper guards in place?,,DST 34-1441 Annex C,1,2013-02-01
+C4,C,Stays/Guys,4,Cut guy end strands,Examine cut guy end - are strands all the same lengths?,,DST 34-1441 Annex C,1,2013-02-01
+C5,C,Stays/Guys,5,Bitumen/rust at anchor,Is bitumen still present? Is there rust? (remove some soil around anchor link),,DST 34-1441 Annex C,1,2013-02-01
+C6,C,Stays/Guys,6,Guy wire slack,Does the guy wire appear to be slack? (note if wind is blowing as leeward slack),Tension by dynamometer: 22dia >3.5t; 24dia >4.3t; 28dia >6t; 32dia >7.5t,DST 34-1441 Annex C,1,2013-02-01
+D1,D,Insulators,1,Dirty,Are the insulators dirty?,,DST 34-1441 Annex C,1,2013-02-01
+D2,D,Insulators,2,Bird dirt,Is it bird dirt?,,DST 34-1441 Annex C,1,2013-02-01
+D3,D,Insulators,3,Pollution,Is it pollution?,Pollution types per 4.3.1: industrial/marine/sand/bird,DST 34-1441 Annex C,1,2013-02-01
+D4,D,Insulators,4,Broken insulators,Are insulators broken?,,DST 34-1441 Annex C,1,2013-02-01
+D5,D,Insulators,5,Broken per string + position,Insert number of broken per string and position,,DST 34-1441 Annex C,1,2013-02-01
+D6,D,Insulators,6,Faulting on insulators,Is there faulting on insulators?,,DST 34-1441 Annex C,1,2013-02-01
+D7,D,Insulators,7,Security clips missing,Are any security clips missing?,,DST 34-1441 Annex C,1,2013-02-01
+D8,D,Insulators,8,Wasting/corrosion at pins/stems/rods,Is there wasting/corrosion/pollution/erosion at pins/stems/rods?,,DST 34-1441 Annex C,1,2013-02-01
+D9,D,Insulators,9,Hardware discolouration,Is there discolouration of hardware?,,DST 34-1441 Annex C,1,2013-02-01
+D10,D,Insulators,10,Insulator type,Insulator type (insert letter): A=Porcelain B=Glass C=Cycloaliphatic D=Composites,Attribute not defect,DST 34-1441 Annex C,1,2013-02-01
+E1,E,Conductors and Earth Wire,1,Suspension clamp wear,Check suspension clamp for wear,,DST 34-1441 Annex C,1,2013-02-01
+E2,E,Conductors and Earth Wire,2,Damper/spacer distorted,Is the damper/spacer distorted?,,DST 34-1441 Annex C,1,2013-02-01
+E3,E,Conductors and Earth Wire,3,Loose wires / bird-caging,Are there any loose wires or bird-caging?,,DST 34-1441 Annex C,1,2013-02-01
+E4,E,Conductors and Earth Wire,4,Wire bulging,Is there any bulging of the wire?,,DST 34-1441 Annex C,1,2013-02-01
+E5,E,Conductors and Earth Wire,5,White powder on conductor,Is there a white powder on the conductor?,,DST 34-1441 Annex C,1,2013-02-01
+E6,E,Conductors and Earth Wire,6,Conductor wearing,Does the conductor appear to be wearing?,,DST 34-1441 Annex C,1,2013-02-01
+E7,E,Conductors and Earth Wire,7,Burn marks on conductor,Are there burn marks on the conductor?,,DST 34-1441 Annex C,1,2013-02-01
+E8,E,Conductors and Earth Wire,8,Bundle twisted,Is the bundle twisted?,,DST 34-1441 Annex C,1,2013-02-01
+E9,E,Conductors and Earth Wire,9,Hardware wearing,Is the hardware wearing? (use binoculars),,DST 34-1441 Annex C,1,2013-02-01
+E10,E,Conductors and Earth Wire,10,Conductor pulling through AGS clamps,Is conductor pulling through the two halves of the AGS clamps?,,DST 34-1441 Annex C,1,2013-02-01
+E11,E,Conductors and Earth Wire,11,Heat discolouration at joints/clamps,Look for heat discolouration on ends of mid-span joints and strain clamps dampers etc.,Prime thermal-adjacent visual cue,DST 34-1441 Annex C,1,2013-02-01
+E12,E,Conductors and Earth Wire,12,Railway proximity,Is a railway line within ±800 m?,,DST 34-1441 Annex C,1,2013-02-01
+E13,E,Conductors and Earth Wire,13,Insulation on earth wires,Is there insulation on the earth wires?,,DST 34-1441 Annex C,1,2013-02-01
+E14,E,Conductors and Earth Wire,14,Loose clamp bolts,Are there loose bolts on the clamps?,,DST 34-1441 Annex C,1,2013-02-01
+E15,E,Conductors and Earth Wire,15,Crosby clamp on jumper,Is the Crosby clamp in place on the jumper?,,DST 34-1441 Annex C,1,2013-02-01
+E16,E,Conductors and Earth Wire,16,Dampers moved along span,Have the dampers moved along the span?,,DST 34-1441 Annex C,1,2013-02-01
+E17,E,Conductors and Earth Wire,17,Armour rod damage,Is there damage due to armour rods?,,DST 34-1441 Annex C,1,2013-02-01
+F1,F,General,1,Tower numbered,Is the tower numbered?,Identification group,DST 34-1441 Annex C,1,2013-02-01
+F2,F,General,2,Number peeling,Is the number peeling?,Identification group,DST 34-1441 Annex C,1,2013-02-01
+F3,F,General,3,Number clear,Is the number clear?,Identification group,DST 34-1441 Annex C,1,2013-02-01
+F4,F,General,4,Anti-climbing device damaged,Is anti-climbing device damaged?,,DST 34-1441 Annex C,1,2013-02-01
+F5,F,General,5,Anti-climb obstruction free,Is anti-climbing device obstruction free?,,DST 34-1441 Annex C,1,2013-02-01
+F6,F,General,6,Service road obstruction free,Is the service road obstruction free?,,DST 34-1441 Annex C,1,2013-02-01
+F7,F,General,7,Access road wash-aways,Are there access road wash-aways?,,DST 34-1441 Annex C,1,2013-02-01
+F8,F,General,8,Retaining wall damaged,Is the retaining wall damaged?,,DST 34-1441 Annex C,1,2013-02-01
+F9,F,General,9,Trees growing toward phases,Could any trees that are growing towards the phases get too close to the line?,,DST 34-1441 Annex C,1,2013-02-01
+F10,F,General,10,Locks in place,Are all locks in place?,,DST 34-1441 Annex C,1,2013-02-01
+F11,F,General,11,Gate damage,Is there any damage to the gates?,,DST 34-1441 Annex C,1,2013-02-01
+F12,F,General,12,Access difficulty,Is access difficult / is a helicopter required / new roads or quarries appearing? (use remarks),,DST 34-1441 Annex C,1,2013-02-01
+T0,T,Thermal,0,PLACEHOLDER thermal severity,Thermal severity classification pending Eskom thermographic spec (TBD-4),Schema ready: ref temp / spot / delta-T / emissivity,placeholder,1,2026-07-07
+V0,V,Vegetation/Servitude,0,PLACEHOLDER vegetation encroachment,Vegetation clearance per 240-70172585 pending detail,See also F9,placeholder,1,2026-07-07
