@@ -53,7 +53,8 @@ def test_oov_value_becomes_exception_never_a_guess():
 def test_parse_error_record_is_exception_document_still_converts():
     normalized = _normalized([
         {"id": "1", "severity": "5"},
-        {"id": "2", "severity": "9 GARBLED", "parse_error": "severity '9 GARBLED' outside vocabulary"},
+        {"id": "2", "severity": "9 GARBLED",
+         "parse_error": "severity '9 GARBLED' outside vocabulary"},
         {"id": "3", "severity": "1"},
     ])
     rows, exceptions = apply_records(DOC, normalized, {}, VMAPS, COLUMNS)
