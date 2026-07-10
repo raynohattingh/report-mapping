@@ -128,7 +128,8 @@ class ApplyRun(Base):
     transform_id: Mapped[int] = mapped_column(ForeignKey("transforms.id"))
     target_template_id: Mapped[int] = mapped_column(ForeignKey("target_templates.id"))
     safecard: Mapped[dict] = mapped_column(JSON)
-    outputs_manifest: Mapped[list] = mapped_column(JSON)  # [{document_sha, output_kind, store_hash}]
+    # [{document_sha, output_kind, store_hash}]
+    outputs_manifest: Mapped[list] = mapped_column(JSON)
     exceptions_report_ref: Mapped[str] = mapped_column(String(64))  # ALWAYS present (FR-013)
     # Written only on successful completion (interrupted-run edge case, analysis C4).
     completed_at: Mapped[datetime.datetime] = mapped_column(DateTime)

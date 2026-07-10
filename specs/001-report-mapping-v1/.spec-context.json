@@ -223,9 +223,97 @@
       "kind": "complete",
       "by": "ai",
       "at": "2026-07-10T22:36:37.305Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T017",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T22:45:17.395Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T018",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T22:45:17.470Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T019",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T22:45:17.545Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T020",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T22:45:17.622Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T021",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T22:45:17.695Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T022",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T22:45:17.771Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T023",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T22:45:17.842Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T024",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T22:45:17.912Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T025",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T22:45:17.988Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T026",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T22:45:18.070Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T027",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T22:45:18.150Z"
     }
   ],
-  "currentTask": "T016",
+  "currentTask": "T027",
   "task_summaries": {
     "T001": {
       "status": "DONE",
@@ -350,6 +438,89 @@
       "did": "position-based extractor -> NormalizedRecords: midpoint column bounds, id-top row bands, severity overflow fix, integrity block incl declared-vs-extracted; T015 green",
       "files": [
         "src/rmu/extract/scopito_pdf_powerline.py"
+      ]
+    },
+    "T017": {
+      "status": "DONE",
+      "did": "RED->GREEN FR-007 approval preconditions: unrouted required, T2/T3 tiers, unresolved valuemap pins all refuse",
+      "files": [
+        "tests/unit/test_approve_preconditions.py",
+        "src/rmu/mapping/approve.py"
+      ]
+    },
+    "T018": {
+      "status": "DONE",
+      "did": "ProposalProvider protocol + Null/Stub providers; subprocess import-graph invariant test proves no anthropic/httpx reachable from deterministic stages",
+      "files": [
+        "src/rmu/mapping/providers.py",
+        "tests/invariants/test_no_ai_in_apply.py"
+      ]
+    },
+    "T019": {
+      "status": "DONE",
+      "did": "session module: schema-valid draft builder (T2 proposals/T3 placeholders + source inventory banner), lineage timestamps, decision diffing, valuemap starters",
+      "files": [
+        "src/rmu/mapping/session.py"
+      ]
+    },
+    "T020": {
+      "status": "DONE",
+      "did": "deterministic CSV renderer (LF, UTF-8 no BOM, stable columns) + byte-stability tests",
+      "files": [
+        "src/rmu/render/csv.py",
+        "tests/unit/test_render_csv.py"
+      ]
+    },
+    "T021": {
+      "status": "DONE",
+      "did": "rmu map start: detect+integrity-gate exemplar, persist SourceDocument+MappingSession, emit draft YAML + valuemap starters",
+      "files": [
+        "src/rmu/cli.py",
+        "src/rmu/registry.py"
+      ]
+    },
+    "T022": {
+      "status": "DONE",
+      "did": "rmu map preview via pure engine primitives (preview mode marks unresolved cells); engine.py: paths, closed formulas, valuemap lookup",
+      "files": [
+        "src/rmu/cli.py",
+        "src/rmu/apply/engine.py"
+      ]
+    },
+    "T023": {
+      "status": "DONE",
+      "did": "rmu map approve: schema+FR-007 gate (exit 3), versioned Transform insert w/ approval metadata + parent_version, decisions recorded",
+      "files": [
+        "src/rmu/cli.py"
+      ]
+    },
+    "T024": {
+      "status": "DONE",
+      "did": "manual --no-ai integration test: refuse-then-approve loop, preview rows=10, Transform v1 + lineage, zero proposals (SC-007)",
+      "files": [
+        "tests/integration/test_manual_session.py"
+      ]
+    },
+    "T025": {
+      "status": "DONE",
+      "did": "AnthropicProvider (claude-fable-5, mapping-session-only construction, A6); proposals persisted w/ tier+rationale",
+      "files": [
+        "src/rmu/mapping/providers.py"
+      ]
+    },
+    "T026": {
+      "status": "DONE",
+      "did": "Jinja2 HTML review sheet w/ tier-colored rows (T2 visually distinct) + rmu map review CLI",
+      "files": [
+        "src/rmu/mapping/review_sheet.py",
+        "src/rmu/cli.py"
+      ]
+    },
+    "T027": {
+      "status": "DONE",
+      "did": "AI-session integration test: T2 blocks approval, starters not auto-registered, accepted transform identical form to manual",
+      "files": [
+        "tests/integration/test_ai_session.py"
       ]
     }
   }
