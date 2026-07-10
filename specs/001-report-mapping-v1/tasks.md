@@ -22,10 +22,10 @@ drift-block, exceptions report) are NEVER cut (D3).
 
 **Purpose**: repo + toolchain scaffold per plan Project Structure
 
-- [ ] T001 Initialize git repo, create pyproject.toml (Python 3.12, uv; deps: typer, sqlalchemy, alembic, pdfplumber, pyyaml, jsonschema, docxtpl, openpyxl, jinja2, anthropic; dev: pytest, ruff, reportlab; `rmu` console script) and `src/rmu/` package skeleton with `detect/ extract/ mapping/ apply/ validate/ render/` subpackages + `cli.py`; `uv sync` must succeed
-- [ ] T002 [P] Configure ruff + pytest in pyproject.toml; create tests/ skeleton (`tests/{invariants,golden,unit,integration,fixtures}/`)
-- [ ] T003 [P] Create .gitignore (store/, .venv, __pycache__) and empty `store/` layout; initial commit
-- [ ] T004 [P] Implement src/rmu/config.py (RMU_DB_URL default `sqlite:///store/rmu.db`, store path, SQLite foreign_keys pragma) per research R9
+- [x] T001 Initialize git repo, create pyproject.toml (Python 3.12, uv; deps: typer, sqlalchemy, alembic, pdfplumber, pyyaml, jsonschema, docxtpl, openpyxl, jinja2, anthropic; dev: pytest, ruff, reportlab; `rmu` console script) and `src/rmu/` package skeleton with `detect/ extract/ mapping/ apply/ validate/ render/` subpackages + `cli.py`; `uv sync` must succeed
+- [x] T002 [P] Configure ruff + pytest in pyproject.toml; create tests/ skeleton (`tests/{invariants,golden,unit,integration,fixtures}/`)
+- [x] T003 [P] Create .gitignore (store/, .venv, __pycache__) and empty `store/` layout; initial commit
+- [x] T004 [P] Implement src/rmu/config.py (RMU_DB_URL default `sqlite:///store/rmu.db`, store path, SQLite foreign_keys pragma) per research R9
 
 **Checkpoint**: `uv sync && uv run pytest` runs (zero tests collected is fine).
 

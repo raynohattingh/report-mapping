@@ -95,6 +95,71 @@
       "kind": "start",
       "by": "extension",
       "at": "2026-07-10T22:21:31.329Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T001",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T22:22:54.449Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T002",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T22:22:54.519Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T003",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T22:22:54.596Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T004",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T22:22:54.668Z"
     }
-  ]
+  ],
+  "currentTask": "T004",
+  "task_summaries": {
+    "T001": {
+      "status": "DONE",
+      "did": "git repo + pyproject (uv, py3.12, all deps, rmu script) + src/rmu stage packages; uv sync green",
+      "files": [
+        "pyproject.toml",
+        "src/rmu/__init__.py",
+        ".python-version"
+      ]
+    },
+    "T002": {
+      "status": "DONE",
+      "did": "ruff+pytest config in pyproject; tests/ skeleton dirs",
+      "files": [
+        "pyproject.toml"
+      ]
+    },
+    "T003": {
+      "status": "DONE",
+      "did": ".gitignore (store/, venv, caches) + initial commit c299b65",
+      "files": [
+        ".gitignore"
+      ]
+    },
+    "T004": {
+      "status": "DONE",
+      "did": "config.py: RMU_DB_URL default sqlite in store/, RMU_STORE root (R9)",
+      "files": [
+        "src/rmu/config.py"
+      ]
+    }
+  }
 }
