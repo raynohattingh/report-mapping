@@ -8,7 +8,6 @@ import pytest
 from typer.testing import CliRunner
 
 from rmu.cli import app
-
 from tests.integration.helpers import approve_defect_csv_transform
 
 runner = CliRunner()

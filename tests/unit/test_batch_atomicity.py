@@ -9,10 +9,8 @@ from typer.testing import CliRunner
 
 import rmu.apply.batch as batch_mod
 from rmu.apply.batch import BatchError, run_batch
-from rmu.cli import app
 from rmu.db import make_engine, make_session_factory
 from rmu.models import ApplyRun, ConversionException
-
 from tests.integration.helpers import approve_defect_csv_transform
 
 runner = CliRunner()

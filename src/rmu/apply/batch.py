@@ -10,7 +10,6 @@ from __future__ import annotations
 import datetime
 import hashlib
 import importlib
-import json
 from pathlib import Path
 
 from sqlalchemy import func, select
@@ -150,7 +149,7 @@ def run_batch(
                 "record_ref": None,
                 "kind": "duplicate",
                 "detail": {"field": "", "value": sha[:12],
-                           "reason": f"duplicate of an earlier document in this batch",
+                           "reason": "duplicate of an earlier document in this batch",
                            "suggestion": "remove the duplicate file; it was converted once"},
             }]
             per_doc_exceptions.append((name, exc))

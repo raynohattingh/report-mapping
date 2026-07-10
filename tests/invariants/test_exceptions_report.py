@@ -8,7 +8,10 @@ import yaml
 from rmu.apply.records import apply_records
 
 DOC = yaml.safe_load("""
-meta: {source_profile: scopito.pdf.powerline@v2020, target_template: interim.defect_csv@1, version: 1}
+meta:
+  source_profile: scopito.pdf.powerline@v2020
+  target_template: interim.defect_csv@1
+  version: 1
 routes:
   finding_id: {from: finding.id, tier: T0}
   priority:

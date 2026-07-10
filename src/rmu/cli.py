@@ -369,7 +369,9 @@ def _parse_answers(answers: list[str]) -> dict[str, str]:
 @apply_app.command("run")
 def apply_run(
     folder: str = typer.Argument(..., help="folder of same-shape source PDFs"),
-    transform: str = typer.Option(..., help="e.g. scopito.pdf.powerline@v2020:interim.defect_csv@1"),
+    transform: str = typer.Option(
+        ..., help="e.g. scopito.pdf.powerline@v2020:interim.defect_csv@1"
+    ),
     answer: list[str] = typer.Option([], "--answer", help="per-batch prompt answer key=value"),
     label: str = typer.Option("", help="batch label for the audit record"),
 ) -> None:
