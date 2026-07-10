@@ -21,9 +21,10 @@ _DATE_IN_FORMATS = ["%b %d, %Y", "%B %d, %Y", "%Y-%m-%d", "%d/%m/%Y"]
 
 
 class ResolveError(ValueError):
-    def __init__(self, reason: str, suggestion: str = ""):
+    def __init__(self, reason: str, suggestion: str = "", kind: str = "record_parse"):
         self.reason = reason
         self.suggestion = suggestion
+        self.kind = kind  # oov_value | record_parse (FR-012 classification)
         super().__init__(reason)
 
 
@@ -106,6 +107,7 @@ def lookup_value_map(raw: Any, entries: list[dict]) -> str:
     raise ResolveError(
         f"value {text!r} not covered by the approved value map",
         suggestion=f"review and add a mapping for {text!r} as a new value-map version",
+        kind="oov_value",
     )
 
 
@@ -155,6 +157,7 @@ def resolve_record(
             problems.append(
                 {
                     "field": field,
+                    "kind": err.kind,
                     "reason": err.reason,
                     "suggestion": err.suggestion,
                 }

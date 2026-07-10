@@ -19,12 +19,16 @@ profile_app = typer.Typer(no_args_is_help=True)
 template_app = typer.Typer(no_args_is_help=True)
 valuemap_app = typer.Typer(no_args_is_help=True)
 map_app = typer.Typer(no_args_is_help=True)
+apply_app = typer.Typer(no_args_is_help=True)
+runs_app = typer.Typer(no_args_is_help=True)
 app.add_typer(db_app, name="db")
 app.add_typer(seed_app, name="seed")
 app.add_typer(profile_app, name="profile")
 app.add_typer(template_app, name="template")
 app.add_typer(valuemap_app, name="valuemap")
 app.add_typer(map_app, name="map")
+app.add_typer(apply_app, name="apply")
+app.add_typer(runs_app, name="runs")
 
 
 def session_factory():
@@ -349,6 +353,83 @@ def map_approve(
         s.commit()
         typer.echo(f"approved: transform v{version} (id={transform.id}) by {by}; "
                    f"{len(ms.decisions)} decisions recorded")
+
+
+def _parse_answers(answers: list[str]) -> dict[str, str]:
+    parsed: dict[str, str] = {}
+    for item in answers:
+        key, sep, value = item.partition("=")
+        if not sep:
+            typer.echo(f"error: --answer must be key=value, got {item!r}")
+            raise typer.Exit(1)
+        parsed[key] = value
+    return parsed
+
+
+@apply_app.command("run")
+def apply_run(
+    folder: str = typer.Argument(..., help="folder of same-shape source PDFs"),
+    transform: str = typer.Option(..., help="e.g. scopito.pdf.powerline@v2020:interim.defect_csv@1"),
+    answer: list[str] = typer.Option([], "--answer", help="per-batch prompt answer key=value"),
+    label: str = typer.Option("", help="batch label for the audit record"),
+) -> None:
+    """Deterministic zero-decision batch conversion (US2). Never interactive."""
+    from pathlib import Path
+
+    from rmu.apply.batch import BatchError, run_batch
+
+    with session_factory()() as s:
+        try:
+            summary = run_batch(s, Path(folder), transform, _parse_answers(answer), label)
+        except (BatchError, LookupError) as err:
+            typer.echo(f"error: {err}")
+            raise typer.Exit(1) from err
+    typer.echo(
+        f"run {summary['run_id']}: documents={summary['documents']} "
+        f"converted={summary['converted']} blocked={summary['blocked']} "
+        f"exceptions={summary['exceptions']}"
+    )
+    typer.echo(f"outputs: {summary['run_dir']}")
+    if summary["converted"] == 0:
+        typer.echo("blocked: no document in this batch could be converted")
+        raise typer.Exit(2)
+
+
+@runs_app.command("list")
+def runs_list() -> None:
+    from rmu.models import ApplyRun
+
+    with session_factory()() as s:
+        for r in s.scalars(select(ApplyRun).order_by(ApplyRun.id)):
+            b = r.safecard["batch"]
+            typer.echo(
+                f"run {r.id}  label={r.batch_label}  docs={b['total']} "
+                f"verdicts={b['verdicts']}  transform_id={r.transform_id}"
+            )
+
+
+@runs_app.command("show")
+def runs_show(run_id: int = typer.Argument(...)) -> None:
+    import json
+
+    from rmu.models import ApplyRun
+
+    with session_factory()() as s:
+        r = s.get(ApplyRun, run_id)
+        if r is None:
+            typer.echo(f"error: no run {run_id}")
+            raise typer.Exit(1)
+        typer.echo(json.dumps({
+            "id": r.id,
+            "label": r.batch_label,
+            "document_shas": r.document_shas,
+            "prompt_answers": r.prompt_answers,
+            "transform_id": r.transform_id,
+            "target_template_id": r.target_template_id,
+            "safecard_batch": r.safecard["batch"],
+            "outputs_manifest": r.outputs_manifest,
+            "exceptions_report_ref": r.exceptions_report_ref,
+        }, indent=1, sort_keys=True))
 
 
 if __name__ == "__main__":

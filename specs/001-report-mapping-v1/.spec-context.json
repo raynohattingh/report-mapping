@@ -311,9 +311,65 @@
       "kind": "complete",
       "by": "ai",
       "at": "2026-07-10T22:45:18.150Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T028",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T22:52:18.608Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T029",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T22:52:18.681Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T030",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T22:52:18.753Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T031",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T22:52:18.827Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T032",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T22:52:18.902Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T033",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T22:52:18.977Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T034",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T22:52:19.050Z"
     }
   ],
-  "currentTask": "T027",
+  "currentTask": "T034",
   "task_summaries": {
     "T001": {
       "status": "DONE",
@@ -521,6 +577,61 @@
       "did": "AI-session integration test: T2 blocks approval, starters not auto-registered, accepted transform identical form to manual",
       "files": [
         "tests/integration/test_ai_session.py"
+      ]
+    },
+    "T028": {
+      "status": "DONE",
+      "did": "seeded reportlab fixture builder; 18 synthetic PDFs (incl zero-findings) + 2 drifted committed; real extractor parses them",
+      "files": [
+        "tests/fixtures/build_fixtures.py",
+        "tests/fixtures/batch_20/",
+        "tests/fixtures/drifted/"
+      ]
+    },
+    "T029": {
+      "status": "DONE",
+      "did": "RED->GREEN apply invariants: OOV->exception w/ suggestion + no output row; parse_error->per-record exception, doc converts; clean run still emits report",
+      "files": [
+        "tests/invariants/test_exceptions_report.py"
+      ]
+    },
+    "T030": {
+      "status": "DONE",
+      "did": "strict apply_records atop engine primitives: kind-classified ResolveError (oov_value/record_parse), no partial rows ever",
+      "files": [
+        "src/rmu/apply/records.py",
+        "src/rmu/apply/engine.py"
+      ]
+    },
+    "T031": {
+      "status": "DONE",
+      "did": "exceptions.csv writer (always written, 7 columns incl reason+suggestion)",
+      "files": [
+        "src/rmu/render/exceptions.py"
+      ]
+    },
+    "T032": {
+      "status": "DONE",
+      "did": "batch runner: upfront prompt validation, per-doc detect/extract/quarantine (unknown/drift/duplicate), per-report CSVs, safecard.json, completion-only ApplyRun + atomicity tests incl empty batch",
+      "files": [
+        "src/rmu/apply/batch.py",
+        "src/rmu/validate/safecard.py",
+        "tests/unit/test_batch_atomicity.py",
+        "tests/integration/helpers.py"
+      ]
+    },
+    "T033": {
+      "status": "DONE",
+      "did": "rmu apply run (--answer, exit 1 missing prompts / 2 all-blocked) + runs list/show audit inspection",
+      "files": [
+        "src/rmu/cli.py"
+      ]
+    },
+    "T034": {
+      "status": "DONE",
+      "did": "20-report batch integration: fail-fast prompts, 20 per-report CSVs, zero-findings valid, Lightning strike OOV in exceptions and absent from ALL outputs, prompt answer in rows",
+      "files": [
+        "tests/integration/test_batch.py"
       ]
     }
   }
