@@ -112,12 +112,12 @@ drift-block, exceptions report) are NEVER cut (D3).
 
 **Purpose**: second interim template, golden files, hygiene, hand-off state
 
-- [ ] T043 [P] [SUBAGENT] Implement templates/interim.annexc_pack docxtpl renderer in src/rmu/render/docx.py (canonicalized) + golden-file test in tests/golden/test_annexc_pack.py — D3 cut #3: defer if Sunday slips, never at the cost of invariant tests
-- [ ] T044 [P] Add golden-file tests for defect CSV + HTML review sheet in tests/golden/ (byte-exact expected outputs committed)
-- [ ] T045 Execute quickstart.md end-to-end manually and fix any drift between docs and CLI behavior
-- [ ] T046 [P] ruff clean, type hints complete, A#/D# assumption citations present at every reliance site (Constitution IX)
-- [ ] T047 Update STATUS.md: session log (done/decisions/next/open questions) + propose the three design-refinement deltas from plan.md Deviations (CLAUDE.md rule 8)
-- [ ] T048 Run full test suite; verify SC-001…SC-008 each demonstrably met; record DoD evidence in STATUS.md — record SC-001 as "session flow demonstrated; ≤2h human benchmark deferred per A7" (analysis U1)
+- [x] T043 [P] [SUBAGENT] Implement templates/interim.annexc_pack docxtpl renderer in src/rmu/render/docx.py (canonicalized) + golden-file test in tests/golden/test_annexc_pack.py — D3 cut #3: defer if Sunday slips, never at the cost of invariant tests
+- [x] T044 [P] Add golden-file tests for defect CSV + HTML review sheet in tests/golden/ (byte-exact expected outputs committed)
+- [x] T045 Execute quickstart.md end-to-end manually and fix any drift between docs and CLI behavior
+- [x] T046 [P] ruff clean, type hints complete, A#/D# assumption citations present at every reliance site (Constitution IX)
+- [x] T047 Update STATUS.md: session log (done/decisions/next/open questions) + propose the three design-refinement deltas from plan.md Deviations (CLAUDE.md rule 8)
+- [x] T048 Run full test suite; verify SC-001…SC-008 each demonstrably met; record DoD evidence in STATUS.md — record SC-001 as "session flow demonstrated; ≤2h human benchmark deferred per A7" (analysis U1)
 
 ---
 

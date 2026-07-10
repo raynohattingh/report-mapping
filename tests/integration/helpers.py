@@ -26,6 +26,45 @@ ISSUE_ENTRIES = [
 ]
 
 
+def approve_annexc_transform(runner, tmp_path: Path) -> int:
+    """Manual session approving a transform for the docx report pack template.
+
+    Assumes db init + seed + value maps already exist (run the defect-csv
+    helper first)."""
+    started = runner.invoke(app, [
+        "map", "start", "--profile", "scopito.pdf.powerline@v2020",
+        "--template", "interim.annexc_pack@1", "--exemplar", EXEMPLAR, "--no-ai",
+    ])
+    assert started.exit_code == 0, started.output
+    session_id = int(re.search(r"session: (\d+)", started.output).group(1))
+    draft_path = Path(re.search(r"draft:\s+(\S+)", started.output).group(1))
+
+    doc = yaml.safe_load(draft_path.read_text())
+    doc["routes"] = {
+        "inspection_name": {"from": "header.inspection_name", "tier": "T0"},
+        "company": {"from": "header.company", "tier": "T0"},
+        "finding_id": {"from": "finding.id", "tier": "T0"},
+        "source_severity": {"from": "finding.severity", "tier": "T0"},
+        "priority": {"from": "finding.severity", "tier": "T1",
+                     "value_map": {"name": "severity_to_priority", "version": 1}},
+        "defect_code": {"from": "finding.issues", "tier": "T1",
+                        "value_map": {"name": "issue_to_defect_code", "version": 1}},
+        "comments": {"from": "finding.comments", "tier": "T0"},
+    }
+    doc["constants"] = {"inspection_method": "UAV visual"}
+    doc["formulas"] = {"inspection_date": {
+        "fn": "date_format",
+        "args": [{"field": "header.report_date"}, {"lit": "%Y-%m-%d"}],
+    }}
+    doc["prompts"] = [{"key": "contract_number", "label": "Client contract number",
+                       "required": True}]
+    draft_path.write_text(yaml.safe_dump(doc, sort_keys=True))
+    approved = runner.invoke(app, ["map", "approve", "--session", str(session_id),
+                                   "--by", "rayno"])
+    assert approved.exit_code == 0, approved.output
+    return session_id
+
+
 def approve_defect_csv_transform(runner, tmp_path: Path) -> int:
     """db init + seed + manual session + valuemaps + approve. Returns session id."""
     assert runner.invoke(app, ["db", "init"]).exit_code == 0

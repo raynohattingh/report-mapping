@@ -1,0 +1,2 @@
+finding_id,asset_name,inspection_date,defect_code,priority,source_severity,contract_number,inspection_method,user_tags,comments,source_page
+9000001,Golden inspection,2026-07-11,C1,P1,5,GOLD-1,UAV visual,SYN-1 | RGB,burned lead,2

@@ -3,7 +3,7 @@
   "specName": "[FEATURE NAME]",
   "branch": "main",
   "currentStep": "implement",
-  "status": "implementing",
+  "status": "implemented",
   "history": [
     {
       "step": "specify",
@@ -431,9 +431,64 @@
       "kind": "complete",
       "by": "ai",
       "at": "2026-07-10T22:58:07.503Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T043",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T23:03:35.309Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T044",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T23:03:35.383Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T045",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T23:03:35.456Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T046",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T23:03:35.528Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T047",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T23:03:35.601Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T048",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T23:03:35.672Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "kind": "complete",
+      "by": "extension",
+      "at": "2026-07-10T23:03:35.773Z"
     }
   ],
-  "currentTask": "T042",
+  "currentTask": "T048",
   "task_summaries": {
     "T001": {
       "status": "DONE",
@@ -756,6 +811,53 @@
       "did": "22-doc drift drill: 20 convert, 2 quarantined, safecard+exceptions list both, zero mis-conversions (SC-003)",
       "files": [
         "tests/integration/test_drift_drill.py"
+      ]
+    },
+    "T043": {
+      "status": "DONE",
+      "did": "docx pack renderer (canonicalized) + batch dispatch for record_scope report + golden byte test + 2-doc docx determinism test",
+      "files": [
+        "src/rmu/render/docx.py",
+        "src/rmu/apply/batch.py",
+        "tests/golden/test_annexc_pack.py",
+        "tests/golden/data/expected_pack.docx"
+      ]
+    },
+    "T044": {
+      "status": "DONE",
+      "did": "golden byte tests for defect CSV + review sheet, committed goldens + regeneration script",
+      "files": [
+        "tests/golden/make_golden.py",
+        "tests/golden/test_csv_and_review_golden.py",
+        "tests/golden/data/"
+      ]
+    },
+    "T045": {
+      "status": "DONE",
+      "did": "quickstart executed live with real CLI (session->approve->18-doc batch->hash-verified regen); fixed batch_20 count wording + added valuemap-create step",
+      "files": [
+        "specs/001-report-mapping-v1/quickstart.md"
+      ]
+    },
+    "T046": {
+      "status": "DONE",
+      "did": "ruff all-clean; citation audit: every assumption-reliant module cites A#/D#/R#/FR/Constitution (2 pure-lookup files exempt)",
+      "files": [
+        "src/rmu"
+      ]
+    },
+    "T047": {
+      "status": "DONE",
+      "did": "STATUS.md: session log, 7 recorded decisions, 3 design-doc delta proposals, next actions + open questions",
+      "files": [
+        "STATUS.md"
+      ]
+    },
+    "T048": {
+      "status": "DONE",
+      "did": "56 tests green incl 14 invariant tests; SC-001..SC-008 evidence table recorded in STATUS.md (SC-001 benchmark deferred per A7/U1)",
+      "files": [
+        "STATUS.md"
       ]
     }
   }

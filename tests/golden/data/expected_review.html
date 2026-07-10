@@ -1,0 +1,77 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>RMU mapping review — session 1</title>
+<style>
+ body { font-family: -apple-system, system-ui, sans-serif; margin: 2rem; }
+ table { border-collapse: collapse; width: 100%; }
+ th, td { border: 1px solid #ccc; padding: 6px 10px; text-align: left;
+          vertical-align: top; font-size: 14px; }
+ th { background: #f0f0f0; }
+ .T0, .T1 { background: #e6f4e6; }           /* human-confirmed */
+ .T2 { background: #fff3cd; font-style: italic; }  /* AI proposed — pending */
+ .T3 { background: #f8d7da; }                 /* unmapped */
+ .tier { font-weight: bold; font-family: monospace; }
+ .mech { color: #555; font-family: monospace; font-size: 13px; }
+ caption { text-align: left; font-size: 16px; font-weight: 600; padding-bottom: 8px; }
+ .legend span { padding: 2px 8px; margin-right: 8px; border: 1px solid #ccc; }
+</style></head><body>
+<h1>Mapping review — session 1 (ai)</h1>
+<p>scopito.pdf.powerline@v2020 &rarr; interim.defect_csv@1 · exemplar: Distribution-report.pdf</p>
+<p class="legend">
+ <span class="T0">human-confirmed (T0/T1)</span>
+ <span class="T2">AI proposed — needs your decision (T2)</span>
+ <span class="T3">unmapped (T3)</span>
+</p>
+<table>
+<caption>Target fields</caption>
+<tr><th>Target field</th><th>Mechanism</th><th>Exemplar value</th>
+    <th>Tier</th><th>Rationale / note</th><th>Decision state</th></tr>
+
+<tr class="T3">
+ <td><b>defect_code</b> *</td>
+ <td class="mech">route: finding.issues</td>
+ <td>Conductor Damage</td>
+ <td class="tier">T3</td>
+ <td>unmapped</td>
+ <td>unmapped — add a route, constant, formula or prompt</td>
+</tr>
+
+<tr class="T0">
+ <td><b>finding_id</b> *</td>
+ <td class="mech">route: finding.id</td>
+ <td>9000001</td>
+ <td class="tier">T0</td>
+ <td></td>
+ <td>human-confirmed (deterministic)</td>
+</tr>
+
+<tr class="T2">
+ <td><b>priority</b> *</td>
+ <td class="mech">route: finding.severity via severity_to_priority@1</td>
+ <td>5</td>
+ <td class="tier">T2</td>
+ <td>severity converts to priority</td>
+ <td>AI proposed — accept, edit or reject</td>
+</tr>
+
+<tr class="T0">
+ <td><b>inspection_method</b> *</td>
+ <td class="mech">constant</td>
+ <td>UAV visual</td>
+ <td class="tier">T0</td>
+ <td>fixed value</td>
+ <td>human-confirmed (deterministic)</td>
+</tr>
+
+<tr class="T0">
+ <td><b>contract_number</b> *</td>
+ <td class="mech">per-batch prompt: contract_number</td>
+ <td><<answered at batch launch>></td>
+ <td class="tier">T0</td>
+ <td>Client contract number</td>
+ <td>human-confirmed (deterministic)</td>
+</tr>
+
+</table>
+<p>* required by the target template. Approval is refused while any T2/T3 rows
+remain or any required field is unrouted (FR-007).</p>
+</body></html>

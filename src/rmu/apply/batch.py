@@ -48,6 +48,50 @@ class BatchError(RuntimeError):
     """Pre-run validation failure (exit 1): missing prompts, empty batch, ..."""
 
 
+def _render_pack_document(
+    doc: dict,
+    normalized: dict,
+    answers: dict,
+    value_maps: dict,
+    template_row,
+    template_bytes: bytes,
+) -> tuple[bytes, list[dict], int]:
+    """Report-scope rendering: header fields once + one findings row each.
+
+    Required header fields resolve strictly (failures -> document-level
+    exceptions); optional ones fall back to empty, never guessed values.
+    """
+    from rmu.apply.engine import resolve_record
+    from rmu.render.docx import render_pack
+
+    schema = template_row.required_schema
+    header_ctx = {"header": normalized["header"], "finding": {}, "prompt": answers}
+    values, problems = resolve_record(
+        list(schema.get("required", [])), doc, header_ctx, value_maps, strict=True
+    )
+    exceptions = [
+        {
+            "record_ref": None,
+            "kind": p["kind"],
+            "detail": {"field": p["field"], "value": "", "reason": p["reason"],
+                       "suggestion": p["suggestion"]},
+        }
+        for p in problems
+    ]
+    optional_values, _ = resolve_record(
+        list(schema.get("optional", [])), doc, header_ctx, value_maps, strict=False
+    )
+    for field, value in optional_values.items():
+        values[field] = "" if value.startswith("<<unresolved") else value
+
+    finding_rows, finding_excs = apply_records(
+        doc, normalized, answers, value_maps, list(schema.get("finding_fields", []))
+    )
+    exceptions.extend(finding_excs)
+    context = {**values, "findings": finding_rows}
+    return render_pack(template_bytes, context), exceptions, len(finding_rows)
+
+
 def _get_transform(session: Session, transform_ref: str) -> tuple[Transform, object, object]:
     try:
         profile_ref, template_ref = transform_ref.split(":", 1)
@@ -127,9 +171,13 @@ def run_batch(
 
     value_maps = load_value_maps(session, doc)
     meta = template_meta(template_row)
-    if meta["kind"] != "csv":
+    if meta["kind"] not in ("csv", "docx"):
         raise BatchError(f"renderer for template kind {meta['kind']!r} not available")
-    columns = meta["columns"]
+    template_bytes = (
+        store.get_bytes(template_row.template_files[meta["file"]])
+        if meta["kind"] == "docx"
+        else b""
+    )
     required = required_fields(template_row)
     tiers = tier_coverage(doc, required)
     profiles = list(session.scalars(select(SourceProfile)))
@@ -214,20 +262,29 @@ def run_batch(
             continue
 
         _get_or_create_document(session, sha, name, matched.id)
-        rows, exceptions = apply_records(doc, normalized, answers, value_maps, columns)
-        content = render_csv(rows, columns)
-        out_name = f"{pdf.stem}.defects.csv"
+        if meta["kind"] == "csv":
+            rows, exceptions = apply_records(
+                doc, normalized, answers, value_maps, meta["columns"]
+            )
+            content = render_csv(rows, meta["columns"])
+            out_name, out_kind = f"{pdf.stem}.defects.csv", "defect_csv"
+            n_rows = len(rows)
+        else:  # docx report pack (record_scope: report)
+            content, exceptions, n_rows = _render_pack_document(
+                doc, normalized, answers, value_maps, template_row, template_bytes
+            )
+            out_name, out_kind = f"{pdf.stem}.pack.docx", "annexc_pack"
         outputs.append((out_name, content))
         manifest.append({
             "document_sha": sha,
-            "output_kind": "defect_csv",
+            "output_kind": out_kind,
             "filename": out_name,
             "store_hash": store.put_bytes(content),
         })
         per_doc_exceptions.append((name, exceptions))
         verdicts.append(document_verdict(
             document=name, sha256=sha, blocked_reason=None, blocked_kind=None,
-            rows_converted=len(rows), findings_total=len(normalized["findings"]),
+            rows_converted=n_rows, findings_total=len(normalized["findings"]),
             exceptions=exceptions, tiers=tiers))
 
     run_dir = out_dir or store.runs_dir(f"pending-{digest.hexdigest()[:12]}")
