@@ -1,0 +1,7 @@
+{
+  "kind": "docx",
+  "label": "INTERIM Annex-C-style structure inspection pack (stand-in for Eskom Annexure H, TBD-1)",
+  "interim": true,
+  "file": "pack_template.docx",
+  "note": "Modeled on docs/eskom_dst34-1441_extraction.md structure only; zero invented Eskom content (Constitution I, A2)"
+}

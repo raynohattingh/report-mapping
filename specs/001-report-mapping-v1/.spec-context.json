@@ -127,9 +127,105 @@
       "kind": "complete",
       "by": "ai",
       "at": "2026-07-10T22:22:54.668Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T005",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T22:28:25.513Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T006",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T22:28:25.586Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T007",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T22:28:25.660Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T008",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T22:28:25.731Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T009",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T22:30:44.050Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T010",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T22:30:44.123Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T011",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T22:36:36.944Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T012",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T22:36:37.017Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T013",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T22:36:37.089Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T014",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T22:36:37.161Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T015",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T22:36:37.231Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T016",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T22:36:37.305Z"
     }
   ],
-  "currentTask": "T004",
+  "currentTask": "T016",
   "task_summaries": {
     "T001": {
       "status": "DONE",
@@ -159,6 +255,101 @@
       "did": "config.py: RMU_DB_URL default sqlite in store/, RMU_STORE root (R9)",
       "files": [
         "src/rmu/config.py"
+      ]
+    },
+    "T005": {
+      "status": "DONE",
+      "did": "RED->GREEN append-only invariant tests: UPDATE/DELETE on 5 star tables raises; migration walker additive-only",
+      "files": [
+        "tests/invariants/test_append_only.py"
+      ]
+    },
+    "T006": {
+      "status": "DONE",
+      "did": "8 SQLAlchemy 2.x entities per data-model.md incl APPEND_ONLY_MODELS tuple",
+      "files": [
+        "src/rmu/models.py"
+      ]
+    },
+    "T007": {
+      "status": "DONE",
+      "did": "db.py: engine/session factories, sqlite FK pragma, before_flush AppendOnlyViolation listener; T005 green",
+      "files": [
+        "src/rmu/db.py"
+      ]
+    },
+    "T008": {
+      "status": "DONE",
+      "did": "Alembic wiring + additive baseline 0001 creating all 8 tables; destructive downgrade forbidden",
+      "files": [
+        "alembic.ini",
+        "alembic/env.py",
+        "alembic/versions/0001_baseline.py"
+      ]
+    },
+    "T009": {
+      "status": "DONE",
+      "did": "content-addressed write-once store (objects/runs/drafts) + roundtrip/dedupe tests",
+      "files": [
+        "src/rmu/store.py",
+        "tests/unit/test_store.py"
+      ]
+    },
+    "T010": {
+      "status": "DONE",
+      "did": "transform-v1 JSON Schema (closed formula grammar, pinned valuemap refs, prompts) + loader with approval-precondition helpers; 6 tests green",
+      "files": [
+        "src/rmu/mapping/schemas/transform-v1.json",
+        "src/rmu/mapping/loader.py",
+        "tests/unit/test_transform_schema.py"
+      ]
+    },
+    "T011": {
+      "status": "DONE",
+      "did": "profile YAML: anchors, table-header regex (User tags optional), label variants, severity vocab (A1/A3)",
+      "files": [
+        "profiles/scopito.pdf.powerline.v2020.yaml"
+      ]
+    },
+    "T012": {
+      "status": "DONE",
+      "did": "both INTERIM templates as data: defect_csv (11 cols, 8 required) + annexc_pack (docxtpl template built+committed), rules from defect_codes_v1.csv",
+      "files": [
+        "templates/interim.defect_csv/template.json",
+        "templates/interim.annexc_pack/build_template.py",
+        "templates/interim.annexc_pack/pack_template.docx"
+      ]
+    },
+    "T013": {
+      "status": "DONE",
+      "did": "seed.py idempotent loaders + rmu db init/seed load/profile-template-valuemap list; integration test green",
+      "files": [
+        "src/rmu/seed.py",
+        "src/rmu/cli.py",
+        "tests/integration/test_seed.py"
+      ]
+    },
+    "T014": {
+      "status": "DONE",
+      "did": "detect stage: fingerprint match from profile data, unknown->None quarantine; 3 tests incl alien PDF",
+      "files": [
+        "src/rmu/detect/fingerprint.py",
+        "src/rmu/detect/__init__.py",
+        "tests/unit/test_detect.py"
+      ]
+    },
+    "T015": {
+      "status": "DONE",
+      "did": "RED extraction ground-truth tests vs BOTH real PDFs (8 tests: headers, findings, integrity, contract shape)",
+      "files": [
+        "tests/unit/test_extract_scopito.py"
+      ]
+    },
+    "T016": {
+      "status": "DONE",
+      "did": "position-based extractor -> NormalizedRecords: midpoint column bounds, id-top row bands, severity overflow fix, integrity block incl declared-vs-extracted; T015 green",
+      "files": [
+        "src/rmu/extract/scopito_pdf_powerline.py"
       ]
     }
   }

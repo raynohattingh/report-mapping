@@ -1,0 +1,13 @@
+{
+  "priority": {
+    "vocabulary": ["P1", "P2", "P3", "P4", "POI"]
+  },
+  "defect_code": {
+    "vocabulary_csv": "seed/defect_codes_v1.csv",
+    "code_column": "code",
+    "note": "Interim target vocabulary loaded as data (Constitution IV); codes A1-F12 + placeholders per docs/eskom_dst34-1441_extraction.md"
+  },
+  "source_severity": {
+    "vocabulary": ["1", "2", "3", "4", "5", "?"]
+  }
+}

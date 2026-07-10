@@ -35,18 +35,18 @@ drift-block, exceptions report) are NEVER cut (D3).
 
 **Purpose**: registries, schema, store, detection, extraction — everything every story stands on (plan P1+P2)
 
-- [ ] T005 [TDD] Write FAILING append-only invariant tests in tests/invariants/test_append_only.py: UPDATE/DELETE on SourceProfile/TargetTemplate/Transform/ValueMap AND ApplyRun raises AppendOnlyViolation (design §8 marks ApplyRun ★; analysis C2); Alembic migration walker asserts additive-only ops on ★ tables (research R2)
-- [ ] T006 Implement all 8 entities per data-model.md in src/rmu/models.py (fields, uniques, enums, ★ marks)
-- [ ] T007 [REVIEW] Implement src/rmu/db.py: engine/session factory + before_update/before_delete listeners raising AppendOnlyViolation on ★ tables — T005 tests go green; review before anything builds on the data model
-- [ ] T008 Create Alembic baseline migration in alembic/ (all 8 tables), additive-only
-- [ ] T009 [P] Implement src/rmu/store.py content-addressed blob store (`store/objects/<sha[:2]>/<sha>`, write-once) + unit tests in tests/unit/test_store.py (research R3)
-- [ ] T010 [P] [REVIEW] Author src/rmu/mapping/schemas/transform-v1.json + src/rmu/mapping/loader.py (validate YAML per contracts/transform-yaml.md: closed formula set, REQUIRED value-map versions, prompt decls; resolve pins against ValueMap rows) + unit tests in tests/unit/test_transform_schema.py — review before consumers exist (plan review gate 1)
-- [ ] T011 [P] Author profiles/scopito.pdf.powerline.v2020.yaml: detection fingerprint anchors (page-1 labels, severity overview, annotation-table header `Id, Severity, User tags, Issues, Comments, Page`), pdfplumber table settings, declared-totals fields (A1, A3; research R4)
-- [ ] T012 [P] Author templates/interim.defect_csv/ and templates/interim.annexc_pack/ as data: template files + required-field schemas + validation rules, both flagged INTERIM, defect vocabulary from seed/defect_codes_v1.csv (A2, Constitution I/IV)
-- [ ] T013 Implement seed loading + registry CLI in src/rmu/cli.py: `rmu db init`, `rmu seed load` (defect codes, both templates, scopito profile; idempotent), `rmu profile|template|valuemap list` + integration test in tests/integration/test_seed.py
-- [ ] T014 Implement src/rmu/detect/ fingerprint matching from profile YAML → profile-or-unknown + unit tests in tests/unit/test_detect.py (unknown → quarantine path, FR-002)
-- [ ] T015 [TDD] Write FAILING extraction tests in tests/unit/test_extract_scopito.py against BOTH real PDFs in seed/source_samples/: header fields present, severity vocabulary ⊆ {1..5, ?}, annotation rows parsed, `declared_counts == extracted` (A1, A3)
-- [ ] T016 Implement src/rmu/extract/scopito_pdf_powerline.py → NormalizedRecords JSON per contracts/normalized-records.md incl. integrity block (anchors_found/missing, declared_vs_extracted) — T015 goes green
+- [x] T005 [TDD] Write FAILING append-only invariant tests in tests/invariants/test_append_only.py: UPDATE/DELETE on SourceProfile/TargetTemplate/Transform/ValueMap AND ApplyRun raises AppendOnlyViolation (design §8 marks ApplyRun ★; analysis C2); Alembic migration walker asserts additive-only ops on ★ tables (research R2)
+- [x] T006 Implement all 8 entities per data-model.md in src/rmu/models.py (fields, uniques, enums, ★ marks)
+- [x] T007 [REVIEW] Implement src/rmu/db.py: engine/session factory + before_update/before_delete listeners raising AppendOnlyViolation on ★ tables — T005 tests go green; review before anything builds on the data model
+- [x] T008 Create Alembic baseline migration in alembic/ (all 8 tables), additive-only
+- [x] T009 [P] Implement src/rmu/store.py content-addressed blob store (`store/objects/<sha[:2]>/<sha>`, write-once) + unit tests in tests/unit/test_store.py (research R3)
+- [x] T010 [P] [REVIEW] Author src/rmu/mapping/schemas/transform-v1.json + src/rmu/mapping/loader.py (validate YAML per contracts/transform-yaml.md: closed formula set, REQUIRED value-map versions, prompt decls; resolve pins against ValueMap rows) + unit tests in tests/unit/test_transform_schema.py — review before consumers exist (plan review gate 1)
+- [x] T011 [P] Author profiles/scopito.pdf.powerline.v2020.yaml: detection fingerprint anchors (page-1 labels, severity overview, annotation-table header `Id, Severity, User tags, Issues, Comments, Page`), pdfplumber table settings, declared-totals fields (A1, A3; research R4)
+- [x] T012 [P] Author templates/interim.defect_csv/ and templates/interim.annexc_pack/ as data: template files + required-field schemas + validation rules, both flagged INTERIM, defect vocabulary from seed/defect_codes_v1.csv (A2, Constitution I/IV)
+- [x] T013 Implement seed loading + registry CLI in src/rmu/cli.py: `rmu db init`, `rmu seed load` (defect codes, both templates, scopito profile; idempotent), `rmu profile|template|valuemap list` + integration test in tests/integration/test_seed.py
+- [x] T014 Implement src/rmu/detect/ fingerprint matching from profile YAML → profile-or-unknown + unit tests in tests/unit/test_detect.py (unknown → quarantine path, FR-002)
+- [x] T015 [TDD] Write FAILING extraction tests in tests/unit/test_extract_scopito.py against BOTH real PDFs in seed/source_samples/: header fields present, severity vocabulary ⊆ {1..5, ?}, annotation rows parsed, `declared_counts == extracted` (A1, A3)
+- [x] T016 Implement src/rmu/extract/scopito_pdf_powerline.py → NormalizedRecords JSON per contracts/normalized-records.md incl. integrity block (anchors_found/missing, declared_vs_extracted) — T015 goes green
 
 **Checkpoint**: plan P1+P2 gates — invariant tests green, `rmu seed load` idempotent, both real PDFs extract clean. Get human approval.
 

@@ -1,0 +1,97 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "rmu.transform/1",
+  "title": "RMU Transform v1",
+  "description": "Transforms are data, never code (Constitution IV). Formula grammar is a closed set of pure operations (Constitution II); value-map references pin exact versions (spec FR-019).",
+  "type": "object",
+  "required": ["meta", "routes"],
+  "additionalProperties": false,
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["source_profile", "target_template", "version"],
+      "additionalProperties": false,
+      "properties": {
+        "source_profile": {"type": "string", "pattern": "^[a-z0-9_.]+@[a-zA-Z0-9_.]+$"},
+        "target_template": {"type": "string", "pattern": "^[a-z0-9_.]+@[0-9]+$"},
+        "version": {"type": "integer", "minimum": 1},
+        "parent_version": {"type": ["integer", "null"]}
+      }
+    },
+    "routes": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["from", "tier"],
+        "additionalProperties": false,
+        "properties": {
+          "from": {"type": "string", "minLength": 1},
+          "tier": {"enum": ["T0", "T1", "T2", "T3"]},
+          "value_map": {
+            "type": "object",
+            "required": ["name", "version"],
+            "additionalProperties": false,
+            "properties": {
+              "name": {"type": "string", "minLength": 1},
+              "version": {"type": "integer", "minimum": 1}
+            }
+          },
+          "rationale": {"type": "string"}
+        }
+      }
+    },
+    "constants": {
+      "type": "object",
+      "additionalProperties": {"type": ["string", "number"]}
+    },
+    "formulas": {
+      "type": "object",
+      "additionalProperties": {"$ref": "#/definitions/formula"}
+    },
+    "prompts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["key", "label", "required"],
+        "additionalProperties": false,
+        "properties": {
+          "key": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+          "label": {"type": "string"},
+          "required": {"type": "boolean"},
+          "target_field": {"type": "string"}
+        }
+      }
+    },
+    "exceptions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "unmapped_optional": {"enum": ["skip"]}
+      }
+    }
+  },
+  "definitions": {
+    "formula": {
+      "type": "object",
+      "required": ["fn", "args"],
+      "additionalProperties": false,
+      "properties": {
+        "fn": {
+          "enum": ["concat", "substring", "regex_extract", "date_format", "number_format", "arith"]
+        },
+        "args": {"type": "array", "minItems": 1, "items": {"$ref": "#/definitions/arg"}}
+      }
+    },
+    "arg": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "maxProperties": 1,
+      "properties": {
+        "field": {"type": "string", "minLength": 1},
+        "lit": {"type": ["string", "number"]},
+        "prompt": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}
