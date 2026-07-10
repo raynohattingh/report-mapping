@@ -367,9 +367,73 @@
       "kind": "complete",
       "by": "ai",
       "at": "2026-07-10T22:52:19.050Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T035",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T22:58:06.994Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T036",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T22:58:07.066Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T037",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T22:58:07.139Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T038",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T22:58:07.209Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T039",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T22:58:07.282Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T040",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T22:58:07.357Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T041",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T22:58:07.432Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T042",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-10T22:58:07.503Z"
     }
   ],
-  "currentTask": "T034",
+  "currentTask": "T042",
   "task_summaries": {
     "T001": {
       "status": "DONE",
@@ -632,6 +696,66 @@
       "did": "20-report batch integration: fail-fast prompts, 20 per-report CSVs, zero-findings valid, Lightning strike OOV in exceptions and absent from ALL outputs, prompt answer in rows",
       "files": [
         "tests/integration/test_batch.py"
+      ]
+    },
+    "T035": {
+      "status": "DONE",
+      "did": "drifted fixtures committed: renamed-header (unknown-profile path) + declared-10-rows-7 (integrity drift block)",
+      "files": [
+        "tests/fixtures/drifted/drifted_header.pdf",
+        "tests/fixtures/drifted/count_mismatch.pdf"
+      ]
+    },
+    "T036": {
+      "status": "DONE",
+      "did": "drift-block invariant tests: both drifted quarantined w/ no output + listed in safecard/exceptions; healthy converts; all-blocked batch exits 2",
+      "files": [
+        "tests/invariants/test_drift_block.py"
+      ]
+    },
+    "T037": {
+      "status": "DONE",
+      "did": "SafeCard unit tests: tier coverage, pass/warn/block verdicts, batch summary lists every block, signature check proves no field-name input",
+      "files": [
+        "tests/unit/test_safecard.py",
+        "src/rmu/validate/safecard.py"
+      ]
+    },
+    "T038": {
+      "status": "DONE",
+      "did": "determinism invariant: double-run straight-hash equality over ALL artifacts; prompt answers proven part of inputs",
+      "files": [
+        "tests/invariants/test_determinism.py"
+      ]
+    },
+    "T039": {
+      "status": "DONE",
+      "did": "OPC/ZIP canonicalizer (sorted entries, 1980 epoch, pinned core props) + tests: divergent-timestamp renders canonicalize identical, idempotent",
+      "files": [
+        "src/rmu/render/canonicalize.py",
+        "tests/unit/test_canonicalize.py"
+      ]
+    },
+    "T040": {
+      "status": "DONE",
+      "did": "rmu apply regen: inputs by fingerprint, recorded answers replayed, EXACT pinned transform row, hash-verify vs manifest (exit 1 mismatch)",
+      "files": [
+        "src/rmu/cli.py",
+        "src/rmu/apply/batch.py"
+      ]
+    },
+    "T041": {
+      "status": "DONE",
+      "did": "regeneration invariant tests: byte-equal outputs; newer transform v2 does NOT leak into regen of a v1 run",
+      "files": [
+        "tests/invariants/test_regeneration.py"
+      ]
+    },
+    "T042": {
+      "status": "DONE",
+      "did": "22-doc drift drill: 20 convert, 2 quarantined, safecard+exceptions list both, zero mis-conversions (SC-003)",
+      "files": [
+        "tests/integration/test_drift_drill.py"
       ]
     }
   }

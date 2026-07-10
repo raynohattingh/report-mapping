@@ -174,15 +174,21 @@ def map_start(
         extraction_ref = blobstore.put_bytes(
             json.dumps(normalized, sort_keys=True).encode("utf-8")
         )
-        doc_row = SourceDocument(
-            sha256=normalized["source_sha256"],
-            original_filename=exemplar_path.name,
-            profile_id=profile_row.id,
-            received_at=datetime.datetime.now(datetime.UTC),
-            extraction_ref=extraction_ref,
+        doc_row = s.scalar(
+            select(SourceDocument).where(
+                SourceDocument.sha256 == normalized["source_sha256"]
+            )
         )
-        s.add(doc_row)
-        s.flush()
+        if doc_row is None:
+            doc_row = SourceDocument(
+                sha256=normalized["source_sha256"],
+                original_filename=exemplar_path.name,
+                profile_id=profile_row.id,
+                received_at=datetime.datetime.now(datetime.UTC),
+                extraction_ref=extraction_ref,
+            )
+            s.add(doc_row)
+            s.flush()
 
         provider = get_provider(no_ai=no_ai, stub=stub_ai)
         proposals = provider.propose(
@@ -395,6 +401,68 @@ def apply_run(
     if summary["converted"] == 0:
         typer.echo("blocked: no document in this batch could be converted")
         raise typer.Exit(2)
+
+
+@apply_app.command("regen")
+def apply_regen(
+    run_id: int = typer.Argument(...),
+    out: str = typer.Option("", help="output directory (default store/regen/<run-id>)"),
+) -> None:
+    """Reproduce a past run EXACTLY from its audit record; hash-verify every
+    output against the recorded manifest (FR-018). Never re-asks prompts."""
+    import shutil
+    from pathlib import Path
+
+    from sqlalchemy import select as sa_select
+
+    from rmu import store as blobstore
+    from rmu.apply.batch import run_batch
+    from rmu.config import store_root
+    from rmu.models import ApplyRun, SourceDocument, Transform
+
+    with session_factory()() as s:
+        r = s.get(ApplyRun, run_id)
+        if r is None:
+            typer.echo(f"error: no run {run_id}")
+            raise typer.Exit(1)
+        transform = s.get(Transform, r.transform_id)
+
+        # Rebuild the input folder from content fingerprints (research R3).
+        inputs = store_root() / "regen" / f"{run_id}-inputs"
+        if inputs.exists():
+            shutil.rmtree(inputs)
+        inputs.mkdir(parents=True)
+        for sha in r.document_shas:
+            doc_row = s.scalar(
+                sa_select(SourceDocument).where(SourceDocument.sha256 == sha)
+            )
+            name = doc_row.original_filename if doc_row else f"{sha[:12]}.pdf"
+            shutil.copyfile(blobstore.get_path(sha), inputs / name)
+
+        out_dir = Path(out) if out else store_root() / "regen" / str(run_id)
+        if out_dir.exists():
+            shutil.rmtree(out_dir)
+        out_dir.mkdir(parents=True)
+
+        summary = run_batch(
+            s, inputs, "", r.prompt_answers,
+            out_dir=out_dir, record_run=False, transform_override=transform,
+        )
+
+    expected = {m["filename"]: m["store_hash"] for m in r.outputs_manifest}
+    regenerated = {m["filename"]: m["store_hash"] for m in summary["manifest"]}
+    mismatched = sorted(
+        set(expected) ^ set(regenerated)
+        | {f for f in expected if f in regenerated and expected[f] != regenerated[f]}
+    )
+    if mismatched:
+        typer.echo(f"REGENERATION MISMATCH for run {run_id}: {', '.join(mismatched)}")
+        raise typer.Exit(1)
+    typer.echo(
+        f"regenerated run {run_id}: {len(expected)} outputs hash-verified "
+        f"against the recorded manifest"
+    )
+    typer.echo(f"outputs: {out_dir}")
 
 
 @runs_app.command("list")

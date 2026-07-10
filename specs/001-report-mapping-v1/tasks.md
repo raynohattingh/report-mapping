@@ -95,14 +95,14 @@ drift-block, exceptions report) are NEVER cut (D3).
 **Goal**: SafeCard verdicts from value-level coverage only; drift blocked per-document; byte-identical re-runs; exact regeneration
 **Independent Test**: mixed batch with drifted fixtures → drifted BLOCKED + healthy convert; double-run hashes equal; regen hash-verifies (SC-003/004/005)
 
-- [ ] T035 [P] [US3] Generate+commit tests/fixtures/drifted/: fixture A with renamed annotation-table header (`Id`→`Ref`, anchor missing), fixture B declaring 10 annotations but containing 7 rows (count mismatch) per research R7
-- [ ] T036 [TDD] [US3] Write FAILING drift-block tests in tests/invariants/test_drift_block.py: both drifted fixtures are quarantined with no output, listed in SafeCard + exceptions; healthy documents in the same batch still convert (FR-016; SC-003)
-- [ ] T037 [US3] Implement src/rmu/validate/safecard.py: per-document verdict from tier coverage + value-level coverage + exception rate + integrity signals; batch summary; safecard.json writer; NO field-name-overlap input anywhere + unit tests in tests/unit/test_safecard.py (FR-015; research R10)
-- [ ] T038 [TDD] [US3] Write FAILING determinism tests in tests/invariants/test_determinism.py: run batch twice → every output file sha256 identical; straight hash, no masking (FR-011; SC-004)
-- [ ] T039 [US3] Implement src/rmu/render/canonicalize.py ZIP/OPC canonicalizer (sorted entries, 1980-01-01 entry dates, fixed compression, pinned docProps created/modified, stripped lastModifiedBy) wired into every renderer — T038 goes green (research R1)
-- [ ] T040 [US3] Implement `rmu apply regen <run-id> [--out]` in src/rmu/cli.py: rebuild from ApplyRun (inputs by fingerprint, recorded prompt answers, pinned versions), verify each regenerated hash equals outputs_manifest, nonzero exit on mismatch, never re-asks (FR-018)
-- [ ] T041 [US3] Regeneration invariant test in tests/invariants/test_regeneration.py: regen of a completed run reproduces manifest hashes exactly (SC-005)
-- [ ] T042 [US3] Integration drift drill tests/integration/test_drift_drill.py: batch_20 + drifted fixtures in one run → per-document quarantine verdicts, healthy 20 convert, safecard.json batch summary + exceptions.csv each list every blocked document (US3 scenarios 1–4; SC-003)
+- [x] T035 [P] [US3] Generate+commit tests/fixtures/drifted/: fixture A with renamed annotation-table header (`Id`→`Ref`, anchor missing), fixture B declaring 10 annotations but containing 7 rows (count mismatch) per research R7
+- [x] T036 [TDD] [US3] Write FAILING drift-block tests in tests/invariants/test_drift_block.py: both drifted fixtures are quarantined with no output, listed in SafeCard + exceptions; healthy documents in the same batch still convert (FR-016; SC-003)
+- [x] T037 [US3] Implement src/rmu/validate/safecard.py: per-document verdict from tier coverage + value-level coverage + exception rate + integrity signals; batch summary; safecard.json writer; NO field-name-overlap input anywhere + unit tests in tests/unit/test_safecard.py (FR-015; research R10)
+- [x] T038 [TDD] [US3] Write FAILING determinism tests in tests/invariants/test_determinism.py: run batch twice → every output file sha256 identical; straight hash, no masking (FR-011; SC-004)
+- [x] T039 [US3] Implement src/rmu/render/canonicalize.py ZIP/OPC canonicalizer (sorted entries, 1980-01-01 entry dates, fixed compression, pinned docProps created/modified, stripped lastModifiedBy) wired into every renderer — T038 goes green (research R1)
+- [x] T040 [US3] Implement `rmu apply regen <run-id> [--out]` in src/rmu/cli.py: rebuild from ApplyRun (inputs by fingerprint, recorded prompt answers, pinned versions), verify each regenerated hash equals outputs_manifest, nonzero exit on mismatch, never re-asks (FR-018)
+- [x] T041 [US3] Regeneration invariant test in tests/invariants/test_regeneration.py: regen of a completed run reproduces manifest hashes exactly (SC-005)
+- [x] T042 [US3] Integration drift drill tests/integration/test_drift_drill.py: batch_20 + drifted fixtures in one run → per-document quarantine verdicts, healthy 20 convert, safecard.json batch summary + exceptions.csv each list every blocked document (US3 scenarios 1–4; SC-003)
 
 **Checkpoint**: all three stories independently verifiable — the weekend DoD drill passes. Get human approval.
 

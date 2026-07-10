@@ -28,6 +28,7 @@ from rmu.models import (
 from rmu.registry import (
     get_profile,
     get_template,
+    get_template_by_id,
     load_value_maps,
     required_fields,
     template_meta,
@@ -96,14 +97,21 @@ def run_batch(
     label: str = "",
     out_dir: Path | None = None,
     record_run: bool = True,
+    transform_override: Transform | None = None,
 ) -> dict:
     """Convert every recognized, healthy PDF in `folder`; quarantine the rest.
 
     Returns a summary dict. The ApplyRun row is inserted only after every
     output is written (interrupted runs leave no audit record, analysis C4).
-    Set out_dir/record_run for regeneration replays (FR-018).
+    Regeneration (FR-018) passes transform_override (the EXACT recorded row,
+    never 'latest') with record_run=False and an explicit out_dir.
     """
-    transform, profile_row, template_row = _get_transform(session, transform_ref)
+    if transform_override is not None:
+        transform = transform_override
+        profile_row = session.get(SourceProfile, transform.source_profile_id)
+        template_row = get_template_by_id(session, transform.target_template_id)
+    else:
+        transform, profile_row, template_row = _get_transform(session, transform_ref)
     doc = parse_transform(transform.yaml_body)
 
     missing = sorted(set(prompt_keys(doc)) - set(answers))
