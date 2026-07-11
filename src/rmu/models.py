@@ -125,7 +125,10 @@ class ApplyRun(Base):
     batch_label: Mapped[str] = mapped_column(String(120))
     document_shas: Mapped[list] = mapped_column(JSON)
     prompt_answers: Mapped[dict] = mapped_column(JSON, default=dict)  # replayed on regen (FR-017)
-    transform_id: Mapped[int] = mapped_column(ForeignKey("transforms.id"))
+    transform_id: Mapped[int] = mapped_column(ForeignKey("transforms.id"))  # first/primary
+    # Every transform applied in this run (multi-template runs, convergence T051);
+    # regen replays exactly these rows. Nullable for pre-T051 rows.
+    transform_ids: Mapped[list | None] = mapped_column(JSON, nullable=True)
     target_template_id: Mapped[int] = mapped_column(ForeignKey("target_templates.id"))
     safecard: Mapped[dict] = mapped_column(JSON)
     # [{document_sha, output_kind, store_hash}]
@@ -142,7 +145,7 @@ class ConversionException(Base):
     apply_run_id: Mapped[int] = mapped_column(ForeignKey("apply_runs.id"))
     document_sha: Mapped[str] = mapped_column(String(64))
     record_ref: Mapped[str | None] = mapped_column(String(80), nullable=True)  # null = doc-level
-    # oov_value | record_parse | drift_block | unknown_profile | duplicate
+    # oov_value | record_parse | drift_block | unknown_profile | duplicate | invalid_value
     kind: Mapped[str] = mapped_column(String(20))
     detail: Mapped[dict] = mapped_column(JSON)  # failing value, reason, suggestion (FR-012)
     status: Mapped[str] = mapped_column(String(10), default="open")  # open|resolved

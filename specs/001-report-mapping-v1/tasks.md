@@ -178,3 +178,16 @@ At every phase boundary: summarize, run tests, report results, ask
 - Commit after each task or logical group; cite A#/D# in commit messages where relied on.
 - Apply path (T030/T032) must never import providers, network, or clock — verified by
   T038 determinism tests and the T027/T024 integration split.
+
+---
+
+## Phase 7: Convergence
+
+**Purpose**: close the gaps found by /speckit-converge on 2026-07-11 (5 partial findings,
+0 constitution violations). HIGH first.
+
+- [x] T049 Extend template registration in src/rmu/seed.py (and rules in templates/*/template.json) so a NEW VERSION of a target template registers as data — e.g. an explicit `version` field in template.json with idempotent insert per (name, version) — proving the real TBD-1/TBD-2 formats can slot in without touching pipeline code, with a test registering a v2 template dir per FR-001 + Constitution IV (partial)
+- [x] T050 Implement Validate-stage enforcement of TargetTemplate.validation_rules in src/rmu/validate/ (vocabulary legality: priority ∈ declared vocabulary, defect_code ∈ seed/defect_codes_v1.csv via `vocabulary_csv`), applied to converted rows in the batch pipeline with violations becoming exceptions (kind `invalid_value`, never silent) + unit and batch tests per plan §4 Validate stage + FR-001 (partial)
+- [x] T051 Support a repeatable `--transform` option on `rmu apply run` (src/rmu/cli.py, src/rmu/apply/batch.py) so ONE batch run applies both interim templates and records one ApplyRun whose manifest carries the report pack AND the per-report defect CSV per source report, with regen still hash-verifying, + integration test per FR-014 / US2-AC1 (partial)
+- [x] T052 Dispatch `rmu map preview` on template kind in src/rmu/cli.py: docx templates preview the exemplar as a rendered (canonicalized) pack file, CSV templates keep the current behavior, + test per FR-008 (partial)
+- [x] T053 Add a duplicate-document batch test in tests/integration/test_batch.py: same PDF twice in a folder → converted once, duplicate filename noted in exceptions.csv and SafeCard, per spec Edge Cases (partial)

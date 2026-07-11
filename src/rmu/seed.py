@@ -67,16 +67,26 @@ def seed_profiles(session: Session) -> list[str]:
     return added
 
 
-def seed_templates(session: Session) -> list[str]:
+def seed_templates(session: Session, templates_root: Path | None = None) -> list[str]:
+    """Register template versions from template dirs — pure data (Constitution IV).
+
+    template.json may declare `name`, `version` and `effective_from`; defaults
+    are the directory name, 1, and SEED_EFFECTIVE. A NEW version of an existing
+    template is just another directory whose template.json bumps `version` —
+    this is the mechanism the real TBD-1/TBD-2 formats use to slot in (FR-001).
+    Idempotent per (name, version); existing rows are never touched (append-only).
+    """
+    root = templates_root or (REPO_ROOT / "templates")
     added = []
-    for tdir in sorted((REPO_ROOT / "templates").iterdir()):
+    for tdir in sorted(root.iterdir()):
         if not tdir.is_dir():
             continue
         meta = json.loads((tdir / "template.json").read_text())
-        name = tdir.name
+        name = meta.get("name", tdir.name)
+        version = int(meta.get("version", 1))
         exists = session.scalar(
             select(TargetTemplate).where(
-                TargetTemplate.name == name, TargetTemplate.version == 1
+                TargetTemplate.name == name, TargetTemplate.version == version
             )
         )
         if exists:
@@ -88,17 +98,19 @@ def seed_templates(session: Session) -> list[str]:
         }
         session.add(
             TargetTemplate(
-                institution="INTERIM",  # Constitution I: no real institution content
+                institution=meta.get("institution", "INTERIM"),
                 name=name,
-                version=1,
-                effective_from=SEED_EFFECTIVE,
+                version=version,
+                effective_from=datetime.date.fromisoformat(
+                    meta["effective_from"]
+                ) if "effective_from" in meta else SEED_EFFECTIVE,
                 template_files=files,
                 required_schema=json.loads((tdir / "schema.json").read_text()),
                 validation_rules=json.loads((tdir / "rules.json").read_text()),
                 interim=bool(meta.get("interim", True)),
             )
         )
-        added.append(f"{name}@1")
+        added.append(f"{name}@{version}")
     return added
 
 

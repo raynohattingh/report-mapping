@@ -7,7 +7,8 @@ from pathlib import Path
 
 from rmu.render.csv import render_csv
 
-COLUMNS = ["document", "record_ref", "kind", "field", "value", "reason", "suggestion"]
+COLUMNS = ["document", "record_ref", "kind", "field", "value", "reason", "suggestion",
+           "template"]
 
 
 def exceptions_rows(per_document: list[tuple[str, list[dict]]]) -> list[dict]:
@@ -23,6 +24,7 @@ def exceptions_rows(per_document: list[tuple[str, list[dict]]]) -> list[dict]:
                 "value": detail.get("value", ""),
                 "reason": detail.get("reason", ""),
                 "suggestion": detail.get("suggestion", ""),
+                "template": exc.get("template", ""),
             })
     return rows
 

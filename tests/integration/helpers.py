@@ -65,7 +65,9 @@ def approve_annexc_transform(runner, tmp_path: Path) -> int:
     return session_id
 
 
-def approve_defect_csv_transform(runner, tmp_path: Path) -> int:
+def approve_defect_csv_transform(
+    runner, tmp_path: Path, issue_entries: list[dict] | None = None
+) -> int:
     """db init + seed + manual session + valuemaps + approve. Returns session id."""
     assert runner.invoke(app, ["db", "init"]).exit_code == 0
     assert runner.invoke(app, ["seed", "load"]).exit_code == 0
@@ -79,7 +81,7 @@ def approve_defect_csv_transform(runner, tmp_path: Path) -> int:
     draft_path = Path(re.search(r"draft:\s+(\S+)", started.output).group(1))
 
     for name, entries in [("severity_to_priority", SEVERITY_ENTRIES),
-                          ("issue_to_defect_code", ISSUE_ENTRIES)]:
+                          ("issue_to_defect_code", issue_entries or ISSUE_ENTRIES)]:
         f = tmp_path / f"vm_{name}.yaml"
         f.write_text(yaml.safe_dump({"entries": entries}))
         created = runner.invoke(app, ["valuemap", "create", "--name", name,
