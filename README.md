@@ -72,8 +72,10 @@ uv run rmu map start \
   --exemplar seed/source_samples/Distribution-report.pdf \
   --no-ai
 #    edit the emitted draft YAML, create the value maps it pins, then:
-uv run rmu valuemap create --name severity_to_priority --file <entries.yaml>
-uv run rmu valuemap create --name issue_to_defect_code --file <entries.yaml>
+uv run rmu valuemap create --name severity_to_priority \
+  --file examples/valuemaps/severity_to_priority.yaml
+uv run rmu valuemap create --name issue_to_defect_code \
+  --file examples/valuemaps/issue_to_defect_code.yaml
 uv run rmu map review  --session 1     # static HTML review sheet
 uv run rmu map preview --session 1     # exemplar rendered in the target format
 uv run rmu map approve --session 1 --by <you>   # stores Transform v1
@@ -95,6 +97,126 @@ uv run pytest              # 65 tests incl. determinism / append-only /
 Drop `--no-ai` (with `ANTHROPIC_API_KEY` set) for AI-proposed field routes and
 value conversions — every proposal enters at tier **T2** and cannot survive
 approval without an explicit human decision.
+
+## Worked example — run it on the bundled demo data
+
+Everything below is copy-paste runnable from a fresh clone and was verified
+verbatim. It uses the committed demo data (two real Scopito demo PDFs in
+`seed/source_samples/` + 18 synthetic same-structure reports in
+`tests/fixtures/batch_20/`) and ready-made mapping files in `examples/`.
+
+**1. Set up and start a manual mapping session against ONE exemplar:**
+
+```bash
+uv sync
+uv run rmu db init
+uv run rmu seed load
+uv run rmu map start \
+  --profile scopito.pdf.powerline@v2020 \
+  --template interim.defect_csv@1 \
+  --exemplar seed/source_samples/Distribution-report.pdf \
+  --no-ai
+```
+
+```text
+session: 1 mode=manual
+draft:   .../store/drafts/session_1.transform.yaml
+```
+
+**2. Play the analyst.** Normally you would now edit the emitted draft
+(skeleton routes, all unmapped) and decide the value conversions yourself. For
+the demo, the finished artifacts are provided — two value maps and a completed
+draft (open them; they are commented):
+
+```bash
+uv run rmu valuemap create --name severity_to_priority \
+  --file examples/valuemaps/severity_to_priority.yaml
+uv run rmu valuemap create --name issue_to_defect_code \
+  --file examples/valuemaps/issue_to_defect_code.yaml
+cp examples/transform.defect_csv.yaml store/drafts/session_1.transform.yaml
+
+uv run rmu map review  --session 1   # HTML review sheet (tier-coloured)
+uv run rmu map preview --session 1   # the exemplar rendered as a defect CSV
+uv run rmu map approve --session 1 --by demo
+```
+
+```text
+preview: .../session_1.preview.csv  (rows=10, unresolved cells=0)
+approved: transform v1 (id=1) by demo; 11 decisions recorded
+```
+
+**3. Convert a 20-report batch with zero field decisions.** Assemble the two
+real PDFs plus the 18 synthetic reports and run them through the approved
+transform (the contract number is the transform's declared per-batch prompt —
+supplied once, up front):
+
+```bash
+mkdir -p store/demo_batch
+cp tests/fixtures/batch_20/*.pdf seed/source_samples/*.pdf store/demo_batch/
+uv run rmu apply run store/demo_batch \
+  --transform "scopito.pdf.powerline@v2020:interim.defect_csv@1" \
+  --answer contract_number=DEMO-001 --label demo
+```
+
+```text
+run 1: documents=20 converted=20 blocked=0 exceptions=0
+outputs: .../store/runs/1
+```
+
+**4. Inspect the outputs** — one defect CSV per source report, plus the
+always-present exceptions report (header-only on a clean run) and the
+SafeCard:
+
+```bash
+head -3 store/runs/1/Distribution-report.defects.csv
+```
+
+```text
+finding_id,asset_name,inspection_date,defect_code,priority,source_severity,contract_number,inspection_method,user_tags,comments,source_page
+1703644,Distribution demo - Lineman analysis,2020-12-02,E7,P1,5,DEMO-001,UAV visual,AOI-1-0127 | RGB,burned arrestor lead,2
+1703645,Distribution demo - Lineman analysis,2020-12-02,E7,P1,5,DEMO-001,UAV visual,AOI-1-0127 | RGB,burned arrestor lead Past practice has shown that,3
+```
+
+**5. Prove the trust claims:**
+
+```bash
+uv run rmu apply regen 1
+# regenerated run 1: 20 outputs hash-verified against the recorded manifest
+```
+
+**6. Optional — watch drift get blocked.** Add the two deliberately drifted
+fixtures (one with a renamed annotation-table header, one that declares 10
+annotations but contains 7) and re-run:
+
+```bash
+cp tests/fixtures/drifted/*.pdf store/demo_batch/
+uv run rmu apply run store/demo_batch \
+  --transform "scopito.pdf.powerline@v2020:interim.defect_csv@1" \
+  --answer contract_number=DEMO-001 --label demo-drift
+```
+
+```text
+run 2: documents=22 converted=20 blocked=2 exceptions=2
+```
+
+Both drifted documents are quarantined with **no output** — one as an
+unrecognized shape, one caught by the declared-vs-extracted integrity check —
+and listed in `store/runs/2/exceptions.csv` and the SafeCard batch summary,
+while the 20 healthy reports convert normally:
+
+```text
+document,kind,reason
+count_mismatch.pdf,drift_block,declared totals mismatch: document declares 10 annotations...
+drifted_header.pdf,unknown_profile,document does not match any known source profile
+```
+
+To also produce the docx report pack in the same run, approve a second
+transform for `interim.annexc_pack@1` (same session flow) and pass a second
+`--transform` — one audit record then covers both outputs per report. To see
+what an unmapped value does, delete any entry from
+`examples/valuemaps/issue_to_defect_code.yaml` before step 2: the affected
+records land in `exceptions.csv` with a suggested resolution instead of being
+guessed.
 
 ## CLI overview
 

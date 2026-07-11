@@ -1,0 +1,14 @@
+# Example ValueMap: Scopito severity (1-5, '?' = point of interest) -> the
+# interim priority vocabulary (P1..P4, POI). Load with:
+#   uv run rmu valuemap create --name severity_to_priority \
+#     --file examples/valuemaps/severity_to_priority.yaml
+#
+# These conversions are the demo analyst's calls - in a real mapping session
+# YOU decide them (and every entry records who: human vs ai-accepted).
+entries:
+  - {source_value: "5", target_value: P1, provenance: human, note: "most severe"}
+  - {source_value: "4", target_value: P2, provenance: human}
+  - {source_value: "3", target_value: P3, provenance: human}
+  - {source_value: "2", target_value: P4, provenance: human}
+  - {source_value: "1", target_value: P4, provenance: human, note: "informational"}
+  - {source_value: "?", target_value: POI, provenance: human, note: "point of interest, not a defect"}

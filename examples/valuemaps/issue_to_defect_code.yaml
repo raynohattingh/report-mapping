@@ -1,0 +1,20 @@
+# Example ValueMap: Scopito free-text issue labels -> the INTERIM defect-code
+# vocabulary (seed/defect_codes_v1.csv). Load with:
+#   uv run rmu valuemap create --name issue_to_defect_code \
+#     --file examples/valuemaps/issue_to_defect_code.yaml
+#
+# Codes here are the demo analyst's calls against the interim taxonomy; the
+# Validate stage rejects any target outside seed/defect_codes_v1.csv. Delete
+# an entry and re-run the batch to watch the affected records land in
+# exceptions.csv instead of the output - values are never guessed.
+entries:
+  - {source_value: "Conductor Damage", target_value: E7, provenance: human,
+     note: "E7 = burn marks on conductor (demo comments: burned arrestor lead)"}
+  - {source_value: "Lightning strike", target_value: E7, provenance: human,
+     note: "burn damage on conductor"}
+  - {source_value: "Corrosion", target_value: A3, provenance: human,
+     note: "A3 = metal corroded away (tower steel)"}
+  - {source_value: "Potential Hazard", target_value: V0, provenance: human,
+     note: "V0 = clearance/vegetation encroachment (demo comments: clearance issues)"}
+  - {source_value: "Miscellaneous", target_value: F12, provenance: human,
+     note: "General bucket - analyst's call"}

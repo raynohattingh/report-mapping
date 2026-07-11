@@ -1,0 +1,48 @@
+# Example COMPLETED transform draft for the Distribution exemplar ->
+# interim.defect_csv@1, exactly as an analyst would leave it before approval.
+#
+# In a real session `rmu map start` emits a skeleton draft (all fields
+# unmapped at tier T3, plus a source-inventory banner) and you edit it into
+# this shape. For the walkthrough, copy this file over the emitted draft:
+#   cp examples/transform.defect_csv.yaml store/drafts/session_1.transform.yaml
+#
+# Tiers: T0 = deterministic human-confirmed route; T1 = human-confirmed via a
+# pinned value map. T2 (AI-proposed) and T3 (unmapped) can never be approved.
+meta:
+  source_profile: scopito.pdf.powerline@v2020
+  target_template: interim.defect_csv@1
+  version: 1
+  parent_version: null
+
+routes:
+  finding_id:      {from: finding.id,        tier: T0}
+  asset_name:      {from: header.inspection_name, tier: T0}
+  source_severity: {from: finding.severity,  tier: T0}
+  priority:
+    from: finding.severity
+    tier: T1
+    value_map: {name: severity_to_priority, version: 1}   # pinned, never "latest"
+  defect_code:
+    from: finding.issues
+    tier: T1
+    value_map: {name: issue_to_defect_code, version: 1}
+  comments:        {from: finding.comments,  tier: T0}
+  user_tags:       {from: finding.user_tags, tier: T0}
+  source_page:     {from: finding.page,      tier: T0}
+
+constants:
+  inspection_method: "UAV visual"
+
+formulas:
+  # Closed, declarative operation set - no code, no clock, no randomness.
+  inspection_date:
+    fn: date_format
+    args: [{field: header.report_date}, {lit: "%Y-%m-%d"}]
+
+prompts:
+  # Answered ONCE at batch launch (--answer contract_number=...), recorded on
+  # the ApplyRun, replayed on regeneration - the run itself is never interactive.
+  - {key: contract_number, label: "Client contract number", required: true}
+
+exceptions:
+  unmapped_optional: skip
