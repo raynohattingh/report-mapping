@@ -184,25 +184,60 @@ uv run rmu apply regen 1
 # regenerated run 1: 20 outputs hash-verified against the recorded manifest
 ```
 
-**6. Optional — watch drift get blocked.** Add the two deliberately drifted
+**6. Add the document deliverable — a docx report pack per source PDF.** The
+CSV is the machine-readable target; the report pack is the human-readable one
+(an Annex-C-style inspection document rendered per report). Approve a second
+transform for it — same session flow, reusing the same two value maps — then
+run BOTH targets in one batch under a single audit record:
+
+```bash
+uv run rmu map start \
+  --profile scopito.pdf.powerline@v2020 \
+  --template interim.annexc_pack@1 \
+  --exemplar seed/source_samples/Distribution-report.pdf \
+  --no-ai                                     # -> session: 2
+cp examples/transform.annexc_pack.yaml store/drafts/session_2.transform.yaml
+uv run rmu map preview --session 2            # writes session_2.preview.docx
+uv run rmu map approve --session 2 --by demo
+
+uv run rmu apply run store/demo_batch \
+  --transform "scopito.pdf.powerline@v2020:interim.defect_csv@1" \
+  --transform "scopito.pdf.powerline@v2020:interim.annexc_pack@1" \
+  --answer contract_number=DEMO-001 --label demo-both
+```
+
+```text
+run 2: documents=20 converted=20 blocked=0 exceptions=0
+```
+
+`store/runs/2/` now holds **40 outputs**: per source PDF one
+`<report>.pack.docx` (open it — inspection details plus a findings table with
+the converted defect codes and priorities) and one `<report>.defects.csv`.
+The packs are OPC-canonicalized, so `rmu apply regen 2` hash-verifies all 40
+byte-for-byte. Need PDF delivery? Word/LibreOffice export the pack as-is —
+and because target formats are data, a real client's pro forma later replaces
+this interim pack as just a new template version.
+
+**7. Optional — watch drift get blocked.** Add the two deliberately drifted
 fixtures (one with a renamed annotation-table header, one that declares 10
-annotations but contains 7) and re-run:
+annotations but contains 7) and re-run the same two-target command:
 
 ```bash
 cp tests/fixtures/drifted/*.pdf store/demo_batch/
 uv run rmu apply run store/demo_batch \
   --transform "scopito.pdf.powerline@v2020:interim.defect_csv@1" \
+  --transform "scopito.pdf.powerline@v2020:interim.annexc_pack@1" \
   --answer contract_number=DEMO-001 --label demo-drift
 ```
 
 ```text
-run 2: documents=22 converted=20 blocked=2 exceptions=2
+run 3: documents=22 converted=20 blocked=2 exceptions=2
 ```
 
-Both drifted documents are quarantined with **no output** — one as an
-unrecognized shape, one caught by the declared-vs-extracted integrity check —
-and listed in `store/runs/2/exceptions.csv` and the SafeCard batch summary,
-while the 20 healthy reports convert normally:
+Both drifted documents are quarantined with **no output of either kind** — one
+as an unrecognized shape, one caught by the declared-vs-extracted integrity
+check — and listed in `store/runs/3/exceptions.csv` and the SafeCard batch
+summary, while the 20 healthy reports convert normally:
 
 ```text
 document,kind,reason
@@ -210,10 +245,7 @@ count_mismatch.pdf,drift_block,declared totals mismatch: document declares 10 an
 drifted_header.pdf,unknown_profile,document does not match any known source profile
 ```
 
-To also produce the docx report pack in the same run, approve a second
-transform for `interim.annexc_pack@1` (same session flow) and pass a second
-`--transform` — one audit record then covers both outputs per report. To see
-what an unmapped value does, delete any entry from
+To see what an unmapped value does, delete any entry from
 `examples/valuemaps/issue_to_defect_code.yaml` before step 2: the affected
 records land in `exceptions.csv` with a suggested resolution instead of being
 guessed.

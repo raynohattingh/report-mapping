@@ -1,0 +1,40 @@
+# Example COMPLETED transform draft for the docx report-pack target
+# (interim.annexc_pack@1) - the document-style deliverable rendered per source
+# report. Same session flow as the defect CSV; copy over the emitted draft:
+#   cp examples/transform.annexc_pack.yaml store/drafts/session_2.transform.yaml
+#
+# Reuses the SAME two value maps as the CSV transform (pinned at version 1).
+meta:
+  source_profile: scopito.pdf.powerline@v2020
+  target_template: interim.annexc_pack@1
+  version: 1
+  parent_version: null
+
+routes:
+  inspection_name: {from: header.inspection_name, tier: T0}
+  company:         {from: header.company,         tier: T0}   # optional field
+  finding_id:      {from: finding.id,             tier: T0}
+  source_severity: {from: finding.severity,       tier: T0}
+  priority:
+    from: finding.severity
+    tier: T1
+    value_map: {name: severity_to_priority, version: 1}
+  defect_code:
+    from: finding.issues
+    tier: T1
+    value_map: {name: issue_to_defect_code, version: 1}
+  comments:        {from: finding.comments,       tier: T0}
+
+constants:
+  inspection_method: "UAV visual"
+
+formulas:
+  inspection_date:
+    fn: date_format
+    args: [{field: header.report_date}, {lit: "%Y-%m-%d"}]
+
+prompts:
+  - {key: contract_number, label: "Client contract number", required: true}
+
+exceptions:
+  unmapped_optional: skip
