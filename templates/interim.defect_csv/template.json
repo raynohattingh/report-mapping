@@ -1,5 +1,7 @@
 {
   "kind": "csv",
+  "name": "interim.defect_csv",
+  "version": 1,
   "label": "INTERIM structured defect CSV (stand-in for SAP defect records, TBD-2)",
   "interim": true,
   "columns": [

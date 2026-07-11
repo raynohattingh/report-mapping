@@ -43,7 +43,7 @@ def test_interrupted_run_records_nothing(ready, monkeypatch):
     monkeypatch.setattr(batch_mod, "render_csv", explode_on_second)
     with factory() as s:
         with pytest.raises(RuntimeError, match="simulated"):
-            run_batch(s, batch_dir, "scopito.pdf.powerline@v2020:interim.defect_csv@1",
+            run_batch(s, batch_dir, ["scopito.pdf.powerline@v2020:interim.defect_csv@1"],
                       {"contract_number": "X"}, "crash-test")
         s.rollback()
         assert s.scalar(select(func.count()).select_from(ApplyRun)) == 0
@@ -56,6 +56,6 @@ def test_empty_batch_is_an_error_not_success(ready, tmp_path):
     empty.mkdir()
     with factory() as s:
         with pytest.raises(BatchError, match="empty batch"):
-            run_batch(s, empty, "scopito.pdf.powerline@v2020:interim.defect_csv@1",
+            run_batch(s, empty, ["scopito.pdf.powerline@v2020:interim.defect_csv@1"],
                       {"contract_number": "X"})
         assert s.scalar(select(func.count()).select_from(ApplyRun)) == 0

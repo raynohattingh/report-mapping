@@ -228,7 +228,9 @@ def map_start(
 
 @map_app.command("preview")
 def map_preview(session_id: int = typer.Option(..., "--session")) -> None:
-    """Render the exemplar through the current draft for human verification (FR-008)."""
+    """Render the exemplar through the current draft INTO ITS TARGET FORMAT for
+    human verification (FR-008) — CSV templates preview as CSV, docx templates
+    as a rendered (canonicalized) pack (convergence T052)."""
     import json
 
     from rmu import store as blobstore
@@ -248,17 +250,45 @@ def map_preview(session_id: int = typer.Option(..., "--session")) -> None:
         prompt_placeholders = {
             p["key"]: f"<<{p['key']}>>" for p in doc.get("prompts", [])
         }
-        columns = meta.get("columns") or list(template_row.required_schema["required"])
-        rows = []
         problems_total = 0
-        for finding in normalized["findings"]:
-            context = {"header": normalized["header"], "finding": finding,
-                       "prompt": prompt_placeholders}
-            values, problems = resolve_record(columns, doc, context, vmaps, strict=False)
+
+        if meta["kind"] == "docx":
+            from rmu.render.docx import render_pack
+
+            schema = template_row.required_schema
+            header_ctx = {"header": normalized["header"], "finding": {},
+                          "prompt": prompt_placeholders}
+            header_fields = list(schema.get("required", [])) + list(
+                schema.get("optional", [])
+            )
+            values, problems = resolve_record(
+                header_fields, doc, header_ctx, vmaps, strict=False
+            )
             problems_total += len(problems)
-            rows.append(values)
-        out = blobstore.drafts_dir() / f"session_{session_id}.preview.csv"
-        out.write_bytes(render_csv(rows, columns))
+            rows = []
+            for finding in normalized["findings"]:
+                context = {"header": normalized["header"], "finding": finding,
+                           "prompt": prompt_placeholders}
+                row, problems = resolve_record(
+                    list(schema.get("finding_fields", [])), doc, context, vmaps,
+                    strict=False,
+                )
+                problems_total += len(problems)
+                rows.append(row)
+            template_bytes = blobstore.get_bytes(template_row.template_files[meta["file"]])
+            out = blobstore.drafts_dir() / f"session_{session_id}.preview.docx"
+            out.write_bytes(render_pack(template_bytes, {**values, "findings": rows}))
+        else:
+            columns = meta.get("columns") or list(template_row.required_schema["required"])
+            rows = []
+            for finding in normalized["findings"]:
+                context = {"header": normalized["header"], "finding": finding,
+                           "prompt": prompt_placeholders}
+                values, problems = resolve_record(columns, doc, context, vmaps, strict=False)
+                problems_total += len(problems)
+                rows.append(values)
+            out = blobstore.drafts_dir() / f"session_{session_id}.preview.csv"
+            out.write_bytes(render_csv(rows, columns))
         typer.echo(f"preview: {out}  (rows={len(rows)}, unresolved cells={problems_total})")
 
 
@@ -375,8 +405,11 @@ def _parse_answers(answers: list[str]) -> dict[str, str]:
 @apply_app.command("run")
 def apply_run(
     folder: str = typer.Argument(..., help="folder of same-shape source PDFs"),
-    transform: str = typer.Option(
-        ..., help="e.g. scopito.pdf.powerline@v2020:interim.defect_csv@1"
+    transform: list[str] = typer.Option(
+        ...,
+        "--transform",
+        help="repeatable; e.g. scopito.pdf.powerline@v2020:interim.defect_csv@1 "
+             "(pass twice to produce the report pack AND the defect CSV in one run)",
     ),
     answer: list[str] = typer.Option([], "--answer", help="per-batch prompt answer key=value"),
     label: str = typer.Option("", help="batch label for the audit record"),
@@ -425,7 +458,9 @@ def apply_regen(
         if r is None:
             typer.echo(f"error: no run {run_id}")
             raise typer.Exit(1)
-        transform = s.get(Transform, r.transform_id)
+        transform_rows = [
+            s.get(Transform, tid) for tid in (r.transform_ids or [r.transform_id])
+        ]
 
         # Rebuild the input folder from content fingerprints (research R3).
         inputs = store_root() / "regen" / f"{run_id}-inputs"
@@ -445,8 +480,8 @@ def apply_regen(
         out_dir.mkdir(parents=True)
 
         summary = run_batch(
-            s, inputs, "", r.prompt_answers,
-            out_dir=out_dir, record_run=False, transform_override=transform,
+            s, inputs, [], r.prompt_answers,
+            out_dir=out_dir, record_run=False, transforms_override=transform_rows,
         )
 
     expected = {m["filename"]: m["store_hash"] for m in r.outputs_manifest}

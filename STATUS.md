@@ -2,6 +2,24 @@
 
 Terse build state for the business side. Newest session first.
 
+## Session 2026-07-11 (later) — convergence pass closed
+
+**Done**: `/speckit-converge` found 5 partial gaps (0 constitution violations); all 5
+implemented (T049–T053, 65 tests green):
+
+1. NEW template versions now register as pure data (`template.json` declares
+   name/version/effective_from) — the TBD-1/TBD-2 slot-in mechanism proven by test.
+2. Validate stage enforces template validation_rules: vocabulary-illegal values
+   (e.g. a defect code outside `defect_codes_v1.csv`) become `invalid_value`
+   exceptions and never ship — closes the semantically-wrong-but-structurally-valid gap.
+3. One batch run can apply BOTH interim templates (repeatable `--transform`): per
+   report the pack AND the defect CSV under a single ApplyRun (`transform_ids`,
+   additive migration 0002); regen replays all pinned transforms, hash-verified.
+4. `map preview` renders docx sessions as a real (canonicalized) pack file.
+5. Duplicate-document handling now regression-tested (converted once, noted).
+
+**Next**: re-run `/speckit-converge` if desired (expected clean), then review/PR.
+
 ## Session 2026-07-11 — weekend slice implemented (M1–M4 + M5 drift drill)
 
 **Done** (feature `001-report-mapping-v1`, 48/48 tasks, 56 tests green, ruff clean):

@@ -72,3 +72,34 @@ def test_batch_20_zero_field_decisions(batch_env):
     # Audit record exists and is inspectable.
     runs = runner.invoke(app, ["runs", "list"])
     assert "dod-batch" in runs.output
+
+
+def test_duplicate_document_converted_once_and_noted(batch_env, tmp_path):
+    """Spec edge case (convergence T053): duplicates detected by content
+    fingerprint, converted once, the duplicate filename noted."""
+    import json
+
+    folder = tmp_path / "with_dup"
+    folder.mkdir()
+    src = Path("tests/fixtures/batch_20/synthetic_01.pdf")
+    shutil.copy(src, folder / "synthetic_01.pdf")
+    shutil.copy(src, folder / "zz_duplicate_of_01.pdf")  # same bytes, new name
+
+    result = runner.invoke(app, ["apply", "run", str(folder),
+                                 "--transform", TRANSFORM,
+                                 "--answer", "contract_number=DUP-1"])
+    assert result.exit_code == 0, result.output
+    assert "documents=2 converted=1" in result.output
+    run_dir = Path(result.output.split("outputs: ")[1].splitlines()[0].strip())
+
+    # Converted exactly once — output exists for the first name only.
+    assert (run_dir / "synthetic_01.defects.csv").exists()
+    assert not (run_dir / "zz_duplicate_of_01.defects.csv").exists()
+
+    # The duplicate filename is noted in the exceptions report and SafeCard.
+    exceptions = (run_dir / "exceptions.csv").read_text()
+    assert "zz_duplicate_of_01.pdf" in exceptions and "duplicate" in exceptions
+    safecard = json.loads((run_dir / "safecard.json").read_text())
+    by_doc = {d["document"]: d for d in safecard["documents"]}
+    assert by_doc["zz_duplicate_of_01.pdf"]["blocked_kind"] == "duplicate"
+    assert by_doc["synthetic_01.pdf"]["verdict"] in ("pass", "warn")
