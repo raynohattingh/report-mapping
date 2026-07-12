@@ -83,6 +83,7 @@ An analyst who has applied a batch (records already mapped and validated) produc
 
 1. **Given** an applied batch and an approved fillable-form TargetTemplate, **When** the output is rendered, **Then** each mapped record value is written into its registered form field, and reading the fields back from the produced PDF returns exactly the applied values (exact round-trip).
 2. **Given** an applied batch and an approved fixed-layout TargetTemplate, **When** the output is rendered, **Then** every mapped value appears at its registered page coordinates on the original PDF, verified by a golden-file comparison of extracted text plus coordinates.
+2a. **Given** an applied batch whose records carry extracted images and a template with registered image regions, **When** the output is rendered, **Then** each record's image appears in its registered region, scaled to fit without cropping, and its presence and content are verified on read-back.
 3. **Given** a record missing a value for a required target field, **When** rendering runs, **Then** the gap is reported as an exception — never silently absorbed or filled with a guess.
 4. **Given** the same applied batch, transform version, and template version, **When** rendering is re-run, **Then** the output content is identical (timestamps excepted).
 
@@ -91,14 +92,18 @@ An analyst who has applied a batch (records already mapped and validated) produc
 ### Edge Cases
 
 - **Scanned/image-only PDF submitted for onboarding (source or target)**: detected and rejected with a clear message; the occurrence is logged as a future assumption to resolve (OCR is out of scope).
+- **Encrypted, password-protected, or XFA (LiveCycle) target PDF**: rejected with a diagnosis naming the specific condition and its workaround (unlocked copy, or flatten to fixed-layout) — plausible for utility/government paperwork, so the message must be actionable, not generic.
 - **Low-confidence proposal elements**: elements below a confidence floor are flagged for mandatory review attention, never silently pre-confirmed.
 - **PDF that is both a fillable form and has fixed-layout content**: form fields take precedence for the proposal; the analyst can see and correct the classification before approval.
 - **Records spanning page breaks or repeated per-page headers/footers in a source PDF**: the draft recipe must account for page anatomy so repeated furniture is not proposed as record data.
 - **A value too long for its registered fixed-layout region**: reported as a validation exception on render, not silently truncated or overflowed.
 - **Re-onboarding a shape that already has a registered profile**: produces a new draft proposal that, on approval, becomes a new profile version — never a mutation of the existing one.
 - **Abandoned drafts**: a draft left unapproved has no effect on any conversion; it can be discarded or superseded without trace in apply behaviour.
-- **Same-profile input that later drifts structurally**: existing structure-drift protection (SafeCard blocking) applies to profiles created via onboarding exactly as to hand-built ones.
+- **Same-profile input that later drifts structurally**: existing structure-drift protection (SafeCard blocking) applies to profiles created via onboarding exactly as to hand-built ones; the block outcome additionally points the analyst at the re-onboarding path (see FR-021) instead of leaving a dead end.
 - **Approving a proposal with unresolved (neither confirmed nor corrected) elements**: approval is blocked until every proposed element has been explicitly confirmed, corrected, or removed.
+- **Single-exemplar overfit**: a recipe drafted from one exemplar may encode that document's quirks (page count, optional sections); supplying optional extra exemplars cross-checks the proposal, and non-generalising elements are down-scored and flagged rather than silently kept.
+- **Record without a photo, or photo without a record**: a missing image for a record with a registered image region is an exception at render time; an orphan image in the source that matches no record is flagged during extraction review, never silently attached to the wrong record.
+- **Image aspect ratio vs registered region**: images are scaled to fit within the region preserving aspect ratio — never cropped or stretched; if the result would be illegibly small, that is flagged during template review (region too small), not at batch time.
 
 ## Requirements *(mandatory)*
 
@@ -106,7 +111,8 @@ An analyst who has applied a batch (records already mapped and validated) produc
 
 **Source-shape onboarding**
 
-- **FR-001**: The system MUST provide a draft-profile command that, given a structured source PDF with no matching registered profile, analyses the document's structure (repeating structures, tables, header/label blocks, page anatomy) and produces a draft extraction recipe proposing: header fields, record-row locations, and the columns/labels each record carries.
+- **FR-001**: The system MUST provide a draft-profile command that, given a structured source PDF with no matching registered profile, analyses the document's structure (repeating structures, tables, header/label blocks, page anatomy) and produces a draft extraction recipe proposing: header fields, record-row locations, and the columns/labels each record carries. The command requires one exemplar PDF and MAY accept additional same-shape exemplars; when extras are supplied they are used to cross-check the proposal, and elements that fail to generalise across exemplars are down-scored and flagged for review.
+- **FR-001a**: Draft extraction recipes MUST support per-record image elements: the analysis proposes image regions associated with each record (e.g., defect photos), and approved profiles extract those images as files referenced from the extracted record — matching how the existing hand-built profile handles photos.
 - **FR-002**: Every proposed element in a draft extraction recipe MUST carry a per-element confidence score, and confidence MUST reflect structural evidence — field-name overlap alone MUST NOT be presented as confidence.
 - **FR-003**: The system MUST provide a review flow in which the analyst can confirm, correct, or remove each proposed element individually, comparing against the actual PDF; approval MUST be blocked while any element remains unresolved. The review flow follows the existing mapping-session pattern (D1): the proposal is an editable persisted document, a generated visual review sheet renders each proposed element against the source PDF, and approval is an explicit separate command.
 - **FR-004**: On approval, the system MUST register the validated recipe as a new versioned SourceProfile (starting at v1) in the existing append-only, effective-dated profile registry; from that point extraction for that shape MUST be fully deterministic with no AI involvement.
@@ -116,15 +122,16 @@ An analyst who has applied a batch (records already mapped and validated) produc
 
 - **FR-006**: The system MUST provide a draft-template command that, given a target-format PDF, determines whether it is a fillable form or a fixed-layout document and proposes accordingly.
 - **FR-007**: For a fillable-form target PDF, the system MUST enumerate the form's fields into a proposed field schema (field identifiers, kinds, and fixed option sets where present) for analyst review.
-- **FR-008**: For a fixed-layout target PDF, the system MUST propose labelled target regions with page coordinates for analyst review.
+- **FR-008**: For a fixed-layout target PDF, the system MUST propose labelled target regions with page coordinates for analyst review. Regions carry a declared kind — text value or image — so a template can register photo placement areas alongside value fields.
 - **FR-009**: On approval, the system MUST register a versioned TargetTemplate carrying a required-field schema, validation rules, and a declared output cardinality — per-record (one filled PDF per record) or per-batch (one PDF for the whole batch) — in the existing append-only, effective-dated template registry. Per-record is the primary cardinality delivered first.
-- **FR-010**: A target PDF that is neither a fillable form nor a fixed-layout text document (including scanned/image-only PDFs) MUST be rejected with a clear explanation, and the occurrence logged for follow-up.
+- **FR-010**: A target PDF that is neither a fillable form nor a fixed-layout text document (including scanned/image-only PDFs) MUST be rejected with a clear explanation, and the occurrence logged for follow-up. Encrypted, password-protected, and XFA (non-AcroForm) PDFs MUST each be rejected with a diagnosis naming the specific condition and a practical workaround (e.g., obtain an unlocked copy, or flatten via print-to-PDF and onboard as fixed-layout) — never a generic failure and never a best-effort proposal from a partially readable file.
 
 **Rendering into PDF targets**
 
 - **FR-011**: The system MUST render an applied batch into an approved fillable-form TargetTemplate by filling each registered form field with its mapped value.
 - **FR-012**: The system MUST render an applied batch into an approved fixed-layout TargetTemplate by overlaying mapped values at the registered page coordinates on the original PDF.
-- **FR-013**: Rendered PDF output MUST round-trip: values read back from the produced PDF MUST match the applied records exactly; a round-trip mismatch is a rendering failure, not a warning.
+- **FR-012a**: Rendering MUST place record images into registered image regions (fixed-layout targets), scaled to fit the region without cropping; a record image that cannot be placed (missing file, unreadable format) surfaces as an exception, never a silently blank region.
+- **FR-013**: Rendered PDF output MUST round-trip: text values read back from the produced PDF MUST match the applied records exactly, and each registered image region MUST contain the placed image (verified by presence and source-content match); a round-trip mismatch is a rendering failure, not a warning.
 - **FR-014**: Missing required values, out-of-vocabulary values, and values that do not fit their registered region MUST surface as exceptions in the existing exceptions report — never guessed, truncated, or silently absorbed.
 - **FR-015**: Rendering MUST be deterministic: same applied batch + same transform version + same template version produces identical output content (timestamps excepted).
 
@@ -135,6 +142,7 @@ An analyst who has applied a batch (records already mapped and validated) produc
 - **FR-018**: Registered profiles and templates MUST be stored configuration data (schema-validated, human-readable), never generated code; onboarding a new format MUST NOT require changes to pipeline code.
 - **FR-019**: Onboarding MUST NOT alter the behaviour of any existing registered profile or template; the existing scopito v2020 profile and interim templates MUST continue to produce identical output on existing fixtures.
 - **FR-020**: Document analysis during onboarding MUST transmit no document content to third-party services: deterministic structural heuristics always produce the base proposal, and the existing local AI assistance layer (feature 002) MAY optionally enrich it (field naming, label matching, confidence hints). A `--no-ai` mode MUST yield heuristics-only proposals. AI assistance is confined to the onboarding/drafting session and never runs at apply or render time.
+- **FR-021**: When SafeCard blocks a batch input for structural drift, the block verdict and exceptions report MUST recommend the re-onboarding path: running the draft-profile command on the drifted document, seeded with the blocking profile so the analyst reviews the proposal as a delta against the known shape. Block behaviour itself is unchanged, and the seeded proposal follows the full draft → review → approve lifecycle producing a new profile version.
 
 ### Key Entities
 
@@ -174,4 +182,15 @@ An analyst who has applied a batch (records already mapped and validated) produc
 - Source PDFs in scope have a machine-readable text layer (structured exports, not scans); the two Scopito seed demo exports remain the primary development fixtures, with the held-out Zeitview fixture reserved untouched for acceptance.
 - Confidence scores are review aids for the human, not gates: no confidence level bypasses per-element review or approval.
 - Record-level correctness for SC-001 means the record's field values are extracted and assigned to the right columns/labels; a record with any misassigned field counts as incorrect.
-- Existing structure-drift protection (SafeCard) applies unchanged to onboarded profiles; this feature adds no new drift rules and relaxes none.
+- Existing structure-drift protection (SafeCard) applies unchanged to onboarded profiles; this feature adds no new drift rules and relaxes none (the block verdict gains a pointer to re-onboarding, FR-021, but block behaviour is untouched).
+
+## Brainstorm Log
+
+### Session 2026-07-12 (superspec brainstorm)
+
+Four edge-case areas explored and resolved:
+
+1. **Exemplar count** — draft-profile takes one exemplar (required) plus optional extras for cross-checking; non-generalising elements are down-scored and flagged (FR-001, single-exemplar-overfit edge case). Guards the ≥80% held-out target against single-document overfit.
+2. **Images** — full image support: onboarded recipes extract per-record images as referenced files (FR-001a), fixed-layout templates register image-kind regions (FR-008), rendering places images scaled-to-fit with presence/content round-trip verification (FR-012a, FR-013), plus missing-photo/orphan-image and aspect-ratio edge cases. Initially answered text-only, revised to full support on reflection — defect photos are the evidence that makes converted reports usable.
+3. **Drift → re-onboarding** — a SafeCard drift BLOCK now recommends the recovery path: draft-profile seeded with the blocking profile, reviewed as a delta, approved as a new version (FR-021). Block semantics unchanged.
+4. **Hostile target PDFs** — encrypted / password-protected / XFA targets are rejected with a per-condition diagnosis and workaround, never a best-effort proposal (FR-010 extended). Anticipates utility/government paperwork.
