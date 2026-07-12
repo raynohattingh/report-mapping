@@ -64,7 +64,7 @@ Single project: `src/rmu/`, `tests/` at repository root (plan.md structure decis
 
 ### Implementation for User Story 1
 
-- [ ] T013 [US1] Implement structural analysis in src/rmu/onboard/analyze_source.py: three deterministic passes per research R3, image-region correlation (FR-001a), fingerprint derivation as reviewable elements (FR-024), multi-exemplar cross-check (FR-001)
+- [ ] T013 [US1] Implement structural analysis in src/rmu/onboard/analyze_source.py: three deterministic passes per research R3, image-region correlation with `orphan_image` flagging for unmatched images (FR-001a, edge case), fingerprint derivation as reviewable elements (FR-024), multi-exemplar cross-check with `non_generalising` flags (FR-001)
 - [ ] T014 [P] [US1] Implement empty-result skeleton + diagnosis in src/rmu/onboard/skeleton.py (FR-001b); tests in tests/unit/test_skeleton.py
 - [ ] T015 [P] [US1] [SUBAGENT] Implement optional 002-layer enrichment in src/rmu/onboard/enrich.py: naming/label hints only, representative-page sampling (SC-009 budget), skipped under --no-ai, provenance persisted (FR-020, research R4); tests in tests/unit/test_enrich.py with stub provider
 - [ ] T016 [US1] Implement HTML review sheet for profile proposals in src/rmu/onboard/review_sheet.py (mirrors mapping/review_sheet.py; renders each element with confidence, evidence, page snippet refs)
@@ -102,7 +102,7 @@ Single project: `src/rmu/`, `tests/` at repository root (plan.md structure decis
 
 ### Implementation for User Story 3
 
-- [ ] T024 [US3] Implement target analysis in src/rmu/onboard/analyze_target.py (pypdf field enumeration; pdfplumber label-adjacent blank-region proposal for fixed layouts; routes through pdf_kind ladder)
+- [ ] T024 [US3] Implement target analysis in src/rmu/onboard/analyze_target.py (pypdf field enumeration; pdfplumber label-adjacent blank-region proposal for fixed layouts; `region_too_small` flag on image regions below legibility threshold per aspect-ratio edge case; routes through pdf_kind ladder)
 - [ ] T025 [P] [US3] Extend review sheet for template proposals in src/rmu/onboard/review_sheet.py: field table for forms, page-image region overlays for fixed layouts
 - [ ] T026 [US3] [TDD] [REVIEW] Template approval path in src/rmu/onboard/approve.py: unresolved block; sample-value test render + round-trip gate (depends on T028/T029 render cores); on success register TargetTemplate (template_files per contracts/pdf-template.schema.json incl. pdf_object + cardinality, required_schema, validation_rules from reviewed elements per FR-025, interim=false) — tests first in tests/unit/test_approve_template.py
 - [ ] T027 [US3] Complete draft-template CLI + integration test tests/integration/test_onboard_target_e2e.py: form and fixed-layout fixtures onboarded end-to-end; misuse warning on source-like input (FR-023)
@@ -176,6 +176,48 @@ Tests ([TDD]) fail first → models → services → CLI → integration. [REVIE
 At each phase boundary: summarize, run tests, report, ask "Phase N complete. Proceed?" — explicit approval required (plan.md Human Checkpoints 1–4). Final pre-merge gate includes the Rayno-only SC-001 acceptance run.
 
 ---
+
+## Cross-Task Interfaces
+
+> Produces/Consumes contracts so parallel workers use identical names and types. A task implementer sees only their task — these signatures are binding.
+
+```python
+# onboard/proposal.py (T007) — produces:
+class Proposal:            # wraps proposal.schema.json document
+    id: int; kind: str; status: str; elements: list[Element]
+    def unresolved(self) -> list[str]           # element ids still 'proposed'
+    def save_draft(self) -> str                 # writes store/drafts, returns draft_ref
+    @classmethod
+    def load(cls, proposal_id: int) -> "Proposal"
+
+# onboard/pdf_kind.py (T008) — produces:
+def diagnose(pdf_path: Path) -> Diagnosis       # .kind: 'form'|'fixed_layout'|rejection
+                                                # .rejection: str|None  .workaround: str|None
+def misuse_warning(kind: str, command: str) -> str | None   # FR-023 signal
+
+# onboard/analyze_source.py (T013) — produces:
+def analyze(exemplars: list[Path], *, no_ai: bool, seed_from: SourceProfile | None) -> Proposal
+
+# onboard/analyze_target.py (T024) — produces:
+def analyze(target: Path, *, no_ai: bool) -> Proposal
+
+# extract/recipe_pdf.py (T017) — produces (consumed by approve + apply pipeline):
+def extract(pdf_path: Path, recipe: dict) -> NormalizedRecords   # recipe = validated recipe YAML dict
+
+# onboard/approve.py (T018/T026) — produces:
+def approve_profile(proposal: Proposal, key: str, version: str, operator: str) -> SourceProfile
+def approve_template(proposal: Proposal, name: str, version: int, operator: str) -> TargetTemplate
+# both raise VerifyFailure(report: dict) -> proposal stays draft, verify_report persisted
+
+# render/pdf_form.py (T028) / pdf_overlay.py (T029) — produce:
+def render(template: TargetTemplate, records: list[dict], out_dir: Path) -> list[Path]
+
+# render/pdf_roundtrip.py (T030) — produces:
+def verify(template: TargetTemplate, pdf_path: Path, record: dict) -> RoundTripReport  # .ok: bool, .mismatches: list
+
+# apply/engine.py (T009) — produces:
+class DraftArtifactError(Exception): ...        # message names ref + status (FR-016)
+```
 
 ## Notes
 
