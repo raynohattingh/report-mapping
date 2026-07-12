@@ -29,6 +29,30 @@ def _from_path_exists(from_path: str, source_inventory: dict) -> bool:
     return key in (source_inventory.get(scope) or {})
 
 
+# Local models under Ollama's `format:"json"` reliably return a top-level OBJECT,
+# not the array we ask for (observed with qwen3:4b). Coerce common shapes to a
+# list so a correct-but-object response is not thrown away wholesale. Structured
+# outputs (a schema passed as `format`) make the wrapper predictable; this is the
+# defensive backstop for whatever a model actually emits.
+_WRAPPER_KEYS = ("proposals", "mappings", "routes", "items", "results")
+
+
+def _coerce_items(parsed: object) -> list | None:
+    """Normalize model output to a list of proposal objects, or None if unusable."""
+    if isinstance(parsed, list):
+        return parsed
+    if isinstance(parsed, dict):
+        for key in _WRAPPER_KEYS:
+            if isinstance(parsed.get(key), list):
+                return parsed[key]
+        for value in parsed.values():  # any single array value
+            if isinstance(value, list):
+                return value
+        if "target_field" in parsed and "from_path" in parsed:  # a lone proposal
+            return [parsed]
+    return None
+
+
 def gate_proposals(
     raw_json: str,
     *,
@@ -40,11 +64,12 @@ def gate_proposals(
     dropped = {"schema": 0, "unknown_field": 0, "unknown_value": 0}
 
     try:
-        items = json.loads(raw_json)
+        parsed = json.loads(raw_json)
     except (json.JSONDecodeError, TypeError):
         dropped["schema"] += 1
         return [], dropped
-    if not isinstance(items, list):
+    items = _coerce_items(parsed)
+    if items is None:
         dropped["schema"] += 1
         return [], dropped
 

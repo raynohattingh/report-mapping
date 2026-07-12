@@ -2,6 +2,28 @@
 
 Terse build state for the business side. Newest session first.
 
+## Session 2026-07-12 (later) — fix: local LLM proposals were all dropped
+
+**Symptom** (found while dogfooding the quickstart with a real `qwen3:4b`): every
+field stayed T3, no AI routes. **Root cause:** Ollama `format:"json"` only
+guarantees *valid* JSON, and qwen3 (like most models) returns a top-level
+**object**, not the array the gate required — so the whole response was dropped
+as one schema failure (`shown=0 dropped=1`). Confirmed by raw curl (`think:false`
+did not change it — thinking was NOT the cause).
+
+**Fix** (branch `fix/local-llm-json-array`, 115 tests green):
+1. Gate coerces object shapes to a list (`{"proposals":[...]}`, other wrapper
+   keys, or a lone proposal object) before validation — defensive backstop.
+2. `LocalLLM.complete_json` now uses **Ollama structured outputs** (passes a JSON
+   schema as `format`, forcing `{"proposals":[...]}`) and sends `think:false`.
+3. Prompt hands the model the EXACT allowed source paths + target field names and
+   asks for the object wrapper, cutting referent-resolution drops.
+
+Strict per-item validation is unchanged (bad items still dropped + counted). New
+tests cover the coercion (unit) and the object-shaped response end to end (fake
+Ollama). Verify on real assets: `rmu map start --assist local` now populates T2
+routes; `rmu map review` banner shows `shown>0`.
+
 ## Session 2026-07-12 — feature 002 local AI assistance implemented (all 32 tasks)
 
 **Done** (feature `002-local-ai-assist`, branch `002-local-ai-assist`, 46 new tests,

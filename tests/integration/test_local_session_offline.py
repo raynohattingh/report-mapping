@@ -4,6 +4,7 @@ degrades per tier. The socket-blocking fixture is the mechanical proof that no
 data leaves the machine.
 """
 
+import json
 import re
 
 import pytest
@@ -123,9 +124,25 @@ def test_gate_drops_malformed_llm_output(tmp_path, monkeypatch):
     assert sum(ms.assist_stats["dropped"].values()) >= 1
 
 
+def test_object_wrapped_llm_output_still_yields_proposals(tmp_path, monkeypatch):
+    # Real qwen3:4b under Ollama returns {"proposals": [...]} (an object), not a
+    # bare array. The gate must coerce it so proposals still land (regression).
+    _bootstrap(tmp_path, monkeypatch)
+    content = json.dumps({"proposals": [
+        {"target_field": "finding_id", "from_path": "finding.id",
+         "rationale": "the annotation id is the natural key"},
+    ]})
+    with FakeOllama(chat_handler=lambda _b: content) as fake:
+        _write_ai_yaml(tmp_path, ollama_host=fake.host_url, llm_model="qwen3:4b")
+        with block_non_loopback():
+            result = _start_local(tmp_path)
+    assert result.exit_code == 0, result.output
+    ms = _session_row(tmp_path)
+    assert [p["target_field"] for p in ms.proposals] == ["finding_id"]
+    assert ms.proposals[0]["provider"] == "local"
+
+
 def test_default_content_is_gate_valid():
     # Guard: the fake's default canned content is itself schema+referent valid so
     # the happy-path test is exercising acceptance, not accidental rejection.
-    import json
-
     assert isinstance(json.loads(DEFAULT_CONTENT), list)

@@ -77,6 +77,42 @@ def test_unobserved_value_entry_filtered_and_counted():
     assert dropped["unknown_value"] == 1
 
 
+def test_object_wrapped_proposals_are_coerced():
+    # Ollama format:"json" returns {"proposals": [...]}, not a bare array.
+    props, dropped = gate_proposals(
+        json.dumps({"proposals": [
+            {"target_field": "finding_id", "from_path": "finding.id", "rationale": "the id"},
+        ]}),
+        source_inventory=SOURCE_INVENTORY,
+        target_fields=TARGET_FIELDS,
+        observed_values=OBSERVED,
+    )
+    assert [p.target_field for p in props] == ["finding_id"]
+    assert sum(dropped.values()) == 0
+
+
+def test_lone_object_is_coerced_to_single_proposal():
+    props, _ = gate_proposals(
+        json.dumps({"target_field": "finding_id", "from_path": "finding.id",
+                    "rationale": "the id"}),
+        source_inventory=SOURCE_INVENTORY,
+        target_fields=TARGET_FIELDS,
+        observed_values=OBSERVED,
+    )
+    assert len(props) == 1
+
+
+def test_unrecognized_object_drops_all():
+    props, dropped = gate_proposals(
+        json.dumps({"unexpected": "shape", "no": "proposals"}),
+        source_inventory=SOURCE_INVENTORY,
+        target_fields=TARGET_FIELDS,
+        observed_values=OBSERVED,
+    )
+    assert props == []
+    assert dropped["schema"] == 1
+
+
 def test_garbage_json_drops_all():
     props, dropped = gate_proposals(
         "this is not json",
