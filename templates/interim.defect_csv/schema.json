@@ -10,5 +10,12 @@
     "contract_number",
     "inspection_method"
   ],
-  "optional": ["user_tags", "comments", "source_page"]
+  "optional": ["user_tags", "comments", "source_page"],
+  "field_labels": {
+    "defect_code": "defect code for the reported issue or fault",
+    "priority": "priority or urgency level",
+    "source_severity": "original severity from the source report",
+    "asset_name": "name of the inspected asset",
+    "source_page": "page number in the source report"
+  }
 }

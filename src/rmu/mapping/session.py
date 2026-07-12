@@ -37,11 +37,14 @@ def build_draft(
     profile_key_at_version: str,
     required_fields: list[str],
     proposals: list[Proposal],
+    rankings: dict[str, list[dict]] | None = None,
 ) -> str:
     """Draft transform YAML: proposals at T2, remaining required fields at T3.
 
     The emitted document is schema-valid from the start so every edit loop can
-    validate; T3 placeholders keep it approval-blocked until resolved.
+    validate; T3 placeholders keep it approval-blocked until resolved. When
+    embedding rankings are supplied they are added as candidate-route comments —
+    a shortlist to pick from, never a decision (Principle V, FR-005).
     """
     routes: dict = {}
     for p in proposals:
@@ -82,6 +85,16 @@ def build_draft(
         "# Exemplar source inventory:\n"
         + "".join(f"#   {line}\n" for line in inventory.splitlines())
     )
+    if rankings:
+        banner += (
+            "# AI candidate target fields (embedding similarity — a shortlist to pick"
+            " from, NOT a decision):\n"
+        )
+        for source_key in sorted(rankings):
+            shortlist = ", ".join(
+                f"{c['target_field']} ({c['score']:.2f})" for c in rankings[source_key]
+            )
+            banner += f"#   {source_key} resembles: {shortlist}\n"
     return banner + yaml.safe_dump(doc, sort_keys=True, allow_unicode=True)
 
 

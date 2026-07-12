@@ -14,6 +14,7 @@ dependencies = [
     "openpyxl>=3.1",
     "jinja2>=3.1",
     "anthropic>=0.40",
+    "fastembed>=0.8.0",
 ]
 
 [project.scripts]
@@ -44,3 +45,6 @@ select = ["E", "F", "I", "UP"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+markers = [
+    "slow: performance smoke tests against real local AI assets (SC-008); auto-skip when absent",
+]

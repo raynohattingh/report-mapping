@@ -13,9 +13,28 @@ Rule: every assumption here was made deliberately because the real answer was un
 | **A7** | The weekend slice (see FIRST_PROMPT §Scope) is what "working by Sunday 12 Jul" means: one profile, two interim targets, full pipeline, invariant tests. Deferred, NOT dropped: second source profile (Zeitview), ≤2h-setup human benchmark, M5 IAS demo script polish, extraction hardening beyond the demo PDFs + synthetic drift fixtures. | — | Reviewed at next weekly review against v1 DoD (design §11). |
 | **A8** | Transform YAML authored/edited by a technical user is acceptable UX for v1 (HIL Option A — DECIDED 2026-07-10, no longer open). | Web UI (Option B) is a bolt-on later; stored Transform format identical. | First non-technical reviewer at a paying customer. |
 
+## v1.1 additions (2026-07-11)
+
+| ID | Assumption | Blast radius if wrong | How to clear |
+|---|---|---|---|
+| **A9** | Build/run hardware = Rayno's personal Apple-silicon Mac, ≥16GB unified memory, no discrete GPU. Local AI sized accordingly: small embedding model + ≤~4B-param instruct model via Ollama. | Model config change only (tiers are config, D8). | Confirm machine specs; adjust `rmu ai doctor` expectations. |
+| **A10** | The document-anatomy approach (pdfplumber primitives: positioned words, tables, font clustering, repeated rows) is sufficient to draft profiles for the *digitally-generated, structured* PDFs operators actually export. Scanned/image PDFs are out of scope. | If real operator PDFs are messier than assumed, draft quality drops — HIL correction absorbs it (that's why approval is mandatory, D5); OCR becomes a logged future feature. | First 3–5 real current-format reports (same clearance as A1). |
+| **A11** | Eskom-style mandated target formats will be fillable-form or fixed-layout PDFs (or docx/xlsx already supported) — covered by D7's pdf_form + pdf_overlay kinds. | A target outside these kinds needs a new render backend; registries/transforms unaffected. | TBD-1 landing (real Annexure H in hand). |
+| **A12** | Specific local model choices (embedding + instruct) are resolved by Claude Code AT BUILD TIME from the then-current Ollama/sentence-transformers ecosystem (web-search quota blocked verification on 2026-07-11); chosen names + licenses must be recorded here as A12a/A12b when picked. | Config swap. | Build-time selection + periodic re-check. |
+| **A12a** | Tier-1 embeddings = `fastembed` (Apache-2.0) running `BAAI/bge-small-en-v1.5` (MIT, 384-dim), in-process ONNX on CPU — **installed 002 build: fastembed 0.8.0, model cache warmed; SC-002 measured 100% top-3** on the seed ground truth. Forced HF offline mode so a missing cache degrades instead of downloading (FR-014). | Config swap (D8); ranking eval (SC-002) re-run against replacement. | Re-verify license + availability at `uv add` time; revisit if SC-002's 90% top-3 fails. |
+| **A12b** | Tier-2 local LLM = Ollama `qwen3:4b` (Apache-2.0), temperature 0, JSON-constrained; documented fallback `gemma3:4b`. **Build revision: client is stdlib `urllib` against the loopback URL, NOT the `ollama` package** (fewer deps, explicit loopback pin — research.md R2). Ollama runtime is an optional user install (`rmu ai setup`); absent ⇒ per-tier degradation. | Config swap (D8); proposal-quality drop absorbed by HIL review (nothing auto-accepted). | Re-verify at `ollama pull` time; revisit on A9 memory/latency pressure (SC-008). |
+
 ## Decision log (made 2026-07-10, previously parked — cite as D#)
 
 - **D1** HIL interface = Option A (CLI + YAML + generated HTML review sheet). Design doc §6.1.
 - **D2** Build starts 11–12 Jul weekend, ahead of the incumbent-gap test (Rayno's override; risk bounded — zero Eskom-specific content in the build). Design doc §12.
 - **D3** Degradation order if Saturday slips: cut AI-assist (manual `--no-ai` mapping is the core path), then HTML review-sheet polish (plain YAML review), then the second interim template. NEVER cut: apply determinism, append-only registries, drift-block, exceptions report, or their tests — those are the product's claims.
 - **D4** Storage = SQLite (design §8). Pricing/data-ownership stay open as business questions; they do not gate the build.
+
+## Decision log — v1.1 (2026-07-11)
+
+- **D5** Features "ingest any source/target PDF → auto-create profile/template" are built as **assisted onboarding**: tool proposes a DRAFT, human validates/approves in HIL, draft artifacts can never be used by an ApplyRun. Fully-unattended any-doc conversion stays rejected (scope ruling, idea note 2026-07-10). Design §13.1.
+- **D6** Mapping Studio (local FastAPI+HTMX+PDF.js web app) approved as the primary HIL surface — **reverses D1's Option-A-only** on new information: the engine now exists, and profile/template onboarding is inherently visual. CLI remains canonical for batch; single-write-path rule (studio owns zero business logic). Design §13.2.
+- **D7** PDF-target rendering = AcroForm fill (`pdf_form`) + coordinate overlay via reportlab (`pdf_overlay`) first; HTML→PDF reconstruction deferred. Overflowing values are exceptions, never silent truncation.
+- **D8** Local AI = tiered: (1) CPU embeddings for field-routing candidates + fingerprint similarity, (2) optional local LLM via Ollama for value-map proposals (temp 0, strict JSON), (3) external API opt-in gated on a recorded per-client consent flag. Model names are config resolved at build time (A12). AI at apply time remains banned (constitution rule 2).
+- **D9** Build order 002-local-ai → 003-onboarding-assist → 004-mapping-studio; all of v1.1 stays SEQUENCED BEHIND Monday's discovery actions (Dexter nudge, incumbent-gap test) — features don't monetise an unsold product.

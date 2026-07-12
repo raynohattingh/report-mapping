@@ -49,11 +49,16 @@ These are enforced by tests that are never cut (see `tests/invariants/`):
 (`scopito.pdf.powerline.v2020`, built against two real Scopito demo PDFs), two
 **INTERIM** target templates, the full pipeline, and the invariant test suite.
 
+**Local AI assistance** (feature `002-local-ai-assist`, 2026-07-12): the mapping
+session can now propose field routes and value maps **entirely on-device** — no
+data leaves the machine — with a consent-gated opt-in for an external API. See
+[Local AI assistance](#local-ai-assistance) below.
+
 ⚠️ **The shipped target formats are interim stand-ins.** The real
 client-mandated formats (Eskom Annexure H pro forma, SAP defect-record fields)
 are not in hand and are **never invented here** — they arrive later as new
 `TargetTemplate` versions, as pure data, with no pipeline changes. See
-`ASSUMPTIONS.md` (A1–A8) for the working assumptions and `STATUS.md` for
+`ASSUMPTIONS.md` (A1–A12, D1–D9) for the working assumptions and `STATUS.md` for
 current build state.
 
 ## Quickstart
@@ -90,13 +95,28 @@ uv run rmu apply run tests/fixtures/batch_20 \
 
 # 3) Trust drills
 uv run rmu apply regen 1   # byte-exact regeneration, hash-verified
-uv run pytest              # 65 tests incl. determinism / append-only /
-                           # drift-block / exceptions invariants
+uv run pytest              # 111 tests incl. determinism / append-only /
+                           # drift-block / exceptions / offline-AI invariants
 ```
 
-Drop `--no-ai` (with `ANTHROPIC_API_KEY` set) for AI-proposed field routes and
-value conversions — every proposal enters at tier **T2** and cannot survive
-approval without an explicit human decision.
+The `--no-ai` flag above forces a fully manual session (always available). To
+get **on-device AI proposals** instead — ranked candidate target fields and
+value-map suggestions, with no data leaving the machine — install the local
+models once and drop the flag (`local` is the default mode):
+
+```bash
+uv run rmu ai setup        # prints the one-time model setup steps
+uv run rmu ai doctor       # verify which tiers are ready
+uv run rmu map start \
+  --profile scopito.pdf.powerline@v2020 \
+  --template interim.defect_csv@1 \
+  --exemplar seed/source_samples/Distribution-report.pdf   # --assist local (default)
+```
+
+Every proposal enters at tier **T2** and cannot survive approval without an
+explicit human decision — identical to the manual flow, just pre-filled. See
+[Local AI assistance](#local-ai-assistance) for the modes, tiers, and the
+consent gate on the external-API option.
 
 ## Worked example — run it on the bundled demo data
 
@@ -258,20 +278,27 @@ guessed.
 | `rmu profile\|template\|valuemap list` | Registry inspection |
 | `rmu valuemap create --name N --file F` | Insert a NEW version of a named lookup (append-only) |
 | `rmu map start\|review\|preview\|approve` | The human-in-the-loop mapping session |
+| `rmu map start --assist none\|local\|external [--client ID]` | Choose the assistance mode (default `local`) |
+| `rmu map regenerate --session N` | Explicitly replace a session's proposals (prior set kept in history) |
+| `rmu profile suggest <pdf>` | Suggest which registered profiles a document resembles |
+| `rmu ai doctor \| ai setup` | Local-AI health report / manual setup instructions |
+| `rmu ai consent grant\|revoke\|list --client ID --by OWNER` | Record per-client external-API consent |
 | `rmu apply run <folder> --transform REF... --answer k=v...` | Deterministic batch conversion; never interactive |
 | `rmu apply regen <run-id>` | Exact regeneration of a past run, hash-verified |
 | `rmu runs list\|show` | Audit-record inspection |
 
 Exit codes: `0` success · `1` validation error (e.g. missing prompt answers,
 empty batch) · `2` blocked (every document quarantined) · `3` approval
-preconditions unmet.
+preconditions unmet · `4` external assistance refused (no recorded per-client
+consent) · `5` requested assistance tier unavailable.
 
 ## How the mapping session works
 
 1. `map start` extracts the exemplar and emits a **draft transform** (YAML,
-   schema-validated) plus starter value-map files. In AI mode, proposals carry
-   a confidence tier and one-line rationale; unproposed required fields appear
-   as unmapped placeholders.
+   schema-validated) plus starter value-map files. In an assisted mode,
+   proposals carry a confidence tier and one-line rationale, the draft banner
+   lists a **ranked shortlist of candidate target fields** per source field, and
+   unproposed required fields appear as unmapped placeholders.
 2. The analyst edits the draft: accept/edit/reject each route, fill remaining
    required fields with **constants**, **formulas** (a closed set of pure,
    declarative operations — no code, no clock, no randomness), or
@@ -287,6 +314,69 @@ Confidence tiers (per field): `T0` deterministic · `T1` validated (value-map
 backed) · `T2` AI-proposed, pending — never in an approved transform · `T3`
 unmapped.
 
+## Local AI assistance
+
+The mapping session can propose field routes and value maps **without any data
+leaving the machine**. Assistance exists only inside the session; apply,
+validate, render and audit are byte-for-byte unchanged, and AI never runs at
+apply time (constitution rule 2).
+
+Three modes, chosen in config or with `--assist` (default `local`):
+
+- **`none`** — fully manual (`--no-ai` is an alias). Always works; this is the
+  degradation floor.
+- **`local`** (default, D8) — two tiers, both on-machine:
+  - *tier 1* in-process CPU embeddings (`fastembed` + `BAAI/bge-small-en-v1.5`,
+    A12a) rank candidate target fields per source field and power
+    `rmu profile suggest`;
+  - *tier 2* an optional loopback-only local LLM via Ollama (`qwen3:4b`, A12b,
+    temperature 0, JSON-constrained) proposes value-map entries with rationales.
+  Tiers degrade independently — embeddings-only still gives ranking; with no
+  assets installed the session behaves like `none`.
+- **`external`** — third-party API, **refused unless** a per-client consent flag
+  is recorded (`rmu ai consent grant --client <id> --by <owner>`). Consent is
+  matched to an explicit `--client`; nothing is inferred (rule 7).
+
+Every proposal is schema-validated then referent-checked; malformed or
+unresolvable output is dropped and only ever shown as an aggregate count, never
+surfaced as trusted. Proposals are generated once and persisted with provenance,
+so re-opening a session never silently changes what is under review;
+`rmu map regenerate` replaces them explicitly (prior set kept in history).
+
+**Setup** (nothing downloads automatically — FR-014): `rmu ai setup` prints the
+one-time steps; `rmu ai doctor` reports which tiers are ready. Tier 1 (embeddings)
+is the `fastembed` model cache; tier 2 (LLM) needs a local Ollama with the model
+pulled. Local assistance is sized for a personal CPU-only Apple-silicon machine
+(A9); GPU-only models are out of scope.
+
+```bash
+uv run rmu ai setup                    # instructions (warm embeddings; optional: ollama pull qwen3:4b)
+uv run rmu ai doctor                   # per-tier health; --json for scripts
+
+# On-device proposals in a mapping session (local is the default mode):
+uv run rmu map start --assist local \
+  --profile scopito.pdf.powerline@v2020 --template interim.defect_csv@1 \
+  --exemplar seed/source_samples/Distribution-report.pdf
+uv run rmu map regenerate --session 1  # re-run proposals explicitly (prior set kept in history)
+
+# Which known profile does a new document resemble? (embedding similarity)
+uv run rmu profile suggest seed/source_samples/Report-Transmission.pdf
+
+# External API is opt-in and refuses without a recorded per-client consent flag:
+uv run rmu ai consent grant --client acme --by <you> --note "DPA signed"
+uv run rmu map start --assist external --client acme \
+  --profile scopito.pdf.powerline@v2020 --template interim.defect_csv@1 \
+  --exemplar seed/source_samples/Distribution-report.pdf
+```
+
+If a tier is unavailable the session degrades cleanly rather than failing:
+embeddings-only still ranks candidates; with no models installed at all,
+`--assist local` behaves exactly like `--no-ai`.
+
+**Proof it stays local:** `tests/integration/test_local_session_offline.py` runs
+a full local-mode session with all non-loopback sockets blocked and still
+produces proposals.
+
 ## Repository layout
 
 ```
@@ -297,7 +387,8 @@ src/rmu/
 ├── store.py         # content-addressed blob store (store/objects/<sha>)
 ├── detect/          # profile fingerprint matching (anchors as data)
 ├── extract/         # per-profile parsers -> NormalizedRecords
-├── mapping/         # HIL session, transform schema/loader, AI providers, review sheet
+├── mapping/         # HIL session, transform schema/loader, proposal providers, review sheet
+├── ai/              # local AI assist ONLY (embeddings, local LLM, config, consent, doctor)
 ├── apply/           # pure conversion engine + batch orchestration
 ├── validate/        # SafeCard scoring + template rule enforcement
 └── render/          # deterministic CSV/docx rendering + OPC canonicalizer
@@ -317,10 +408,14 @@ value-map references are closed by construction.
 ## Development
 
 ```bash
-uv run pytest                 # full suite (65 tests)
+uv run pytest                 # full suite (111 tests)
 uv run pytest tests/invariants/   # the never-cut guarantees only
 uv run ruff check src tests  # lint
 ```
+
+Tests that need the local AI models auto-skip when the caches are absent, so the
+suite is green on a fresh clone; install the models (`rmu ai setup`) to exercise
+the on-device ranking and proposal paths.
 
 - **Fixtures**: `tests/fixtures/build_fixtures.py` (seeded, dev-only reportlab)
   generates the committed synthetic same-structure PDFs, a zero-findings
@@ -336,18 +431,30 @@ uv run ruff check src tests  # lint
 ## Data sensitivity
 
 Real client reports must not be sent to any third-party API until a
-data-processing agreement exists with that client. The repo builds and tests
-exclusively on the bundled public demo PDFs and synthetic fixtures; the AI
-provider is used only in mapping sessions, and the fully manual `--no-ai` path
-is a first-class, always-working mode — not a fallback.
+data-processing agreement exists with that client. Three things enforce this:
+
+- **On-device by default.** The `local` assistance mode runs entirely on the
+  machine (in-process embeddings; an optional loopback-only local LLM) — no data
+  leaves it, proven by a socket-blocked test. This lets AI assist on confidential
+  reports *before* any external agreement exists.
+- **External is consent-gated.** The `external` mode refuses to run unless an
+  explicit per-client consent flag is recorded (`rmu ai consent grant`); nothing
+  is inferred, and consent is matched to an explicit `--client`.
+- **Manual always works.** The fully manual `--no-ai` path is a first-class,
+  always-working mode — not a fallback.
+
+The repo builds and tests exclusively on the bundled public demo PDFs and
+synthetic fixtures, and AI is used only inside mapping sessions — never at apply
+time, never on whole batches.
 
 ## Project documents
 
 | Document | What it is |
 |---|---|
-| `docs/solution_design_mapping_v1.md` | The authoritative build spec (pipeline, HIL session, SafeCard, data model) |
-| `ASSUMPTIONS.md` | Numbered working assumptions (A1–A8) + decision log (D1–D4) |
+| `docs/solution_design_mapping_v1.md` | The authoritative build spec (pipeline, HIL session, SafeCard, data model; §13 covers the v1.1 feature set) |
+| `ASSUMPTIONS.md` | Numbered working assumptions (A1–A12) + decision log (D1–D9) |
 | `STATUS.md` | Terse per-session build state, decisions, and DoD evidence |
-| `specs/001-report-mapping-v1/` | Spec-kit artifacts: spec, plan, research, data model, contracts, tasks |
+| `specs/001-report-mapping-v1/` | Spec-kit artifacts for the v1 pipeline: spec, plan, research, data model, contracts, tasks |
+| `specs/002-local-ai-assist/` | Spec-kit artifacts for the local AI assistance layer |
 | `docs/eskom_dst34-1441_extraction.md` | Interim defect taxonomy source for the stand-in vocabulary |
 | `.specify/memory/constitution.md` | The nine non-negotiable engineering principles this repo is governed by |

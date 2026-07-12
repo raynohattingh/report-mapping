@@ -21,6 +21,10 @@ class Proposal:
     tier: str = "T2"  # always T2 until a human decides (Constitution V)
     value_map_name: str | None = None
     suggested_entries: list[dict] = field(default_factory=list)
+    # Feature 002 provenance (FR-013): who produced this proposal and with what
+    # asset — e.g. provider="local", asset="ollama:qwen3:4b". None for legacy paths.
+    provider: str | None = None
+    asset: str | None = None
 
 
 class ProposalProvider(Protocol):
@@ -140,11 +144,156 @@ class AnthropicProvider:
         ]
 
 
+@dataclass
+class AssistBundle:
+    """Output of one local assist pass (feature 002): proposals plus the stats
+    the session persists (assets used, degraded tiers, shown/dropped counts,
+    per-source-field rankings). `mode`/`client`/`generated_at` are added by the
+    CLI, which knows them; the provider fills the rest."""
+
+    proposals: list[Proposal]
+    stats: dict
+
+
+def _observed_values(normalized: dict) -> dict[str, set[str]]:
+    """Every value actually seen per source path, for the gate's value check."""
+    obs: dict[str, set[str]] = {}
+    groups = (("header", [normalized["header"]]), ("finding", normalized["findings"]))
+    for scope, items in groups:
+        for item in items:
+            for key, value in item.items():
+                path = f"{scope}.{key}"
+                bucket = obs.setdefault(path, set())
+                if isinstance(value, list):
+                    bucket.update(str(x) for x in value)
+                elif isinstance(value, (str, int, float)):
+                    bucket.add(str(value))
+    return obs
+
+
+def _local_prompt(sample: dict, target_fields: list[str], defect_codes: list[dict]) -> str:
+    codes = [{"code": c["code"], "label": c["label"]} for c in defect_codes]
+    return (
+        "You propose a field mapping for a drone-inspection report converter.\n"
+        f"Source exemplar (extracted):\n{json.dumps(sample, indent=1)}\n\n"
+        f"Target fields to fill: {target_fields}\n"
+        f"Target defect-code vocabulary: {json.dumps(codes)}\n\n"
+        "Return ONLY a JSON array. Each element maps one target field: "
+        "{target_field, from_path (header.<key> or finding.<key>), rationale "
+        "(one short line), and — only for a vocabulary/scale/units/date conversion "
+        "(e.g. severity 1-5 -> priority, issue label -> defect code) — value_map_name "
+        "plus suggested_entries ([{source_value, target_value}]) drawn from values "
+        "present in the exemplar."
+    )
+
+
+class LocalProvider:
+    """Local assist (D8 tiers 1+2). Composes in-process embeddings (ranking) and
+    an optional loopback LLM (value-map/route proposals) behind the strict gate,
+    degrading per tier (FR-011). Constructed with an `rmu.ai.config.AiConfig`."""
+
+    name = "local"
+
+    def __init__(self, config):
+        self.config = config
+        self._embeddings = None
+        self._llm = None
+        self.last_bundle: AssistBundle | None = None
+        if config is not None:
+            from rmu.ai.embeddings import EmbeddingBackend
+            from rmu.ai.llm_local import LocalLLM
+
+            self._embeddings = EmbeddingBackend(config.embedding_model)
+            self._llm = LocalLLM(config.ollama_host, config.llm_model, config.timeout_seconds)
+
+    def propose(self, normalized, required_fields, defect_codes):
+        """Protocol path: rank/propose against the required fields only."""
+        targets = {f: f for f in required_fields}
+        return self.assist(normalized, targets, list(required_fields), defect_codes).proposals
+
+    def assist(
+        self,
+        normalized: dict,
+        target_descriptors: dict[str, str],
+        target_fields: list[str],
+        defect_codes: list[dict],
+    ) -> AssistBundle:
+        from rmu.ai import ranking, validation
+        from rmu.mapping.session import source_inventory
+
+        assets: dict[str, str] = {}
+        degraded: list[str] = []
+        rankings: dict[str, list[dict]] = {}
+        inventory = source_inventory(normalized)
+
+        # Tier 1 — in-process embeddings: rank candidate target fields per source.
+        if self._embeddings is not None and self._embeddings.available():
+            assets["embedding"] = f"fastembed:{self.config.embedding_model}"
+            sources = {
+                f"{scope}.{key}": ranking.descriptor_for_source(f"{scope}.{key}")
+                for scope in ("header", "finding")
+                for key in inventory.get(scope, {})
+            }
+            rankings = ranking.rank_candidates(sources, target_descriptors, self._embeddings)
+        else:
+            degraded.append("embedding")
+
+        # Tier 2 — optional loopback LLM: proposals through the strict gate.
+        proposals: list[Proposal] = []
+        dropped = {"schema": 0, "unknown_field": 0, "unknown_value": 0}
+        if self._llm is not None and self._llm.available():
+            asset = f"ollama:{self.config.llm_model}"
+            assets["llm"] = asset
+            sample = {"header": normalized["header"], "findings": normalized["findings"][:5]}
+            raw = self._llm.complete_json(_local_prompt(sample, target_fields, defect_codes))
+            if raw is None:
+                degraded.append("llm")
+            else:
+                proposals, dropped = validation.gate_proposals(
+                    raw,
+                    source_inventory=inventory,
+                    target_fields=set(target_fields),
+                    observed_values=_observed_values(normalized),
+                )
+                for p in proposals:
+                    p.provider = "local"
+                    p.asset = asset
+        else:
+            degraded.append("llm")
+
+        bundle = AssistBundle(
+            proposals=proposals,
+            stats={
+                "assets": assets,
+                "degraded": degraded,
+                "shown": len(proposals),
+                "dropped": dropped,
+                "rankings": rankings,
+            },
+        )
+        self.last_bundle = bundle
+        return bundle
+
+
 def get_provider(
-    no_ai: bool, stub: bool = False
-) -> NullProvider | StubProvider | AnthropicProvider:
-    if no_ai:
-        return NullProvider()
+    mode: str,
+    *,
+    stub: bool = False,
+    client: str | None = None,
+    config=None,
+) -> ProposalProvider:
+    """Construct the proposal provider for an assistance mode (feature 002, D8).
+
+    `mode` is one of none|local|external (resolved upstream). `stub=True` is a
+    test-only override. `config` is an `rmu.ai.config.AiConfig`; `client` gates
+    external mode (consent enforced in the CLI, contracts/cli-ai.md).
+    """
     if stub:
         return StubProvider()
-    return AnthropicProvider()
+    if mode == "none":
+        return NullProvider()
+    if mode == "local":
+        return LocalProvider(config)
+    if mode == "external":
+        return AnthropicProvider()
+    raise ValueError(f"unknown assistance mode {mode!r}")

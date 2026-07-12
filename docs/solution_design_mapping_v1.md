@@ -159,3 +159,33 @@ Python 3.12 · uv · pytest (golden-file tests for rendering; property tests for
 - **Build-timing decision (2026-07-10, Rayno):** v1 build starts the weekend of 11–12 Jul, AHEAD of the incumbent-gap test — overriding the earlier "sequenced behind critical path #1" position, to use the available build window. Risk accepted and bounded: the build contains zero Eskom-specific content (interim targets only), so a gap-test FAIL invalidates none of the engine. The gap test + Dexter escalation remain the top business actions from Monday 13 Jul. Weekend scope + working assumptions: `handoff_mapping_utility/ASSUMPTIONS.md`.
 - **Open business questions (do NOT block the build):** pricing unit (per stored template / per seat / hybrid — "map once" argues against per-report); whether MappingSession data is contractually ours to keep per client (feeds the template-library moat — put it in the pilot agreement). §6.1 interface choice is DECIDED (Option A).
 - **Escalation dependency:** fresh source samples + TBD-1/2 remain on the Dexter escalation clock (nudge ~14 Jul, phone by ~17 Jul, alternates in `build_strategy_powerline.md` §Contingency).
+
+---
+
+## 13. Feature set v1.1 (added 2026-07-11, after the weekend slice shipped)
+
+Three feature branches extending the working v1 slice. Speckit payloads: `handoff_mapping_utility/FEATURE_PROMPTS.md`. New decisions D5–D8 and assumptions A9–A12 in `ASSUMPTIONS.md`.
+
+### 13.1 Scope guardrail (D5) — assisted onboarding, NOT any-doc automation
+
+Rayno's asks 1–2 ("ingest any given source/target PDF → auto-create profile/template") are implemented as **assisted onboarding**: the tool ingests a new PDF and *proposes* a draft SourceProfile (detected tables, header anchors, repeating structures) or draft TargetTemplate (field schema, form fields, coordinate map); a human validates/corrects in the HIL flow before the draft enters the registry as v1 of that profile/template. This keeps the locked bounded-set ruling intact — the enumerable set grows one *validated* entry at a time — while removing the hand-written-parser cost per new format. It is a **moat accelerator** (faster template-library growth = faster institution onboarding). Fully-unattended "any doc" conversion remains OUT (the rejected horizontal mapper; see idea note scope ruling). Drafts are marked `draft` status and cannot be used in an ApplyRun until human-approved — same discipline as Transforms.
+
+### 13.2 Feature branches and sequencing
+
+| Branch | Delivers | Depends on |
+|---|---|---|
+| **002-local-ai** (D8) | Provider abstraction `rmu.ai`: (tier 1) local embedding model for field-routing candidates + profile fingerprint similarity; (tier 2) optional local LLM via Ollama for value-map/enum proposals, strict-JSON outputs, temperature 0; (tier 3) external API — opt-in, consent-gated, unchanged. Model names are **config resolved at build time**, not spec. AI still NEVER runs at apply time; `--no-ai` still fully functional. Solves rule-7 consent structurally: client data can now get AI assist without leaving the machine. | none |
+| **003-onboarding-assist** (D5, D7) | (P1) Source: `rmu profile draft <pdf>` → proposed extraction recipe + HIL validation → registered profile. (P2) Target: `rmu template draft <pdf>` → proposed field schema; AcroForm detection; coordinate map for fixed-layout forms. (P3) PDF-target rendering: AcroForm fill where the target is a form; reportlab coordinate overlay where it's fixed-layout; existing docx/xlsx path unchanged. This is the machinery that makes TBD-1 a same-day onboarding when Annexure H lands. | 002 (uses embeddings/LLM proposals) |
+| **004-mapping-studio** (D6) | Local FastAPI + HTMX + PDF.js web app, localhost only: side-by-side source/target PDF panes with clickable regions; visual field-link editing (source region ↔ target field), value-map editing, SafeCard panel; review/approve for profile & template drafts and Transforms. Replaces the static HTML review sheet as the primary HIL surface; YAML remains the stored format and the CLI remains canonical for batch/scripting. Reverses D1 on new information: engine exists, and 003's onboarding is inherently visual. | 002, 003 P1–P2 |
+
+Recommended build order: 002 → 003 → 004. 002 is small and immediately upgrades the existing mapping session. 004 without 003 has nothing new to visualise.
+
+### 13.3 Acceptance criteria (summary; full detail in FEATURE_PROMPTS payloads)
+
+- **002:** existing mapping session produces AI proposals with zero network calls (verified by test that blocks sockets); embeddings rank the true field route in top-3 candidates on the seed fixtures; provider swap (local↔external↔none) is config only.
+- **003:** given a NEVER-seen structured PDF (held-out fixture), a draft profile extracts ≥80% of its records correctly BEFORE human correction, and 100% of the validated subset after; draft artifacts cannot be referenced by an ApplyRun; a form-style target PDF round-trips (fill → read back → values match).
+- **004:** a full mapping session (new profile → link fields → value maps → approve → batch apply) completes entirely in the studio without hand-editing YAML; every studio action produces the same stored artifacts as the CLI path (one write path, no forked logic); binds to localhost only.
+
+### 13.4 Standing risk note
+
+All of v1.1 is product-side work with **zero willingness-to-pay evidence behind it**. The gap test (kill criterion #5) and Dexter escalation remain the top business actions; if IAS won't pay for v0/v1 output, v1.1 polish changes nothing. Features here are justified as (a) onboarding-cost collapse for the template-library moat and (b) consent-problem elimination — both only monetise if someone buys.

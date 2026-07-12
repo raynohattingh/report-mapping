@@ -99,7 +99,7 @@ def test_ai_session_proposals_require_decisions(tmp_path, monkeypatch):
         assert set(parsed) <= {"meta", "routes", "constants", "formulas",
                                "prompts", "exceptions"}
         ms = s.scalar(select(MappingSession))
-        assert ms.mode == "ai"
+        assert ms.mode == "stub"
         assert len(ms.proposals) >= 6  # persisted with tier + rationale (FR-005)
         assert all(p["tier"] == "T2" and p["rationale"] for p in ms.proposals)
         actions = {d["action"] for d in ms.decisions}

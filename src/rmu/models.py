@@ -94,11 +94,16 @@ class MappingSession(Base):
     source_profile_id: Mapped[int] = mapped_column(ForeignKey("source_profiles.id"))
     target_template_id: Mapped[int] = mapped_column(ForeignKey("target_templates.id"))
     exemplar_document_id: Mapped[int] = mapped_column(ForeignKey("source_documents.id"))
-    mode: Mapped[str] = mapped_column(String(10))  # ai|manual (FR-010)
-    # proposals: [{target_field, from, value_map?, tier, rationale, at}] (FR-005, FR-021)
+    # manual|local|external|stub (feature 002); legacy rows may read ai|manual (FR-010)
+    mode: Mapped[str] = mapped_column(String(10))
+    # proposals: [{target_field, from, value_map?, tier, rationale, at, provider?, asset?}]
     proposals: Mapped[list] = mapped_column(JSON, default=list)
     # decisions: [{target_field, action, detail, at}] (FR-021)
     decisions: Mapped[list] = mapped_column(JSON, default=list)
+    # Feature 002 (data-model §1): assistance metadata — {mode, client, assets,
+    # degraded, shown, dropped, rankings, superseded, generated_at}. NULL = pre-002
+    # session. NOT an append-only registry table, so this additive column is safe.
+    assist_stats: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     status: Mapped[str] = mapped_column(String(12), default="draft")  # draft|approved|abandoned
     resulting_transform_id: Mapped[int | None] = mapped_column(
         ForeignKey("transforms.id"), nullable=True

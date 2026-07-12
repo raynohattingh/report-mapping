@@ -31,7 +31,7 @@ _TEMPLATE = Template(
  <span class="T0">human-confirmed (T0/T1)</span>
  <span class="T2">AI proposed — needs your decision (T2)</span>
  <span class="T3">unmapped (T3)</span>
-</p>
+</p>{{ assist_block }}
 <table>
 <caption>Target fields</caption>
 <tr><th>Target field</th><th>Mechanism</th><th>Exemplar value</th>
@@ -72,6 +72,46 @@ def _sample(mechanism_kind: str, spec, context: dict) -> str:
     return "(computed)"
 
 
+def _assist_block(assist_stats: dict | None) -> str:
+    """Pre-rendered assist banner HTML, or "" when there is no assistance.
+
+    Built as a self-contained string (inline styles) so a manual/none session's
+    review sheet is byte-identical to before this feature. Always shows shown vs
+    dropped so a degraded local model is distinguishable from 'few suggestions'
+    (FR-008); rankings are framed as a shortlist, never confidence (Principle V).
+    """
+    if not assist_stats:
+        return ""
+    from markupsafe import escape
+
+    dropped = assist_stats.get("dropped", {})
+    dropped_total = sum(dropped.values())
+    detail = ", ".join(f"{k} {v}" for k, v in sorted(dropped.items()) if v)
+    degraded = ", ".join(assist_stats.get("degraded", []))
+    parts = [
+        f'\n<p style="background:#eef2ff;padding:6px 10px;border:1px solid #cdd">'
+        f'Assist: <b>{escape(assist_stats.get("mode", "?"))}</b> · proposals shown '
+        f'{assist_stats.get("shown", 0)} · dropped {dropped_total}'
+        f'{f" ({escape(detail)})" if detail else ""}'
+        f'{f" · degraded tiers: {escape(degraded)}" if degraded else ""}</p>'
+    ]
+    rankings = assist_stats.get("rankings", {})
+    if rankings:
+        parts.append(
+            '\n<details><summary style="cursor:pointer;font-weight:600">'
+            'AI candidate target fields (embedding similarity — a shortlist, not a '
+            'decision)</summary>\n<table>\n<tr><th>Source field</th>'
+            '<th>Resembles (top candidates)</th></tr>'
+        )
+        for source, shortlist in sorted(rankings.items()):
+            cands = ", ".join(
+                f"{escape(c['target_field'])} ({c['score']:.2f})" for c in shortlist
+            )
+            parts.append(f'\n<tr><td class="mech">{escape(source)}</td><td>{cands}</td></tr>')
+        parts.append("\n</table></details>")
+    return "".join(parts)
+
+
 def build_review_html(
     session_id: int,
     mode: str,
@@ -81,6 +121,7 @@ def build_review_html(
     doc: dict,
     normalized: dict,
     required: list[str],
+    assist_stats: dict | None = None,
 ) -> str:
     context = {
         "header": normalized["header"],
@@ -123,4 +164,5 @@ def build_review_html(
     return _TEMPLATE.render(
         session_id=session_id, mode=mode, profile=profile_ref,
         template=template_ref, exemplar=exemplar_name, rows=rows,
+        assist_block=_assist_block(assist_stats),
     )

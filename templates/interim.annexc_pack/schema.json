@@ -7,5 +7,10 @@
     "inspection_method"
   ],
   "optional": ["company", "inspection_type"],
-  "finding_fields": ["finding_id", "defect_code", "priority", "source_severity", "comments"]
+  "finding_fields": ["finding_id", "defect_code", "priority", "source_severity", "comments"],
+  "field_labels": {
+    "defect_code": "defect code for the reported issue or fault",
+    "priority": "priority or urgency level",
+    "source_severity": "original severity from the source report"
+  }
 }
