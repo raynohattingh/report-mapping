@@ -37,12 +37,12 @@ Single project: `src/rmu/`, `tests/` at repository root (plan.md structure decis
 
 **Purpose**: Proposal lifecycle, schemas, diagnosis ladder, and the draft-block wall — everything every story depends on.
 
-- [ ] T005 [REVIEW] Add `OnboardingProposal` model to src/rmu/models.py (NOT in APPEND_ONLY_MODELS) + additive Alembic migration for `onboarding_proposals` per data-model.md; review migration before applying
-- [ ] T006 [P] Install contract schemas as package data in src/rmu/onboard/schemas/ (recipe.schema.json, proposal.schema.json, pdf-template.schema.json from specs/003-pdf-format-onboarding/contracts/) + jsonschema validation helpers in src/rmu/onboard/schemas/__init__.py, with contract tests in tests/contract/test_onboarding_schemas.py
-- [ ] T007 [TDD] Implement proposal lifecycle in src/rmu/onboard/proposal.py: draft YAML load/save via store/drafts (draft_ref), element review states, unresolved-elements approval blocker (FR-003/FR-005), state transitions draft→approved/abandoned only; tests in tests/unit/test_proposal.py
-- [ ] T008 [P] [TDD] Implement diagnosis ladder in src/rmu/onboard/pdf_kind.py per research R7 (unparseable → encrypted → XFA → form → fixed-layout → scanned) with named rejections + workarounds (FR-010) and cross-misuse signals (FR-023); tests in tests/unit/test_pdf_kind.py against T004 fixtures
-- [ ] T009 [TDD] Add draft-artifact pre-flight guard to src/rmu/apply/engine.py: unresolvable/unregistered artifact reference → `DraftArtifactError` naming ref + status BEFORE any record is read, exception kind `draft_artifact` (FR-016); failing test FIRST in tests/invariants/test_draft_block.py (SC-006)
-- [ ] T010 Scaffold `rmu onboard` Typer sub-app in src/rmu/cli.py + src/rmu/onboard/__init__.py with draft-profile / draft-template / review / approve / abandon commands wired to stubs per contracts/cli-onboard.md (exit-code contract honored)
+- [x] T005 [REVIEW] Add `OnboardingProposal` model to src/rmu/models.py (NOT in APPEND_ONLY_MODELS) + additive Alembic migration for `onboarding_proposals` per data-model.md; review migration before applying
+- [x] T006 [P] Install contract schemas as package data in src/rmu/onboard/schemas/ (recipe.schema.json, proposal.schema.json, pdf-template.schema.json from specs/003-pdf-format-onboarding/contracts/) + jsonschema validation helpers in src/rmu/onboard/schemas/__init__.py, with contract tests in tests/contract/test_onboarding_schemas.py
+- [x] T007 [TDD] Implement proposal lifecycle in src/rmu/onboard/proposal.py: draft YAML load/save via store/drafts (draft_ref), element review states, unresolved-elements approval blocker (FR-003/FR-005), state transitions draft→approved/abandoned only; tests in tests/unit/test_proposal.py
+- [x] T008 [P] [TDD] Implement diagnosis ladder in src/rmu/onboard/pdf_kind.py per research R7 (unparseable → encrypted → XFA → form → fixed-layout → scanned) with named rejections + workarounds (FR-010) and cross-misuse signals (FR-023); tests in tests/unit/test_pdf_kind.py against T004 fixtures
+- [x] T009 [TDD] Add draft-artifact pre-flight guard to src/rmu/apply/engine.py: unresolvable/unregistered artifact reference → `DraftArtifactError` naming ref + status BEFORE any record is read, exception kind `draft_artifact` (FR-016); failing test FIRST in tests/invariants/test_draft_block.py (SC-006)
+- [x] T010 Scaffold `rmu onboard` Typer sub-app in src/rmu/cli.py + src/rmu/onboard/__init__.py with draft-profile / draft-template / review / approve / abandon commands wired to stubs per contracts/cli-onboard.md (exit-code contract honored)
 
 **Execution notes**: T007/T008 parallelizable after T005–T006. T009 is the US2 invariant — its failing test is written before the guard exists.
 

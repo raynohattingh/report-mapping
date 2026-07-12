@@ -3,7 +3,7 @@
   "specName": "[FEATURE NAME]",
   "branch": "main",
   "currentStep": "implement",
-  "status": "implemented",
+  "status": "completed",
   "history": [
     {
       "step": "specify",
@@ -351,6 +351,13 @@
       "kind": "complete",
       "by": "extension",
       "at": "2026-07-12T09:08:35.479Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "kind": "complete",
+      "by": "extension",
+      "at": "2026-07-12T15:14:23.188Z"
     }
   ],
   "currentTask": "T032",

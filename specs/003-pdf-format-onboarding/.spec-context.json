@@ -113,9 +113,57 @@
       "kind": "complete",
       "by": "ai",
       "at": "2026-07-12T16:55:34.507Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T005",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-12T20:07:34.018Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T006",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-12T20:08:48.288Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T007",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-12T20:09:50.655Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T008",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-12T20:10:58.063Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T009",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-12T20:12:42.639Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T010",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-12T20:16:44.969Z"
     }
   ],
-  "currentTask": "T004",
+  "currentTask": "T010",
   "task_summaries": {
     "T001": {
       "status": "DONE",
@@ -147,6 +195,55 @@
       "files": [
         "tests/fixtures/make_fixtures.py",
         "tests/fixtures/onboarding/"
+      ]
+    },
+    "T005": {
+      "status": "DONE",
+      "did": "OnboardingProposal model (non-append-only working state) + guarded additive Alembic migration 0004; verified via rmu db init on fresh DB",
+      "files": [
+        "src/rmu/models.py",
+        "alembic/versions/0004_onboarding_proposals.py"
+      ]
+    },
+    "T006": {
+      "status": "DONE",
+      "did": "Contract schemas installed as package data with jsonschema validators; 7 contract tests green (canonical shapes accepted, violations rejected)",
+      "files": [
+        "src/rmu/onboard/schemas/__init__.py",
+        "src/rmu/onboard/schemas/",
+        "tests/contract/test_onboarding_schemas.py"
+      ]
+    },
+    "T007": {
+      "status": "DONE",
+      "did": "Proposal lifecycle TDD: draft YAML surface + DB row sync, unresolved-element approval blocker, terminal transitions; 7 unit tests green",
+      "files": [
+        "src/rmu/onboard/proposal.py",
+        "tests/unit/test_proposal.py"
+      ]
+    },
+    "T008": {
+      "status": "DONE",
+      "did": "pdf_kind diagnosis ladder (unparseable/encrypted/XFA/form/fixed/scanned) with named workarounds + FR-023 misuse signals; 10 unit tests green incl. synthesized XFA",
+      "files": [
+        "src/rmu/onboard/pdf_kind.py",
+        "tests/unit/test_pdf_kind.py"
+      ]
+    },
+    "T009": {
+      "status": "DONE",
+      "did": "Draft-artifact pre-flight guard (DraftArtifactError) in apply/batch.py _resolve_ref — the DB-aware seam, not pure engine.py as task text said; 3 invariant tests green, run never created, nothing ingested",
+      "files": [
+        "src/rmu/apply/batch.py",
+        "tests/invariants/test_draft_block.py"
+      ]
+    },
+    "T010": {
+      "status": "DONE",
+      "did": "rmu onboard Typer sub-app: draft-profile/draft-template rejection+misuse paths live, review/abandon fully functional, approve gated on T018; exit-code contract honored",
+      "files": [
+        "src/rmu/onboard/cli.py",
+        "src/rmu/cli.py"
       ]
     }
   }

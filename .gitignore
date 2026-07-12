@@ -23,3 +23,6 @@ Thumbs.db
 
 # Env
 .env*
+
+# SC-001 quarantined acceptance fixtures stay untracked (owner decision 2026-07-12)
+seed/holdout/*.pdf

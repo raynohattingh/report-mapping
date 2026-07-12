@@ -47,7 +47,15 @@ def draft_profile(
                                help="proceed despite a document-kind warning (FR-023)"),
 ) -> None:
     """Analyse an unrecognised source PDF into a draft profile proposal."""
+    import pdfplumber
+
+    from rmu import store
+    from rmu.onboard.analyze_source import analyze
+    from rmu.onboard.enrich import enrich_document
     from rmu.onboard.pdf_kind import diagnose
+    from rmu.onboard.proposal import Proposal
+    from rmu.onboard.review_sheet import write_sheet
+    from rmu.onboard.skeleton import attach_diagnosis, is_structureless
 
     paths = [Path(p) for p in exemplars]
     for p in paths:
@@ -58,8 +66,74 @@ def draft_profile(
     if diag.kind is None:
         _reject(diag)
     _check_misuse(paths[0], "draft-profile", force)
-    typer.echo("error: source analysis not yet available (T013)")  # scaffold boundary
-    raise typer.Exit(2)
+
+    with _session_factory()() as s:
+        seed_row = None
+        seed_profile = None
+        if seed_from:
+            from rmu.registry import get_profile
+
+            try:
+                seed_row = get_profile(s, seed_from)
+            except LookupError as err:
+                typer.echo(f"error: {err}")
+                raise typer.Exit(1) from err
+            seed_profile = {"ref": seed_from}
+
+        for p in paths:
+            store.put_file(p)  # exemplars retrievable at verify-on-approve
+        document = analyze(paths, seed_profile=seed_profile)
+
+        if not no_ai:
+            llm = _local_llm()
+            if llm is not None:
+                with pdfplumber.open(paths[0]) as pdf:
+                    page_texts = [pg.extract_text() or "" for pg in pdf.pages]
+                document = enrich_document(document, page_texts, llm=llm)
+
+        skeleton = is_structureless(document)
+        if skeleton:
+            attach_diagnosis(document)  # FR-001b: never a dead end
+
+        proposal = Proposal.create(
+            s, document,
+            seeded_from_profile_id=seed_row.id if seed_row else None,
+        )
+        sheet = write_sheet(document, proposal.id)
+
+        low = sum(1 for e in document["elements"] if e["confidence"] < 0.5)
+        flagged = sum(1 for e in document["elements"] if e.get("flags"))
+        typer.echo(f"proposal: {proposal.id}")
+        typer.echo(f"draft: {proposal.draft_path()}")
+        typer.echo(f"review sheet: {sheet}")
+        typer.echo(
+            f"elements: {len(document['elements'])} "
+            f"(low-confidence: {low}, flagged: {flagged})"
+        )
+        if document.get("ai_assist"):
+            typer.echo(
+                f"ai hints: {len(document['ai_assist']['enrichments'])} "
+                f"(local, pages {document['ai_assist']['sampled_pages']})"
+            )
+        if skeleton:
+            typer.echo(f"diagnosis: {document['diagnosis']['notes']}")
+        typer.echo(
+            "next: review each element against the PDF, edit the draft YAML, "
+            "then 'rmu onboard approve'"
+        )
+
+
+def _local_llm():
+    """Best-effort 002-layer local model; None => enrichment silently skipped."""
+    try:
+        from rmu.ai.config import load_ai_config
+        from rmu.ai.llm_local import LocalLLM
+        from rmu.config import store_root
+
+        cfg = load_ai_config(store_root())
+        return LocalLLM(cfg.ollama_host, cfg.llm_model, cfg.timeout_seconds)
+    except Exception:
+        return None
 
 
 @onboard_app.command("draft-template")
@@ -121,8 +195,9 @@ def review(
                 f"template_id={p.row.resulting_template_id}"
             )
         if regenerate_sheet:
-            typer.echo("error: review sheet not yet available (T016)")
-            raise typer.Exit(2)
+            from rmu.onboard.review_sheet import write_sheet
+
+            typer.echo(f"review sheet: {write_sheet(p.document, p.id)}")
 
 
 @onboard_app.command("approve")
@@ -133,17 +208,42 @@ def approve(
     by: str = typer.Option("", "--by", help="approver identity (FR-017)"),
 ) -> None:
     """Verify-on-approve then register (FR-022): approval is a machine-checked proof."""
+    import getpass
+
+    from rmu.onboard.approve import VerifyFailure, approve_profile
     from rmu.onboard.proposal import Proposal, ProposalStateError
 
+    operator = by or getpass.getuser()  # FR-017: who approved
     with _session_factory()() as s:
         try:
             p = Proposal.load(s, proposal_id)
-            p.ensure_approvable()
         except ProposalStateError as err:
             typer.echo(f"error: {err}")
             raise typer.Exit(1) from err
-        typer.echo("error: verify-on-approve not yet available (T018/T026)")
-        raise typer.Exit(2)
+
+        if p.kind == "profile":
+            if not as_ref or "@" not in as_ref:
+                typer.echo("error: profile approval needs --as <key>@<version>")
+                raise typer.Exit(1)
+            key, _, version = as_ref.partition("@")
+            try:
+                row = approve_profile(s, p, key, version, operator)
+            except VerifyFailure as err:
+                typer.echo(f"error: {err}")
+                typer.echo("proposal stays draft; verify report persisted "
+                           "(rmu onboard review to inspect)")
+                raise typer.Exit(1) from err
+            except ProposalStateError as err:
+                typer.echo(f"error: {err}")
+                raise typer.Exit(1) from err
+            typer.echo(
+                f"registered: SourceProfile {row.key}@{row.structural_version} "
+                f"(id {row.id}), approved by {operator}"
+            )
+            typer.echo("this shape now detects and extracts deterministically - no AI")
+        else:
+            typer.echo("error: template approval not yet available (T026)")
+            raise typer.Exit(2)
 
 
 @onboard_app.command("abandon")

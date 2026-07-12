@@ -57,7 +57,8 @@ def test_drifted_documents_blocked_healthy_converts(mixed_batch):
     exceptions = (run_dir / "exceptions.csv").read_text()
     assert "drifted_header.pdf" in exceptions and "unknown_profile" in exceptions
     assert "count_mismatch.pdf" in exceptions and "drift_block" in exceptions
-    assert "human review" in exceptions or "mapping session" in exceptions
+    # FR-021 (feature 003): the block now points at seeded re-onboarding
+    assert "draft-profile" in exceptions
 
 
 def test_all_blocked_batch_signals_blocked_exit(mixed_batch, tmp_path):

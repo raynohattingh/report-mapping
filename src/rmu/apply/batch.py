@@ -319,8 +319,8 @@ def run_batch(
                 "kind": "unknown_profile",
                 "detail": {"field": "", "value": "",
                            "reason": "document does not match any known source profile",
-                           "suggestion": "route to a mapping session as a possible new "
-                                         "profile version"},
+                           "suggestion": f"onboard this shape: rmu onboard draft-profile "
+                                         f"{name} (FR-021)"},
             }]
             per_doc_exceptions.append((name, exc))
             _get_or_create_document(session, sha, name, None)
@@ -344,8 +344,10 @@ def run_batch(
                 "kind": "drift_block",
                 "detail": {"field": "", "value": "",
                            "reason": reason,
-                           "suggestion": "human review: suspected new profile version; "
-                                         "re-map once and register it"},
+                           "suggestion": f"structure drifted: rmu onboard draft-profile "
+                                         f"{name} --seed-from {matched.key}@"
+                                         f"{matched.structural_version} - review the delta, "
+                                         f"approve a new profile version (FR-021)"},
             }]
             per_doc_exceptions.append((name, exc))
             _get_or_create_document(session, sha, name, matched.id)

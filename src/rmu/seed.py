@@ -17,7 +17,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from rmu import store
-from rmu.config import REPO_ROOT
+from rmu.config import REPO_ROOT, profiles_root
 from rmu.models import SourceProfile, TargetTemplate
 
 SEED_EFFECTIVE = datetime.date(2026, 7, 11)
@@ -34,13 +34,17 @@ def load_defect_codes(csv_path: Path | None = None) -> list[dict]:
 def profile_config(key_at_version: str) -> dict:
     """Load the profile YAML for e.g. 'scopito.pdf.powerline@v2020'."""
     key, _, sv = key_at_version.partition("@")
-    path = REPO_ROOT / "profiles" / f"{key}.{sv}.yaml"
+    path = profiles_root() / f"{key}.{sv}.yaml"
+    if not path.exists():  # onboarded recipes may live beside the repo-shipped ones
+        path = REPO_ROOT / "profiles" / f"{key}.{sv}.yaml"
     return yaml.safe_load(path.read_text())
 
 
 def seed_profiles(session: Session) -> list[str]:
     added = []
-    for path in sorted((REPO_ROOT / "profiles").glob("*.yaml")):
+    seen = {p.name: p for p in (REPO_ROOT / "profiles").glob("*.yaml")}
+    seen.update({p.name: p for p in profiles_root().glob("*.yaml")})
+    for path in sorted(seen.values(), key=lambda p: p.name):
         cfg = yaml.safe_load(path.read_text())
         exists = session.scalar(
             select(SourceProfile).where(
