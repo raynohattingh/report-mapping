@@ -93,6 +93,7 @@ An analyst who has applied a batch (records already mapped and validated) produc
 
 - **Scanned/image-only PDF submitted for onboarding (source or target)**: detected and rejected with a clear message; the occurrence is logged as a future assumption to resolve (OCR is out of scope).
 - **Encrypted, password-protected, or XFA (LiveCycle) target PDF**: rejected with a diagnosis naming the specific condition and its workaround (unlocked copy, or flatten to fixed-layout) — plausible for utility/government paperwork, so the message must be actionable, not generic.
+- **Valid text PDF with no detectable structure** (e.g., prose-style report): draft-profile emits a diagnosis plus an empty proposal skeleton for manual authoring through the normal review/approve flow — never a bare failure (FR-001b).
 - **Low-confidence proposal elements**: elements below a confidence floor are flagged for mandatory review attention, never silently pre-confirmed.
 - **PDF that is both a fillable form and has fixed-layout content**: form fields take precedence for the proposal; the analyst can see and correct the classification before approval.
 - **Records spanning page breaks or repeated per-page headers/footers in a source PDF**: the draft recipe must account for page anatomy so repeated furniture is not proposed as record data.
@@ -113,6 +114,7 @@ An analyst who has applied a batch (records already mapped and validated) produc
 
 - **FR-001**: The system MUST provide a draft-profile command that, given a structured source PDF with no matching registered profile, analyses the document's structure (repeating structures, tables, header/label blocks, page anatomy) and produces a draft extraction recipe proposing: header fields, record-row locations, and the columns/labels each record carries. The command requires one exemplar PDF and MAY accept additional same-shape exemplars; when extras are supplied they are used to cross-check the proposal, and elements that fail to generalise across exemplars are down-scored and flagged for review.
 - **FR-001a**: Draft extraction recipes MUST support per-record image elements: the analysis proposes image regions associated with each record (e.g., defect photos), and approved profiles extract those images as files referenced from the extracted record — matching how the existing hand-built profile handles photos.
+- **FR-001b**: When analysis finds no usable structure in a valid text PDF, the draft-profile command MUST produce a diagnosis (what was searched for, what was not found) plus an empty-but-valid proposal skeleton that the analyst can hand-fill in the same review flow and approve normally — manual authoring through the standard lifecycle is the degradation floor; onboarding is never a dead end.
 - **FR-002**: Every proposed element in a draft extraction recipe MUST carry a per-element confidence score, and confidence MUST reflect structural evidence — field-name overlap alone MUST NOT be presented as confidence.
 - **FR-003**: The system MUST provide a review flow in which the analyst can confirm, correct, or remove each proposed element individually, comparing against the actual PDF; approval MUST be blocked while any element remains unresolved. The review flow follows the existing mapping-session pattern (D1): the proposal is an editable persisted document, a generated visual review sheet renders each proposed element against the source PDF, and approval is an explicit separate command.
 - **FR-004**: On approval, the system MUST register the validated recipe as a new versioned SourceProfile (starting at v1) in the existing append-only, effective-dated profile registry; from that point extraction for that shape MUST be fully deterministic with no AI involvement.
@@ -143,6 +145,8 @@ An analyst who has applied a batch (records already mapped and validated) produc
 - **FR-019**: Onboarding MUST NOT alter the behaviour of any existing registered profile or template; the existing scopito v2020 profile and interim templates MUST continue to produce identical output on existing fixtures.
 - **FR-020**: Document analysis during onboarding MUST transmit no document content to third-party services: deterministic structural heuristics always produce the base proposal, and the existing local AI assistance layer (feature 002) MAY optionally enrich it (field naming, label matching, confidence hints). A `--no-ai` mode MUST yield heuristics-only proposals. AI assistance is confined to the onboarding/drafting session and never runs at apply or render time.
 - **FR-021**: When SafeCard blocks a batch input for structural drift, the block verdict and exceptions report MUST recommend the re-onboarding path: running the draft-profile command on the drifted document, seeded with the blocking profile so the analyst reviews the proposal as a delta against the known shape. Block behaviour itself is unchanged, and the seeded proposal follows the full draft → review → approve lifecycle producing a new profile version.
+- **FR-022**: Approval MUST verify before registering. For a profile: deterministic extraction is re-run on the exemplar(s) with the corrected recipe and MUST exactly match the analyst's confirmed elements. For a template: a test render with sample values MUST pass the round-trip check (FR-013). Registration proceeds only on success; a verification failure returns the proposal to review with the mismatches listed. Approval is thereby a machine-checked proof, not only a recorded signature — SC-002 is enforced at the gate.
+- **FR-023**: The draft-profile and draft-template commands MUST run cheap document-kind signals first (form fields present? repeating record structures?) and, when the document strongly resembles the other kind, stop with a warning naming the likely mistake and the suggested command; an explicit override flag proceeds anyway for genuinely ambiguous documents.
 
 ### Key Entities
 
@@ -158,13 +162,14 @@ An analyst who has applied a batch (records already mapped and validated) produc
 ### Measurable Outcomes
 
 - **SC-001**: On the held-out structured PDF fixture never used in development (the quarantined Zeitview demo report, see Assumptions), the draft profile proposal extracts at least 80% of records correctly before any human correction.
-- **SC-002**: After human validation and approval, 100% of the human-validated subset extracts correctly via the registered profile.
+- **SC-002**: After human validation and approval, 100% of the human-validated subset extracts correctly via the registered profile — enforced mechanically by the verify-on-approve gate (FR-022), not by convention.
 - **SC-003**: An analyst can take an unrecognised structured PDF from first command to approved artifact in under 30 minutes of validation effort, versus hand-building an extraction recipe or template from scratch.
 - **SC-004**: A fillable-form PDF target round-trips exactly: every value read back from the produced PDF equals the applied record value, on every batch.
 - **SC-005**: A fixed-layout PDF target renders all mapped values at their registered coordinates, verified by a golden-file comparison of extracted text and coordinates.
 - **SC-006**: Every attempt to run a batch against a draft artifact fails with a clear error and converts zero records, demonstrated by automated tests.
 - **SC-007**: The existing scopito v2020 profile and interim templates produce byte-identical output on existing fixtures before and after this feature ships.
 - **SC-008**: 100% of approved artifacts carry an approval record (who, when) and full proposal provenance.
+- **SC-009**: Draft-profile analysis of a 300-page report completes in under 10 minutes on the development machine, with optional AI enrichment budgeting itself (e.g., sampling representative pages) to stay within the bound.
 
 ## Out of Scope
 
@@ -194,3 +199,12 @@ Four edge-case areas explored and resolved:
 2. **Images** — full image support: onboarded recipes extract per-record images as referenced files (FR-001a), fixed-layout templates register image-kind regions (FR-008), rendering places images scaled-to-fit with presence/content round-trip verification (FR-012a, FR-013), plus missing-photo/orphan-image and aspect-ratio edge cases. Initially answered text-only, revised to full support on reflection — defect photos are the evidence that makes converted reports usable.
 3. **Drift → re-onboarding** — a SafeCard drift BLOCK now recommends the recovery path: draft-profile seeded with the blocking profile, reviewed as a delta, approved as a new version (FR-021). Block semantics unchanged.
 4. **Hostile target PDFs** — encrypted / password-protected / XFA targets are rejected with a per-condition diagnosis and workaround, never a best-effort proposal (FR-010 extended). Anticipates utility/government paperwork.
+
+### Session 2026-07-12 (superspec brainstorm, round 2)
+
+Four further areas resolved:
+
+1. **Empty analysis result** — a valid text PDF with no detectable structure yields a diagnosis plus an empty proposal skeleton for manual authoring through the normal review/approve flow (FR-001b); manual authoring is the degradation floor, onboarding is never a dead end.
+2. **Verify-on-approve** — approval mechanically re-runs extraction on the exemplar(s) (profiles) or a sample-value test render with round-trip check (templates) and registers only on exact match; failures return to review with mismatches listed (FR-022). SC-002 is now enforced at the gate.
+3. **Cross-command misuse** — draft-profile/draft-template run cheap document-kind signals and stop with a warning plus suggested command when the document looks like the other kind; an override flag proceeds for ambiguous documents (FR-023).
+4. **Analysis performance budget** — 300-page report analysed in under 10 minutes locally; AI enrichment budgets itself, e.g. by sampling representative pages (SC-009).
