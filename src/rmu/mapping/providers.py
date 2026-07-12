@@ -171,19 +171,58 @@ def _observed_values(normalized: dict) -> dict[str, set[str]]:
     return obs
 
 
-def _local_prompt(sample: dict, target_fields: list[str], defect_codes: list[dict]) -> str:
+# Ollama structured-output schema (permissive on shape; the strict gate validates
+# afterwards). Forces the top-level {proposals: [...]} object so a lone-object
+# response cannot swallow the whole batch — the qwen3:4b failure mode.
+_PROPOSAL_GEN_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "proposals": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "target_field": {"type": "string"},
+                    "from_path": {"type": "string"},
+                    "rationale": {"type": "string"},
+                    "value_map_name": {"type": "string"},
+                    "suggested_entries": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "source_value": {"type": "string"},
+                                "target_value": {"type": "string"},
+                            },
+                            "required": ["source_value", "target_value"],
+                        },
+                    },
+                },
+                "required": ["target_field", "from_path", "rationale"],
+            },
+        }
+    },
+    "required": ["proposals"],
+}
+
+
+def _local_prompt(
+    sample: dict, target_fields: list[str], defect_codes: list[dict], source_paths: list[str]
+) -> str:
     codes = [{"code": c["code"], "label": c["label"]} for c in defect_codes]
     return (
         "You propose a field mapping for a drone-inspection report converter.\n"
         f"Source exemplar (extracted):\n{json.dumps(sample, indent=1)}\n\n"
-        f"Target fields to fill: {target_fields}\n"
+        f"Available source paths — use these EXACT strings for from_path: {source_paths}\n"
+        f"Target fields to fill — use these EXACT strings for target_field: {target_fields}\n"
         f"Target defect-code vocabulary: {json.dumps(codes)}\n\n"
-        "Return ONLY a JSON array. Each element maps one target field: "
-        "{target_field, from_path (header.<key> or finding.<key>), rationale "
-        "(one short line), and — only for a vocabulary/scale/units/date conversion "
-        "(e.g. severity 1-5 -> priority, issue label -> defect code) — value_map_name "
-        "plus suggested_entries ([{source_value, target_value}]) drawn from values "
-        "present in the exemplar."
+        'Reply with a JSON object of the form {"proposals": [ ... ]}, one element for '
+        "every target field you can confidently map. Each element: {target_field (from "
+        "the target list), from_path (from the source-paths list), rationale (one short "
+        "line)} — and ONLY for a vocabulary/scale/units/date conversion (e.g. severity "
+        "1-5 -> priority, issue label -> defect code) also value_map_name plus "
+        "suggested_entries ([{source_value, target_value}]) using values present in the "
+        "exemplar. Omit any field you cannot map."
     )
 
 
@@ -245,7 +284,15 @@ class LocalProvider:
             asset = f"ollama:{self.config.llm_model}"
             assets["llm"] = asset
             sample = {"header": normalized["header"], "findings": normalized["findings"][:5]}
-            raw = self._llm.complete_json(_local_prompt(sample, target_fields, defect_codes))
+            source_paths = sorted(
+                f"{scope}.{key}"
+                for scope in ("header", "finding")
+                for key in inventory.get(scope, {})
+            )
+            raw = self._llm.complete_json(
+                _local_prompt(sample, target_fields, defect_codes, source_paths),
+                format_schema=_PROPOSAL_GEN_SCHEMA,
+            )
             if raw is None:
                 degraded.append("llm")
             else:

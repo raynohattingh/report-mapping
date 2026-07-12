@@ -63,15 +63,23 @@ class LocalLLM:
             return False
         return True
 
-    def complete_json(self, prompt: str) -> str | None:
-        """Return the assistant's JSON-mode content, or None on any failure."""
+    def complete_json(self, prompt: str, *, format_schema: dict | None = None) -> str | None:
+        """Return the assistant's JSON content, or None on any failure.
+
+        `format_schema` uses Ollama structured outputs — the model is constrained
+        to emit JSON matching that schema (e.g. a top-level object with a
+        `proposals` array), far more reliable than the bare `"json"` mode which
+        only guarantees *some* valid JSON (models default to a lone object).
+        `think` is disabled so reasoning models spend their budget on the answer.
+        """
         if not self.loopback:
             return None
         payload = json.dumps({
             "model": self.model,
             "messages": [{"role": "user", "content": prompt}],
             "stream": False,
-            "format": "json",
+            "think": False,
+            "format": format_schema if format_schema is not None else "json",
             "options": {"temperature": 0},
         }).encode("utf-8")
         req = urllib.request.Request(
