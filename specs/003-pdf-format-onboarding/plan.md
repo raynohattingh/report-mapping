@@ -125,7 +125,7 @@ tests/
 
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
-| New dependency `pypdf` (stack is "fixed for v1") | Enumerate/fill/read-back AcroForm fields; detect encryption and XFA. Nothing in the current stack writes PDF form fields. | pdfplumber is read-only (and reads text, not form fields); shelling out to external tools (pdftk/qpdf) adds non-Python runtime deps — worse for a single-operator local tool. To be logged as D6 in ASSUMPTIONS.md before use. |
-| New dependency `reportlab` (same) | Draw text and images at absolute coordinates onto an overlay page merged with the original PDF — the fixed-layout rendering core (FR-012/FR-012a). | Building PDF content streams by hand via pypdf alone is error-prone (fonts, encodings, image placement) and would reimplement reportlab poorly; print-to-PDF via docx round-trip cannot hit registered coordinates. Same D6 entry. |
+| New dependency `pypdf` (stack is "fixed for v1") | Enumerate/fill/read-back AcroForm fields; detect encryption and XFA. Nothing in the current stack writes PDF form fields. | pdfplumber is read-only (and reads text, not form fields); shelling out to external tools (pdftk/qpdf) adds non-Python runtime deps — worse for a single-operator local tool. Logged as **D10** in ASSUMPTIONS.md (D6 was already taken by the Mapping Studio decision). |
+| `reportlab` promoted dev→runtime (same) | Draw text and images at absolute coordinates onto an overlay page merged with the original PDF — the fixed-layout rendering core (FR-012/FR-012a), per pre-existing decision D7. | Building PDF content streams by hand via pypdf alone is error-prone (fonts, encodings, image placement) and would reimplement reportlab poorly; print-to-PDF via docx round-trip cannot hit registered coordinates. Same D10 entry. |
 
 *(No other principle violations; both entries are stack extensions, not architecture deviations.)*

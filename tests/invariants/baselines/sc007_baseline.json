@@ -1,0 +1,12 @@
+{
+  "interim.annexc_pack@1": {
+    "Distribution-report.pack.docx": "11037c06741e8b06e3ad6293adfa366f939fdb08ea550d6f956587e383c054de",
+    "exceptions.csv": "2f2781b0635fcda21033a228d1f776795144838e92fe33251f96b0263f02e791",
+    "safecard.json": "640c38687281d62f54e75c8d6cbfa6ff8f10deb26bf838938cd507053c661883"
+  },
+  "interim.defect_csv@1": {
+    "Distribution-report.defects.csv": "380089e4e0a23430a28dc9b561a4aaf4051d4c298387e28e33168a1abd8608ba",
+    "exceptions.csv": "2f2781b0635fcda21033a228d1f776795144838e92fe33251f96b0263f02e791",
+    "safecard.json": "640c38687281d62f54e75c8d6cbfa6ff8f10deb26bf838938cd507053c661883"
+  }
+}
