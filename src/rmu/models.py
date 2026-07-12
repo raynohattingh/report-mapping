@@ -143,6 +143,41 @@ class ApplyRun(Base):
     completed_at: Mapped[datetime.datetime] = mapped_column(DateTime)
 
 
+class OnboardingProposal(Base):
+    """Feature 003 (D5): draft onboarding proposals for new source shapes /
+    target formats. Working state — NOT an append-only registry table; the
+    SourceProfile/TargetTemplate rows it produces on approval are (FR-016:
+    an ApplyRun can only ever reference registry rows, never these)."""
+
+    __tablename__ = "onboarding_proposals"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    kind: Mapped[str] = mapped_column(String(10))  # profile|template
+    status: Mapped[str] = mapped_column(String(12), default="draft")  # draft|approved|abandoned
+    exemplar_shas: Mapped[list] = mapped_column(JSON)
+    # set when created via drift re-onboarding (FR-021)
+    seeded_from_profile_id: Mapped[int | None] = mapped_column(
+        ForeignKey("source_profiles.id"), nullable=True
+    )
+    # full proposal document per onboard/schemas/proposal.schema.json
+    document: Mapped[dict] = mapped_column(JSON, default=dict)
+    diagnosis: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # FR-001b
+    draft_ref: Mapped[str | None] = mapped_column(String(64), nullable=True)  # store/drafts file
+    ai_assist: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # NULL = --no-ai
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime)
+    approved_by: Mapped[str | None] = mapped_column(String(80), nullable=True)  # FR-017
+    approved_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
+    # verify-on-approve results incl. fingerprint collision check (FR-022/FR-024);
+    # persisted on failure too (returned-to-review evidence)
+    verify_report: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    resulting_profile_id: Mapped[int | None] = mapped_column(
+        ForeignKey("source_profiles.id"), nullable=True
+    )
+    resulting_template_id: Mapped[int | None] = mapped_column(
+        ForeignKey("target_templates.id"), nullable=True
+    )
+
+
 class ConversionException(Base):
     __tablename__ = "exceptions"
 

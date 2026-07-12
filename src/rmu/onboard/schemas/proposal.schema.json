@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rmu/onboarding-proposal.schema.json",
+  "title": "Draft onboarding proposal document (profile or template)",
+  "description": "The editable YAML in store/drafts and the elements JSON in onboarding_proposals. Every element passes human review before approval (FR-003/FR-005).",
+  "type": "object",
+  "required": ["kind", "exemplars", "elements"],
+  "properties": {
+    "kind": {"enum": ["profile", "template"]},
+    "exemplars": {"type": "array", "items": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "minItems": 1},
+    "seeded_from": {"type": "string", "description": "profile key@version when drift re-onboarding (FR-021)"},
+    "diagnosis": {
+      "type": "object",
+      "description": "What analysis searched for and found; mandatory when elements is empty (FR-001b).",
+      "properties": {
+        "searched": {"type": "array", "items": {"type": "string"}},
+        "found": {"type": "array", "items": {"type": "string"}},
+        "notes": {"type": "string"}
+      }
+    },
+    "elements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "element_kind", "confidence", "evidence", "review_state", "payload"],
+        "properties": {
+          "id": {"type": "string"},
+          "element_kind": {
+            "enum": [
+              "header_field", "record_table", "record_column", "image_region",
+              "fingerprint_anchor", "furniture_line",
+              "form_field", "overlay_region", "validation_rule", "cardinality"
+            ]
+          },
+          "confidence": {"type": "number", "minimum": 0, "maximum": 1, "description": "structural evidence only — never name overlap (FR-002, Constitution V)"},
+          "evidence": {
+            "type": "object",
+            "description": "Why this was proposed: recurrence counts, alignment, cross-exemplar agreement, page refs.",
+            "properties": {
+              "pages": {"type": "array", "items": {"type": "integer"}},
+              "recurrence": {"type": "integer"},
+              "cross_exemplar_agreement": {"type": "number"},
+              "source": {"enum": ["heuristic", "pdf_declared", "ai_enriched", "analyst"]}
+            }
+          },
+          "review_state": {"enum": ["proposed", "confirmed", "corrected", "removed"]},
+          "payload": {"type": "object", "description": "element content in the shape it will take in the recipe/template config"},
+          "corrected_payload": {"type": "object", "description": "analyst replacement when review_state=corrected"},
+          "flags": {"type": "array", "items": {"enum": ["low_confidence", "non_generalising", "orphan_image", "region_too_small"]}}
+        }
+      }
+    },
+    "ai_assist": {
+      "type": "object",
+      "description": "002-layer provenance; absent under --no-ai (FR-020).",
+      "properties": {
+        "mode": {"type": "string"},
+        "sampled_pages": {"type": "array", "items": {"type": "integer"}},
+        "enrichments": {"type": "array", "items": {"type": "object"}}
+      }
+    }
+  }
+}

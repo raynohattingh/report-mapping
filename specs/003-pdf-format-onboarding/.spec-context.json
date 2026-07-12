@@ -2,8 +2,8 @@
   "workflow": "speckit",
   "specName": "[FEATURE NAME]",
   "branch": "worktree-003-pdf-format-onboarding",
-  "currentStep": "plan",
-  "status": "planned",
+  "currentStep": "implement",
+  "status": "implementing",
   "history": [
     {
       "step": "specify",
@@ -53,6 +53,101 @@
       "kind": "start",
       "by": "extension",
       "at": "2026-07-12T16:28:55.150Z"
+    },
+    {
+      "step": "tasks",
+      "substep": "generate",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-12T16:38:48.549Z"
+    },
+    {
+      "step": "tasks",
+      "substep": null,
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-12T16:38:48.645Z"
+    },
+    {
+      "step": "tasks",
+      "substep": null,
+      "kind": "start",
+      "by": "extension",
+      "at": "2026-07-12T16:38:48.713Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "kind": "start",
+      "by": "extension",
+      "at": "2026-07-12T16:50:19.545Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T001",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-12T16:51:11.539Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T002",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-12T16:51:44.353Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T003",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-12T16:53:06.183Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T004",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-12T16:55:34.507Z"
     }
-  ]
+  ],
+  "currentTask": "T004",
+  "task_summaries": {
+    "T001": {
+      "status": "DONE",
+      "did": "Logged D10 (pypdf runtime + reportlab dev->runtime) in ASSUMPTIONS.md; D5 pre-existed from 2026-07-11; corrected plan.md D6->D10 reference",
+      "files": [
+        "ASSUMPTIONS.md",
+        "specs/003-pdf-format-onboarding/plan.md"
+      ]
+    },
+    "T002": {
+      "status": "DONE",
+      "did": "Added pypdf 6.14.2 runtime dep; promoted reportlab (5.0.0) dev->runtime per D10; uv.lock updated, imports verified",
+      "files": [
+        "pyproject.toml",
+        "uv.lock"
+      ]
+    },
+    "T003": {
+      "status": "DONE",
+      "did": "SC-007 regression baseline captured (scopito extraction + both interim renders on seed exemplar, byte-hashes) with capture-mode test guarding FR-019",
+      "files": [
+        "tests/invariants/test_regression_baseline.py",
+        "tests/invariants/baselines/sc007_baseline.json"
+      ]
+    },
+    "T004": {
+      "status": "DONE",
+      "did": "Deterministic onboarding fixture generator + 8 committed fixtures: FieldSurvey source shape (2-page continuation, per-record images), drifted variant, prose, AcroForm/fixed/encrypted/scanned targets",
+      "files": [
+        "tests/fixtures/make_fixtures.py",
+        "tests/fixtures/onboarding/"
+      ]
+    }
+  }
 }

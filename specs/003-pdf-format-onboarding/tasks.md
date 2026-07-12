@@ -22,10 +22,10 @@ Single project: `src/rmu/`, `tests/` at repository root (plan.md structure decis
 
 **Purpose**: Constitutional prerequisites and dependency plumbing — nothing else may cite D5/D6 or import the new libs before these land.
 
-- [ ] T001 Log decision D5 (human approval mandatory for onboarded artifacts, by design) and D6 (add pypdf + reportlab to the fixed v1 stack, per plan.md Complexity Tracking) in ASSUMPTIONS.md (Constitution IX; FR-017)
-- [ ] T002 Add `pypdf` and `reportlab` to pyproject.toml via `uv add`, verify imports and versions locked in uv.lock
-- [ ] T003 [P] Capture SC-007 regression baseline: byte-hashes of current scopito v2020 extraction output and interim template renders on both seed fixtures into tests/invariants/baselines/, plus tests/invariants/test_regression_baseline.py asserting equality (research R10)
-- [ ] T004 [P] Build deterministic synthetic fixture generator in tests/fixtures/make_fixtures.py producing: two same-shape structured source PDFs + one drifted variant, one AcroForm PDF (text/checkbox/choice fields incl. required flags), one fixed-layout PDF, one encrypted PDF, one image-only PDF (reportlab/pypdf-generated, committed outputs; NEVER touches seed/source_samples/zeitview_* — quarantined for SC-001)
+- [x] T001 Log decision D5 (human approval mandatory for onboarded artifacts, by design) and D6 (add pypdf + reportlab to the fixed v1 stack, per plan.md Complexity Tracking) in ASSUMPTIONS.md (Constitution IX; FR-017)
+- [x] T002 Add `pypdf` and `reportlab` to pyproject.toml via `uv add`, verify imports and versions locked in uv.lock
+- [x] T003 [P] Capture SC-007 regression baseline: byte-hashes of current scopito v2020 extraction output and interim template renders on both seed fixtures into tests/invariants/baselines/, plus tests/invariants/test_regression_baseline.py asserting equality (research R10)
+- [x] T004 [P] Build deterministic synthetic fixture generator in tests/fixtures/make_fixtures.py producing: two same-shape structured source PDFs + one drifted variant, one AcroForm PDF (text/checkbox/choice fields incl. required flags), one fixed-layout PDF, one encrypted PDF, one image-only PDF (reportlab/pypdf-generated, committed outputs; NEVER touches seed/source_samples/zeitview_* — quarantined for SC-001)
 
 **Execution notes**: T003 MUST be captured before any feature code changes behaviour. T004 fixtures are the substrate for every later [TDD] task.
 

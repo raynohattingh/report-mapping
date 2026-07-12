@@ -53,6 +53,32 @@ class BatchError(RuntimeError):
     """Pre-run validation failure (exit 1): missing prompts, empty batch, ..."""
 
 
+class DraftArtifactError(BatchError):
+    """FR-016 / SC-006 (D5): an ApplyRun may only reference human-approved
+    registry artifacts; a draft onboarding proposal can never convert data."""
+
+
+def _raise_if_draft_artifact(session: Session, kind: str, ref: str) -> None:
+    """Turn an unresolved ref into a clear draft-artifact error when draft
+    onboarding proposals of that kind exist (pre-flight - no record read yet)."""
+    from rmu.models import OnboardingProposal
+
+    draft_ids = session.scalars(
+        select(OnboardingProposal.id).where(
+            OnboardingProposal.kind == kind,
+            OnboardingProposal.status == "draft",
+        )
+    ).all()
+    if draft_ids:
+        ids = ", ".join(f"#{i}" for i in draft_ids)
+        raise DraftArtifactError(
+            f"{kind} {ref!r} is not a registered artifact - onboarding proposal(s) "
+            f"{ids} exist with status=draft [draft_artifact]. Only human-approved "
+            f"v1+ artifacts can be referenced by an ApplyRun (D5); finish review "
+            f"and run 'rmu onboard approve' first."
+        )
+
+
 @dataclass
 class _Bundle:
     """Everything one (transform, template) pair needs at apply time."""
@@ -97,8 +123,16 @@ def _resolve_ref(session: Session, transform_ref: str) -> tuple[Transform, objec
         raise BatchError(
             f"transform ref must be '<profile>@<ver>:<template>@<ver>', got {transform_ref!r}"
         ) from err
-    profile_row = get_profile(session, profile_ref)
-    template_row = get_template(session, template_ref)
+    try:
+        profile_row = get_profile(session, profile_ref)
+    except LookupError:
+        _raise_if_draft_artifact(session, "profile", profile_ref)
+        raise
+    try:
+        template_row = get_template(session, template_ref)
+    except LookupError:
+        _raise_if_draft_artifact(session, "template", template_ref)
+        raise
     version = session.scalar(
         select(func.max(Transform.version)).where(
             Transform.source_profile_id == profile_row.id,
