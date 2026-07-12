@@ -2,8 +2,8 @@
   "workflow": "speckit",
   "specName": "[FEATURE NAME]",
   "branch": "worktree-003-pdf-format-onboarding",
-  "currentStep": "specify",
-  "status": "specified",
+  "currentStep": "plan",
+  "status": "planned",
   "history": [
     {
       "step": "specify",
@@ -25,6 +25,34 @@
       "kind": "complete",
       "by": "ai",
       "at": "2026-07-12T15:29:01.572Z"
+    },
+    {
+      "step": "plan",
+      "substep": "research",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-12T16:26:15.973Z"
+    },
+    {
+      "step": "plan",
+      "substep": "design",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-12T16:28:45.100Z"
+    },
+    {
+      "step": "plan",
+      "substep": null,
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-12T16:28:55.088Z"
+    },
+    {
+      "step": "plan",
+      "substep": null,
+      "kind": "start",
+      "by": "extension",
+      "at": "2026-07-12T16:28:55.150Z"
     }
   ]
 }
