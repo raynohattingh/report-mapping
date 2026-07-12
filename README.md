@@ -69,19 +69,22 @@ Requires [uv](https://docs.astral.sh/uv/) (Python 3.12 is pinned and managed).
 uv sync                # install everything
 uv run rmu db init     # create the schema (Alembic)
 uv run rmu seed load   # register profile, both INTERIM templates, defect codes
+uv run rmu ai setup    # one-time local-AI model setup steps (then `rmu ai doctor` to verify)
 
-# 1) One-time mapping session against ONE exemplar (manual mode — no AI needed)
+# 1) One-time mapping session against ONE exemplar.
+#    `local` is the default assist mode: on-device AI proposes ranked field
+#    routes + value maps, nothing leaves the machine. (Add `--no-ai` for a fully
+#    manual session — always available, no models needed.)
 uv run rmu map start \
   --profile scopito.pdf.powerline@v2020 \
   --template interim.defect_csv@1 \
-  --exemplar seed/source_samples/Distribution-report.pdf \
-  --no-ai
-#    edit the emitted draft YAML, create the value maps it pins, then:
+  --exemplar seed/source_samples/Distribution-report.pdf
+#    review/edit the emitted draft YAML, create the value maps it pins, then:
 uv run rmu valuemap create --name severity_to_priority \
   --file examples/valuemaps/severity_to_priority.yaml
 uv run rmu valuemap create --name issue_to_defect_code \
   --file examples/valuemaps/issue_to_defect_code.yaml
-uv run rmu map review  --session 1     # static HTML review sheet
+uv run rmu map review  --session 1     # static HTML review sheet (AI rows + drop counts)
 uv run rmu map preview --session 1     # exemplar rendered in the target format
 uv run rmu map approve --session 1 --by <you>   # stores Transform v1
 
@@ -99,22 +102,10 @@ uv run pytest              # 111 tests incl. determinism / append-only /
                            # drift-block / exceptions / offline-AI invariants
 ```
 
-The `--no-ai` flag above forces a fully manual session (always available). To
-get **on-device AI proposals** instead — ranked candidate target fields and
-value-map suggestions, with no data leaving the machine — install the local
-models once and drop the flag (`local` is the default mode):
-
-```bash
-uv run rmu ai setup        # prints the one-time model setup steps
-uv run rmu ai doctor       # verify which tiers are ready
-uv run rmu map start \
-  --profile scopito.pdf.powerline@v2020 \
-  --template interim.defect_csv@1 \
-  --exemplar seed/source_samples/Distribution-report.pdf   # --assist local (default)
-```
-
-Every proposal enters at tier **T2** and cannot survive approval without an
-explicit human decision — identical to the manual flow, just pre-filled. See
+Every AI proposal enters at tier **T2** and cannot survive approval without an
+explicit human decision — identical to the manual flow, just pre-filled. If the
+local models aren't installed, `local` mode degrades cleanly to the manual
+experience (embeddings-only still ranks candidates). See
 [Local AI assistance](#local-ai-assistance) for the modes, tiers, and the
 consent gate on the external-API option.
 
