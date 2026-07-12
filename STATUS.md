@@ -2,6 +2,48 @@
 
 Terse build state for the business side. Newest session first.
 
+## Session 2026-07-12 — feature 002 local AI assistance implemented (all 32 tasks)
+
+**Done** (feature `002-local-ai-assist`, branch `002-local-ai-assist`, 46 new tests,
+111 total green, ruff clean, golden files byte-identical):
+
+- **Local AI, zero data leaves the machine.** New `src/rmu/ai/` package behind the
+  existing `ProposalProvider` seam. Three assistance modes (`none` | `local` default
+  | `external`), chosen by `--assist`/config; `--no-ai` is an alias for `none` and
+  stays the degradation floor. AI is still session-only — apply/validate/render/audit
+  untouched, invariant + golden suites pass unmodified (SC-004).
+- **Tier 1 (embeddings, always on-machine):** fastembed + `bge-small-en-v1.5`
+  in-process (no sockets at all). Ranks candidate target fields per source field —
+  **SC-002 measured 100% top-3** on the committed example-transform routes (bar is
+  90%). Also powers `rmu profile suggest`. Realistic per-field `field_labels` added
+  to the interim template schemas as data (this is what lifts `issues→defect_code`
+  and `severity→priority` into range).
+- **Tier 2 (local LLM, optional):** loopback-pinned Ollama (`qwen3:4b`, temp 0, JSON
+  mode) via **stdlib urllib** (no `ollama` dep — see A12b/research R2) proposes
+  value-map entries with rationales. Every proposal passes a strict two-stage gate
+  (JSON Schema + referent resolution); malformed/unresolvable output is dropped and
+  only ever shown as an aggregate count (FR-008).
+- **Per-tier degradation** (clarified): embeddings-only still ranks; no assets ⇒
+  behaves like `none`. Nothing crashes, nothing auto-downloads (`rmu ai setup` is
+  the manual path; `rmu ai doctor` reports health).
+- **Consent gate:** `external` refuses (exit 4) without a recorded per-client entry;
+  `rmu ai consent grant|revoke|list` are the only writers of `<store>/ai.yaml`.
+- **Provable offline:** `test_local_session_offline.py` runs a full local session with
+  all non-loopback sockets blocked and still produces proposals (SC-001). Loopback to
+  a localhost-bound runtime is allowed by design — the claim is "no data leaves the
+  machine", verified by a companion localhost-bound check.
+- **Persistence/regeneration:** proposals generated once, persisted with provenance +
+  `assist_stats` (additive nullable column, migration 0003); `rmu map regenerate`
+  replaces them explicitly, prior set kept in `superseded[]`.
+
+**Decisions/deviations logged:** stdlib `urllib` instead of the `ollama` client
+(research R2, A12b); `fastembed>=0.8` added, `ollama` NOT added (research dependency
+delta). A12a/A12b in ASSUMPTIONS.md updated to as-built.
+
+**Next**: `/speckit-superspec-review` (optional) or review/PR. To exercise tier 2
+locally: `ollama pull qwen3:4b` then `rmu ai doctor`. Business-side: 002 is
+product-side; willingness-to-pay actions (Dexter escalation, gap test) still lead.
+
 ## Session 2026-07-11 (later) — convergence pass closed
 
 **Done**: `/speckit-converge` found 5 partial gaps (0 constitution violations); all 5

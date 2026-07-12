@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rmu/proposal.schema.json",
+  "title": "AI proposal gate (FR-008)",
+  "description": "Strict shape every model-emitted proposal must satisfy BEFORE referent resolution. Anything failing is dropped and counted, never surfaced. Referent checks (from_path exists in source inventory, target_field exists in template schema, source_value observed in exemplar) happen in code after this gate.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["target_field", "from_path", "rationale"],
+    "properties": {
+      "target_field": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 120,
+        "pattern": "^[a-z][a-z0-9_]*$"
+      },
+      "from_path": {
+        "type": "string",
+        "pattern": "^(header|finding)\\.[a-z][a-z0-9_]*$",
+        "description": "Route source: header.<key> or finding.<key> only."
+      },
+      "rationale": {
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 300,
+        "description": "One line; rendered verbatim on the review sheet."
+      },
+      "value_map_name": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9_]*$",
+        "maxLength": 120
+      },
+      "suggested_entries": {
+        "type": "array",
+        "maxItems": 100,
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["source_value", "target_value"],
+          "properties": {
+            "source_value": {"type": "string", "maxLength": 500},
+            "target_value": {"type": "string", "maxLength": 500},
+            "note": {"type": "string", "maxLength": 300}
+          }
+        }
+      }
+    },
+    "dependentRequired": {
+      "suggested_entries": ["value_map_name"],
+      "value_map_name": ["suggested_entries"]
+    }
+  }
+}

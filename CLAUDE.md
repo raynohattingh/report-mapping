@@ -40,5 +40,5 @@ M1 scaffold + registries → M2 Scopito PDF extraction + profile detection → M
 When a TBD resolves (spec files arrive in `docs/` as `spec_update_*.md`), read the file, propose the delta in STATUS.md, then implement as template/data changes first.
 
 <!-- SPECKIT START -->
-Active feature plan: specs/001-report-mapping-v1/plan.md (spec: specs/001-report-mapping-v1/spec.md)
+Active feature plan: specs/002-local-ai-assist/plan.md (spec: specs/002-local-ai-assist/spec.md)
 <!-- SPECKIT END -->

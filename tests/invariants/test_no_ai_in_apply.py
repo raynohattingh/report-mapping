@@ -8,7 +8,7 @@ can't contaminate the check.
 import subprocess
 import sys
 
-BANNED = ["anthropic", "httpx", "requests", "rmu.mapping.providers"]
+BANNED = ["anthropic", "httpx", "requests", "rmu.mapping.providers", "rmu.ai", "fastembed"]
 
 CHECK = f"""
 import sys

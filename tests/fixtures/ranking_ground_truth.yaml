@@ -1,0 +1,32 @@
+# SC-002 ranking ground truth — human-confirmed routes from the committed example
+# transforms (examples/transform.defect_csv.yaml, examples/transform.annexc_pack.yaml).
+# ONE source profile (scopito.pdf.powerline@v2020, shared by both seed PDFs) x TWO
+# interim templates. Only routes with a source `from` path are scored (constants,
+# formulas and per-batch prompts are not source->target ranking candidates).
+#
+# Small-N caveat (analysis U1): 15 routed pairs total. The eval reports x/N as well
+# as the percentage; SC-002 requires the confirmed target in the top 3 for >= 90%.
+
+expected_route_count: 15
+
+cases:
+  - template: interim.defect_csv
+    routes:
+      - {from: finding.id, target: finding_id}
+      - {from: header.inspection_name, target: asset_name}
+      - {from: finding.severity, target: source_severity}
+      - {from: finding.severity, target: priority}
+      - {from: finding.issues, target: defect_code}
+      - {from: finding.comments, target: comments}
+      - {from: finding.user_tags, target: user_tags}
+      - {from: finding.page, target: source_page}
+
+  - template: interim.annexc_pack
+    routes:
+      - {from: header.inspection_name, target: inspection_name}
+      - {from: header.company, target: company}
+      - {from: finding.id, target: finding_id}
+      - {from: finding.severity, target: source_severity}
+      - {from: finding.severity, target: priority}
+      - {from: finding.issues, target: defect_code}
+      - {from: finding.comments, target: comments}
