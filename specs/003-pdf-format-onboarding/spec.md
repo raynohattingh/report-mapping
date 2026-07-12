@@ -8,6 +8,15 @@
 
 **Input**: User description: "Add AI assisted onboarding of NEW source report shapes and NEW target formats from PDFs, so that adding a format the tool has never seen takes minutes of human validation instead of hand-building extraction recipes or templates — while keeping the rule that nothing unvalidated ever converts real data."
 
+## Clarifications
+
+### Session 2026-07-12
+
+- Q: How should the analyst review and correct a draft proposal before approving it? → A: Same pattern as the existing mapping session (decision D1): the proposal is persisted as an editable document, a generated visual review sheet renders each proposed element against the actual PDF for eyeballing, and approval is an explicit separate command.
+- Q: What powers the document analysis that generates draft proposals? → A: Deterministic structural heuristics always produce the base proposal; the existing local AI assistance layer (feature 002) optionally enriches it (field naming, label matching, confidence hints). Fully offline-capable; `--no-ai` yields heuristics-only proposals; no cloud AI in onboarding.
+- Q: What is the output cardinality when rendering a batch into a PDF target? → A: Each registered TargetTemplate declares its own cardinality as data: per-record (one filled PDF per record, e.g. Annexure-style per-defect forms) or per-batch (one PDF for the whole batch). Per-record is the primary case implemented first.
+- Q: Where does the held-out acceptance fixture for SC-001 come from? → A: Rayno will provide an additional real demo report (Zeitview) in `seed/`. It is quarantined: never opened, inspected, or used by any development or tuning activity — reserved exclusively for the SC-001 acceptance measurement.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Onboard a new source report shape from a PDF (Priority: P1)
@@ -99,7 +108,7 @@ An analyst who has applied a batch (records already mapped and validated) produc
 
 - **FR-001**: The system MUST provide a draft-profile command that, given a structured source PDF with no matching registered profile, analyses the document's structure (repeating structures, tables, header/label blocks, page anatomy) and produces a draft extraction recipe proposing: header fields, record-row locations, and the columns/labels each record carries.
 - **FR-002**: Every proposed element in a draft extraction recipe MUST carry a per-element confidence score, and confidence MUST reflect structural evidence — field-name overlap alone MUST NOT be presented as confidence.
-- **FR-003**: The system MUST provide a review flow in which the analyst can confirm, correct, or remove each proposed element individually, comparing against the actual PDF; approval MUST be blocked while any element remains unresolved.
+- **FR-003**: The system MUST provide a review flow in which the analyst can confirm, correct, or remove each proposed element individually, comparing against the actual PDF; approval MUST be blocked while any element remains unresolved. The review flow follows the existing mapping-session pattern (D1): the proposal is an editable persisted document, a generated visual review sheet renders each proposed element against the source PDF, and approval is an explicit separate command.
 - **FR-004**: On approval, the system MUST register the validated recipe as a new versioned SourceProfile (starting at v1) in the existing append-only, effective-dated profile registry; from that point extraction for that shape MUST be fully deterministic with no AI involvement.
 - **FR-005**: Draft proposals MUST be persisted as reviewable artifacts with a distinct draft status, so a review can be paused and resumed, and so the audit trail shows what was proposed versus what the human changed.
 
@@ -108,7 +117,7 @@ An analyst who has applied a batch (records already mapped and validated) produc
 - **FR-006**: The system MUST provide a draft-template command that, given a target-format PDF, determines whether it is a fillable form or a fixed-layout document and proposes accordingly.
 - **FR-007**: For a fillable-form target PDF, the system MUST enumerate the form's fields into a proposed field schema (field identifiers, kinds, and fixed option sets where present) for analyst review.
 - **FR-008**: For a fixed-layout target PDF, the system MUST propose labelled target regions with page coordinates for analyst review.
-- **FR-009**: On approval, the system MUST register a versioned TargetTemplate carrying a required-field schema and validation rules, in the existing append-only, effective-dated template registry.
+- **FR-009**: On approval, the system MUST register a versioned TargetTemplate carrying a required-field schema, validation rules, and a declared output cardinality — per-record (one filled PDF per record) or per-batch (one PDF for the whole batch) — in the existing append-only, effective-dated template registry. Per-record is the primary cardinality delivered first.
 - **FR-010**: A target PDF that is neither a fillable form nor a fixed-layout text document (including scanned/image-only PDFs) MUST be rejected with a clear explanation, and the occurrence logged for follow-up.
 
 **Rendering into PDF targets**
@@ -125,14 +134,14 @@ An analyst who has applied a batch (records already mapped and validated) produc
 - **FR-017**: Approval MUST record who approved and when, and human approval is REQUIRED by design for every onboarded artifact — there is no unattended path from proposal to approved (decision D5, to be logged in ASSUMPTIONS.md before implementation).
 - **FR-018**: Registered profiles and templates MUST be stored configuration data (schema-validated, human-readable), never generated code; onboarding a new format MUST NOT require changes to pipeline code.
 - **FR-019**: Onboarding MUST NOT alter the behaviour of any existing registered profile or template; the existing scopito v2020 profile and interim templates MUST continue to produce identical output on existing fixtures.
-- **FR-020**: Document analysis during onboarding MUST be available in a mode that transmits no document content to third-party services, consistent with the standing data-sensitivity rule and the existing local/no-AI assistance modes; AI assistance is confined to the onboarding/drafting session and never runs at apply or render time.
+- **FR-020**: Document analysis during onboarding MUST transmit no document content to third-party services: deterministic structural heuristics always produce the base proposal, and the existing local AI assistance layer (feature 002) MAY optionally enrich it (field naming, label matching, confidence hints). A `--no-ai` mode MUST yield heuristics-only proposals. AI assistance is confined to the onboarding/drafting session and never runs at apply or render time.
 
 ### Key Entities
 
 - **Draft Profile Proposal**: The persisted output of analysing an unrecognised source PDF — proposed header fields, record-row locations, and column/label assignments, each with confidence and a per-element review state (proposed / confirmed / corrected / removed). Status: draft until approved or discarded.
 - **Draft Template Proposal**: The persisted output of analysing a target PDF — either a proposed form-field schema or a set of labelled regions with page coordinates, with the same per-element review states and draft status.
 - **SourceProfile (extended)**: The existing versioned, append-only registry entry; onboarding adds a creation path (approved-from-proposal) and provenance (which proposal, who approved, when). Existing hand-built profiles are unaffected.
-- **TargetTemplate (extended)**: The existing versioned, append-only registry entry; onboarding adds PDF target kinds (fillable-form, fixed-layout) with required-field schema, validation rules, and the same provenance.
+- **TargetTemplate (extended)**: The existing versioned, append-only registry entry; onboarding adds PDF target kinds (fillable-form, fixed-layout) with required-field schema, validation rules, a declared output cardinality (per-record or per-batch), and the same provenance.
 - **Approval Record**: Who approved a draft, when, and what the approved content was — the boundary between "AI proposed" and "human validated" in the audit trail.
 - **Round-Trip Verification Report**: For each rendered PDF, the read-back comparison of produced values against applied records; part of the batch's audit output.
 
@@ -140,7 +149,7 @@ An analyst who has applied a batch (records already mapped and validated) produc
 
 ### Measurable Outcomes
 
-- **SC-001**: On a held-out structured PDF fixture never used in development, the draft profile proposal extracts at least 80% of records correctly before any human correction.
+- **SC-001**: On the held-out structured PDF fixture never used in development (the quarantined Zeitview demo report, see Assumptions), the draft profile proposal extracts at least 80% of records correctly before any human correction.
 - **SC-002**: After human validation and approval, 100% of the human-validated subset extracts correctly via the registered profile.
 - **SC-003**: An analyst can take an unrecognised structured PDF from first command to approved artifact in under 30 minutes of validation effort, versus hand-building an extraction recipe or template from scratch.
 - **SC-004**: A fillable-form PDF target round-trips exactly: every value read back from the produced PDF equals the applied record value, on every batch.
@@ -161,8 +170,8 @@ An analyst who has applied a batch (records already mapped and validated) produc
 - **Decision D5** (human approval mandatory for onboarded artifacts, by design) will be logged in ASSUMPTIONS.md before implementation begins, per the project's assumption discipline.
 - Approval identity is the operating analyst's configured identity (single-operator tool today); no multi-user authentication or role model is introduced by this feature.
 - "Minutes of human validation" is interpreted as: analyst review-and-approve effort under 30 minutes per new format (SC-003) — comfortably inside the existing ≤2-hour one-time-setup budget.
-- The held-out acceptance fixture is demo or synthetic data, consistent with the standing rule that no real client reports are used in development or testing.
-- Source PDFs in scope have a machine-readable text layer (structured exports, not scans); the seed demo exports remain the primary development fixtures, with the held-out fixture reserved untouched for acceptance.
+- The held-out acceptance fixture is a Zeitview demo report that Rayno will place in `seed/` — demo data, consistent with the standing rule that no real client reports are used in development or testing. It is quarantined from all development and tuning; SC-001 acceptance is blocked until it is provided.
+- Source PDFs in scope have a machine-readable text layer (structured exports, not scans); the two Scopito seed demo exports remain the primary development fixtures, with the held-out Zeitview fixture reserved untouched for acceptance.
 - Confidence scores are review aids for the human, not gates: no confidence level bypasses per-element review or approval.
 - Record-level correctness for SC-001 means the record's field values are extracted and assigned to the right columns/labels; a record with any misassigned field counts as incorrect.
 - Existing structure-drift protection (SafeCard) applies unchanged to onboarded profiles; this feature adds no new drift rules and relaxes none.
