@@ -205,6 +205,9 @@ def _analyze_one(pdf_path: Path) -> dict:
     }
 
 
+LOW_CONFIDENCE_FLOOR = 0.5  # spec edge case: below this, flagged for attention
+
+
 def _element(eid, kind, confidence, evidence, payload, flags=None) -> dict:
     e = {
         "id": eid,
@@ -214,8 +217,11 @@ def _element(eid, kind, confidence, evidence, payload, flags=None) -> dict:
         "review_state": "proposed",
         "payload": payload,
     }
+    flags = list(flags or [])
+    if e["confidence"] < LOW_CONFIDENCE_FLOOR:
+        flags.append("low_confidence")  # never silently pre-confirmed
     if flags:
-        e["flags"] = flags
+        e["flags"] = sorted(set(flags))
     return e
 
 
@@ -341,12 +347,49 @@ def analyze(
             )
         )
 
+    if seed_profile and seed_profile.get("recipe"):
+        _annotate_seed_delta(elements, seed_profile["recipe"])
+
     return {
         "kind": "profile",
         "exemplars": [r["sha"] for r in results],
         **({"seeded_from": seed_profile["ref"]} if seed_profile else {}),
         "elements": elements,
     }
+
+
+def _annotate_seed_delta(elements: list[dict], seed: dict) -> None:
+    """FR-021: a seeded (drift re-onboarding) proposal is reviewed as a DELTA
+    against the known shape — elements matching the seeding recipe get
+    evidence.seed_match, divergent comparable elements get `seed_divergent`."""
+    seed_columns = {c["name"] for c in seed.get("records", {}).get("columns", [])}
+    seed_labels = {
+        label for f in seed.get("header_fields", []) for label in f.get("labels", [])
+    }
+    seed_furniture = set(seed.get("furniture", []))
+    seed_anchors = set(seed.get("fingerprint", {}).get("required_text", []))
+    seed_header_regex = seed.get("records", {}).get("detection", {}).get(
+        "table_header_regex"
+    )
+
+    def mark(element: dict, matched: bool) -> None:
+        element["evidence"] = {**element.get("evidence", {}), "seed_match": matched}
+        if not matched:
+            element["flags"] = sorted(set(element.get("flags", [])) | {"seed_divergent"})
+
+    for e in elements:
+        kind, payload = e["element_kind"], e["payload"]
+        if kind == "record_column":
+            mark(e, payload["name"] in seed_columns)
+        elif kind == "header_field":
+            mark(e, bool(set(payload.get("labels", [])) & seed_labels))
+        elif kind == "furniture_line":
+            mark(e, payload["text"] in seed_furniture)
+        elif kind == "fingerprint_anchor":
+            mark(e, payload["required_text"] in seed_anchors)
+        elif kind == "record_table":
+            proposed_regex = payload.get("detection", {}).get("table_header_regex")
+            mark(e, bool(seed_header_regex) and proposed_regex == seed_header_regex)
 
 
 def _agreement(extras: list[dict], predicate) -> float:

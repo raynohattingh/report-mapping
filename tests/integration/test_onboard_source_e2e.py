@@ -149,3 +149,43 @@ def test_misuse_and_skeleton_paths(env):
                                 str(FIX / "prose_report.pdf"), "--no-ai"])
     assert prose.exit_code == 0, prose.output  # FR-001b: skeleton, not failure
     assert "diagnosis" in prose.output and "hand" in prose.output
+
+
+def test_seeded_reonboarding_reviews_as_a_delta(env):
+    """T036 (FR-021): --seed-from annotates the proposal against the seeding
+    recipe — matches carry seed_match evidence, divergences are flagged."""
+    _onboard_and_approve(env)  # registers synthetic.pdf.survey@v1
+
+    drafted = runner.invoke(app, ["onboard", "draft-profile",
+                                  str(FIX / "survey_report_drifted.pdf"),
+                                  "--seed-from", "synthetic.pdf.survey@v1", "--no-ai"])
+    assert drafted.exit_code == 0, drafted.output
+    draft_path = Path(re.search(r"draft: (\S+)", drafted.output).group(1))
+    document = yaml.safe_load(draft_path.read_text())
+
+    assert document["seeded_from"] == "synthetic.pdf.survey@v1"
+    columns = {e["payload"]["name"]: e for e in document["elements"]
+               if e["element_kind"] == "record_column"}
+    assert columns["ref"]["evidence"]["seed_match"] is True
+    assert "seed_divergent" not in columns["ref"].get("flags", [])
+    # the drifted document renamed Class -> Category: a true delta finding
+    assert columns["category"]["evidence"]["seed_match"] is False
+    assert "seed_divergent" in columns["category"]["flags"]
+
+
+def test_rejections_are_logged_for_follow_up(env):
+    """T038 (FR-010): rejected onboarding attempts persist an occurrence."""
+    import json
+
+    from rmu.config import store_root
+
+    rejected = runner.invoke(app, ["onboard", "draft-template",
+                                   str(FIX / "target_encrypted.pdf")])
+    assert rejected.exit_code == 1
+
+    log = store_root() / "onboard_rejections.jsonl"
+    assert log.exists()
+    entry = json.loads(log.read_text().splitlines()[-1])
+    assert "encrypted" in entry["condition"]
+    assert entry["workaround"] and entry["at"]
+    assert "target_encrypted.pdf" in entry["file"]

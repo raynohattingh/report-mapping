@@ -369,9 +369,49 @@
       "kind": "complete",
       "by": "ai",
       "at": "2026-07-13T07:36:36.820Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T036",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-13T08:49:40.970Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T037",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-13T08:49:41.038Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T038",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-13T08:49:41.108Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T039",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-13T08:49:41.179Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T040",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-13T08:49:41.247Z"
     }
   ],
-  "currentTask": "T035",
+  "currentTask": "T040",
   "task_summaries": {
     "T001": {
       "status": "DONE",
@@ -647,6 +687,48 @@
       "did": "STATUS.md session entry: done/decisions/next/open incl. D10, holdout quarantine, T025 simplification, acceptance next-step",
       "files": [
         "STATUS.md"
+      ]
+    },
+    "T036": {
+      "status": "DONE",
+      "did": "Seeded re-onboarding is a true delta: seed recipe passed from CLI, elements annotated seed_match/seed_divergent vs seeding profile; schema enum extended; E2E proves category column flagged divergent",
+      "files": [
+        "src/rmu/onboard/analyze_source.py",
+        "src/rmu/onboard/cli.py",
+        "src/rmu/onboard/schemas/proposal.schema.json",
+        "specs/003-pdf-format-onboarding/contracts/proposal.schema.json",
+        "tests/integration/test_onboard_source_e2e.py"
+      ]
+    },
+    "T037": {
+      "status": "DONE",
+      "did": "Shipped PDF outputs carry roundtrip=verified in ApplyRun outputs_manifest; asserted via DB in per_batch E2E",
+      "files": [
+        "src/rmu/apply/batch.py",
+        "tests/integration/test_onboard_target_e2e.py"
+      ]
+    },
+    "T038": {
+      "status": "DONE",
+      "did": "Onboarding rejections persisted to store/onboard_rejections.jsonl (file/condition/workaround/at); E2E asserts encrypted rejection logged",
+      "files": [
+        "src/rmu/onboard/cli.py",
+        "tests/integration/test_onboard_source_e2e.py"
+      ]
+    },
+    "T039": {
+      "status": "DONE",
+      "did": "low_confidence flag auto-set below 0.5 floor in both analyzers per spec edge case",
+      "files": [
+        "src/rmu/onboard/analyze_source.py",
+        "src/rmu/onboard/analyze_target.py"
+      ]
+    },
+    "T040": {
+      "status": "DONE",
+      "did": "per_batch cardinality covered: corrected-cardinality onboarding renders exactly one verified PDF from a 9-record batch",
+      "files": [
+        "tests/integration/test_onboard_target_e2e.py"
       ]
     }
   }

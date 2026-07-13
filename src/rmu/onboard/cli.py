@@ -21,10 +21,29 @@ def _session_factory():
     return make_session_factory(make_engine())
 
 
-def _reject(diag) -> None:
+def _reject(diag, pdf: Path) -> None:
+    _log_rejection(diag, pdf)  # FR-010: occurrences are logged for follow-up
     typer.echo(f"rejected: {diag.rejection}")
     typer.echo(f"workaround: {diag.workaround}")
     raise typer.Exit(1)
+
+
+def _log_rejection(diag, pdf: Path) -> None:
+    """Append the rejection occurrence to store/onboard_rejections.jsonl so
+    unsupported formats become follow-up data, not lost terminal output."""
+    import datetime
+    import json
+
+    from rmu.config import store_root
+
+    entry = {
+        "file": str(pdf),
+        "condition": diag.rejection,
+        "workaround": diag.workaround,
+        "at": datetime.datetime.now(datetime.UTC).isoformat(timespec="seconds"),
+    }
+    with (store_root() / "onboard_rejections.jsonl").open("a") as fh:
+        fh.write(json.dumps(entry, sort_keys=True) + "\n")
 
 
 def _check_misuse(pdf: Path, command: str, force: bool) -> None:
@@ -64,7 +83,7 @@ def draft_profile(
             raise typer.Exit(1)
     diag = diagnose(paths[0])
     if diag.kind is None:
-        _reject(diag)
+        _reject(diag, paths[0])
     _check_misuse(paths[0], "draft-profile", force)
 
     with _session_factory()() as s:
@@ -72,13 +91,16 @@ def draft_profile(
         seed_profile = None
         if seed_from:
             from rmu.registry import get_profile
+            from rmu.seed import profile_config
 
             try:
                 seed_row = get_profile(s, seed_from)
             except LookupError as err:
                 typer.echo(f"error: {err}")
                 raise typer.Exit(1) from err
-            seed_profile = {"ref": seed_from}
+            # FR-021: pass the seeding recipe so the proposal is annotated as
+            # a delta (seed_match evidence / seed_divergent flags)
+            seed_profile = {"ref": seed_from, "recipe": profile_config(seed_from)}
 
         for p in paths:
             store.put_file(p)  # exemplars retrievable at verify-on-approve
@@ -151,7 +173,7 @@ def draft_template(
         raise typer.Exit(1)
     diag = diagnose(pdf)
     if diag.kind is None:
-        _reject(diag)
+        _reject(diag, pdf)
     _check_misuse(pdf, "draft-template", force)
 
     from rmu import store

@@ -33,6 +33,9 @@ def _slug(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "_", text.lower()).strip("_")
 
 
+LOW_CONFIDENCE_FLOOR = 0.5  # spec edge case: below this, flagged for attention
+
+
 def _element(eid, kind, confidence, evidence, payload, flags=None) -> dict:
     e = {
         "id": eid,
@@ -42,8 +45,11 @@ def _element(eid, kind, confidence, evidence, payload, flags=None) -> dict:
         "review_state": "proposed",
         "payload": payload,
     }
+    flags = list(flags or [])
+    if e["confidence"] < LOW_CONFIDENCE_FLOOR:
+        flags.append("low_confidence")  # never silently pre-confirmed
     if flags:
-        e["flags"] = flags
+        e["flags"] = sorted(set(flags))
     return e
 
 

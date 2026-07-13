@@ -148,3 +148,56 @@ def test_overlay_target_batch_renders_at_coordinates(env):
         assert "Feeder 11 North" in text  # value present as real text (read-back)
         assert len(pdf.pages[0].images) >= 1  # the record photo placed (FR-012a)
     assert "render_roundtrip" not in (run_dir / "exceptions.csv").read_text()
+
+
+def test_per_batch_cardinality_renders_one_pdf(env):
+    """T040 (FR-009): a template whose reviewed cardinality is per_batch
+    produces exactly ONE verified PDF from a multi-record batch. Also asserts
+    T037: shipped PDF outputs carry roundtrip=verified in the audit manifest."""
+    drafted = runner.invoke(app, ["onboard", "draft-template",
+                                  str(FIX / "target_form.pdf")])
+    proposal_id = re.search(r"proposal: (\d+)", drafted.output).group(1)
+    draft_path = Path(re.search(r"draft: (\S+)", drafted.output).group(1))
+    document = yaml.safe_load(draft_path.read_text())
+    for element in document["elements"]:
+        element["review_state"] = "confirmed"
+        if element["element_kind"] == "cardinality":
+            element["review_state"] = "corrected"
+            element["corrected_payload"] = {"cardinality": "per_batch"}
+    draft_path.write_text(yaml.safe_dump(document, sort_keys=True))
+    approved = runner.invoke(app, ["onboard", "approve", proposal_id,
+                                   "--name", "ias.batch_form@1", "--by", "rayno"])
+    assert approved.exit_code == 0, approved.output
+
+    _approve_transform(env, "ias.batch_form@1", routes={
+        "asset_id": {"from": "header.site", "tier": "T0"},
+        "defect_code": {"from": "finding.class", "tier": "T1",
+                        "value_map": {"name": "survey_defect", "version": 1}},
+        "priority": {"from": "finding.class", "tier": "T1",
+                     "value_map": {"name": "survey_priority", "version": 1}},
+        "comments": {"from": "finding.observation", "tier": "T0"},
+    }, constants={"reinspect": "yes"})
+
+    batch = env / "batch_perbatch"
+    batch.mkdir()
+    shutil.copy(FIX / "survey_report_b.pdf", batch)
+    result = runner.invoke(app, ["apply", "run", str(batch),
+                                 "--transform",
+                                 "synthetic.pdf.survey@v1:ias.batch_form@1"])
+    assert result.exit_code == 0, result.output
+    run_dir = Path(result.output.split("outputs: ")[1].splitlines()[0].strip())
+    pdfs = sorted(run_dir.glob("*.ias.batch_form*.pdf"))
+    assert len(pdfs) == 1  # ONE document for the whole batch
+
+    # T037: the audit manifest records the round-trip verification
+    from sqlalchemy import select
+
+    from rmu.db import make_engine, make_session_factory
+    from rmu.models import ApplyRun
+
+    factory = make_session_factory(make_engine())
+    with factory() as s:
+        run = s.scalars(select(ApplyRun).order_by(ApplyRun.id.desc())).first()
+        pdf_entries = [m for m in run.outputs_manifest
+                       if m["output_kind"] == "pdf_form"]
+        assert pdf_entries and all(m["roundtrip"] == "verified" for m in pdf_entries)

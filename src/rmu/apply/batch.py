@@ -450,6 +450,10 @@ def run_batch(
                         "template": b.ref,
                         "filename": out_name,
                         "store_hash": store.put_bytes(content),
+                        # spec Key Entities "Round-Trip Verification Report":
+                        # only outputs that passed read-back verification ship,
+                        # and the audit record says so (FR-013)
+                        "roundtrip": "verified",
                     })
                 doc_exceptions.extend(exceptions)
                 rows_total += n_rows
