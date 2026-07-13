@@ -225,3 +225,15 @@ class DraftArtifactError(Exception): ...        # message names ref + status (FR
 - 36 tasks total: Setup 4 · Foundational 6 · US1 10 · US2 2 · US3 5 · US4 5 (incl. T028a) · Polish 4.
 - Commit after each task or logical group; every commit citing an assumption references A#/D# (Constitution IX).
 - The quarantined Zeitview fixture is NEVER read by any task except the human-run acceptance protocol (T034 prepares it; Rayno executes it).
+
+---
+
+## Phase 8: Convergence
+
+**Purpose**: Close residual gaps found by /speckit-converge (2026-07-13) between the implemented code and spec/plan intent. Core converged: 0 missing, 0 contradictions, 0 constitution violations.
+
+- [ ] T036 [US1] Make seeded re-onboarding a true delta review per FR-021 (partial): when draft-profile runs with --seed-from, annotate elements that match the seed recipe (columns, header labels, furniture, fingerprint anchors) with seed_match evidence and flag divergent elements, so the analyst reviews the proposal as a delta against the known shape; add a seeded-flow test in tests/integration/test_onboard_source_e2e.py (src/rmu/onboard/analyze_source.py, src/rmu/onboard/cli.py)
+- [ ] T037 [US4] Record per-output round-trip verification results in the batch audit per spec Key Entities "Round-Trip Verification Report" (partial): outputs_manifest entries for pdf_form/pdf_overlay gain a roundtrip status field written from the verify() report in src/rmu/apply/batch.py::_render_pdf_documents; assert presence in tests/integration/test_onboard_target_e2e.py
+- [ ] T038 Persist onboarding rejection occurrences for follow-up per FR-010 (partial): append {file, condition, workaround, at} to store/onboard_rejections.jsonl from the rejection path in src/rmu/onboard/cli.py::_reject; cover in tests/integration/test_onboard_source_e2e.py or a unit test
+- [ ] T039 [US1] Flag low-confidence elements per the spec edge case (partial): elements below the 0.5 floor get flags=["low_confidence"] in src/rmu/onboard/analyze_source.py and src/rmu/onboard/analyze_target.py (proposal.schema.json already enumerates the flag); assert in tests/unit/test_analyze_source.py
+- [ ] T040 [US4] Add per_batch cardinality test coverage per FR-009 (partial): a template with cardinality per_batch renders exactly ONE PDF from a multi-record batch, round-trip verified; extend tests/golden/test_pdf_render_golden.py or tests/integration/test_onboard_target_e2e.py
