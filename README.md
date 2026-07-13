@@ -13,7 +13,7 @@ extract(source_doc, profile)  -> NormalizedRecords
 map(profile, template)        -> Transform          # human-in-the-loop, ONCE
 apply(records, transform)     -> TargetDraft + ExceptionsReport
 validate(draft, template)     -> SafeCard verdict (pass / warn / block)
-render(draft, template)       -> output files (csv / docx)
+render(draft, template)       -> output files (csv / docx / filled PDF)
 audit(run)                    -> exactly-regenerable ApplyRun record
 ```
 
@@ -53,6 +53,14 @@ These are enforced by tests that are never cut (see `tests/invariants/`):
 session can now propose field routes and value maps **entirely on-device** — no
 data leaves the machine — with a consent-gated opt-in for an external API. See
 [Local AI assistance](#local-ai-assistance) below.
+
+**Assisted format onboarding** (feature `003-pdf-format-onboarding`, 2026-07-13):
+a source PDF the tool has never seen, or a client's target format supplied as a
+PDF, is onboarded in minutes: the tool analyses the document and proposes a
+draft extraction recipe / template schema, a human validates every element, and
+a machine-checked approval gate registers it as a versioned artifact. Drafts can
+never convert data. See
+[Onboarding a new format](#onboarding-a-new-format-source-or-target) below.
 
 ⚠️ **The shipped target formats are interim stand-ins.** The real
 client-mandated formats (Eskom Annexure H pro forma, SAP defect-record fields)
@@ -98,8 +106,9 @@ uv run rmu apply run tests/fixtures/batch_20 \
 
 # 3) Trust drills
 uv run rmu apply regen 1   # byte-exact regeneration, hash-verified
-uv run pytest              # 111 tests incl. determinism / append-only /
-                           # drift-block / exceptions / offline-AI invariants
+uv run pytest              # 188 tests incl. determinism / append-only /
+                           # drift-block / exceptions / offline-AI / draft-block
+                           # / render round-trip invariants
 ```
 
 Every AI proposal enters at tier **T2** and cannot survive approval without an
@@ -126,7 +135,8 @@ uv run rmu map start \
   --profile scopito.pdf.powerline@v2020 \
   --template interim.defect_csv@1 \
   --exemplar seed/source_samples/Distribution-report.pdf \
-  --no-ai
+  --no-ai   # demo-only: keeps this walkthrough reproducible on a clone with
+            # no models installed. Day to day, omit it - local AI is the default.
 ```
 
 ```text
@@ -206,7 +216,7 @@ uv run rmu map start \
   --profile scopito.pdf.powerline@v2020 \
   --template interim.annexc_pack@1 \
   --exemplar seed/source_samples/Distribution-report.pdf \
-  --no-ai                                     # -> session: 2
+  --no-ai                                     # demo-only (see step 1) -> session: 2
 cp examples/transform.annexc_pack.yaml store/drafts/session_2.transform.yaml
 uv run rmu map preview --session 2            # writes session_2.preview.docx
 uv run rmu map approve --session 2 --by demo
@@ -261,6 +271,83 @@ To see what an unmapped value does, delete any entry from
 records land in `exceptions.csv` with a suggested resolution instead of being
 guessed.
 
+## Onboarding a new format (source or target)
+
+Feature 003 removes the last hand-building step: when a **source PDF doesn't
+match any registered profile**, or a client hands you their **target format as
+a PDF** (fillable form or fixed layout), you onboard it instead of writing
+code. The default mode of operation is **AI-assisted with the local model** —
+heuristics propose the structure deterministically and the on-device LLM adds
+naming hints; nothing leaves the machine. Reach for `--no-ai` only when the
+local AI isn't working on your machine (`rmu ai doctor` will tell you) — it is
+a fallback flag, not the normal flow.
+
+**A. New source shape → registered SourceProfile:**
+
+```bash
+# 1) Analyse the unrecognised PDF (local AI hints included by default;
+#    add --no-ai ONLY if `rmu ai doctor` says local assets are unavailable)
+uv run rmu onboard draft-profile path/to/new_vendor_report.pdf
+# -> proposal: 1
+#    draft:        store/drafts/onboard_1.yaml     (edit this)
+#    review sheet: store/drafts/onboard_1.html     (open next to the PDF)
+#    elements: header fields, record table + columns, per-record image
+#    region, detection fingerprint - each with structural confidence,
+#    evidence, and flags (low_confidence / non_generalising / orphan_image)
+
+# 2) Review: set every element's review_state to confirmed / corrected
+#    (+corrected_payload) / removed in the draft YAML. Approval is blocked
+#    while anything stays 'proposed'.
+uv run rmu onboard review 1 --regenerate-sheet
+
+# 3) Approve = a machine-checked PROOF, not a signature: the corrected recipe
+#    is re-extracted against the exemplar and must reproduce your confirmations
+#    exactly; the fingerprint must match AND collide with no existing profile.
+uv run rmu onboard approve 1 --as vendorx.pdf.survey@v1 --by <you>
+# -> registered SourceProfile vendorx.pdf.survey@v1 (recipe = pure data,
+#    run by the ONE generic engine; no per-profile code, ever)
+
+# 4) The new shape now auto-detects; map it once, then batch-convert as usual:
+uv run rmu map start --profile vendorx.pdf.survey@v1 \
+  --template interim.defect_csv@1 --exemplar path/to/new_vendor_report.pdf
+```
+
+**B. Client target format arrives as a PDF → registered TargetTemplate:**
+
+```bash
+uv run rmu onboard draft-template path/to/client_defect_form.pdf
+# fillable form  -> field schema proposed from the PDF's OWN declarations
+#                   (required flags, kinds, option lists)
+# fixed layout   -> labelled regions with page coordinates (text + photo boxes)
+# encrypted/XFA/scanned -> rejected with a named condition + workaround,
+#                   logged to store/onboard_rejections.jsonl
+
+# review the draft YAML (fields/regions + per_record|per_batch cardinality), then:
+uv run rmu onboard approve 2 --name clientx.defect_form@1 --by <you>
+# approval test-renders sample values and must round-trip before registering
+
+# batches now render filled PDFs - per record or per batch, read-back verified:
+uv run rmu apply run ./batch \
+  --transform "vendorx.pdf.survey@v1:clientx.defect_form@1"
+# -> one filled PDF per record, every output round-trip verified
+#    (values read back from the produced PDF must equal the records)
+```
+
+**C. When SafeCard blocks a drifted document**, the exceptions report tells you
+the recovery path — re-onboard as a delta:
+
+```bash
+uv run rmu onboard draft-profile drifted_report.pdf \
+  --seed-from vendorx.pdf.survey@v1
+# elements matching the known shape carry seed_match evidence; divergences are
+# flagged seed_divergent - you review the delta, approve v2, nothing is guessed
+```
+
+The safety property throughout: a **draft can never be referenced by a batch
+run** — only human-approved v1+ artifacts can (`DraftArtifactError` before a
+single record is read), approval records who/when, and everything registered is
+stored config, never generated code.
+
 ## CLI overview
 
 | Command | Purpose |
@@ -272,6 +359,9 @@ guessed.
 | `rmu map start --assist none\|local\|external [--client ID]` | Choose the assistance mode (default `local`) |
 | `rmu map regenerate --session N` | Explicitly replace a session's proposals (prior set kept in history) |
 | `rmu profile suggest <pdf>` | Suggest which registered profiles a document resembles |
+| `rmu onboard draft-profile <pdf>... [--seed-from REF]` | Analyse an unrecognised source PDF into a draft extraction recipe (local-AI hints by default; `--no-ai` fallback) |
+| `rmu onboard draft-template <pdf>` | Analyse a target PDF (form or fixed-layout) into a draft template schema |
+| `rmu onboard review\|approve\|abandon` | Per-element review; verify-on-approve registers the versioned artifact |
 | `rmu ai doctor \| ai setup` | Local-AI health report / manual setup instructions |
 | `rmu ai consent grant\|revoke\|list --client ID --by OWNER` | Record per-client external-API consent |
 | `rmu apply run <folder> --transform REF... --answer k=v...` | Deterministic batch conversion; never interactive |
@@ -379,13 +469,15 @@ src/rmu/
 ├── detect/          # profile fingerprint matching (anchors as data)
 ├── extract/         # per-profile parsers -> NormalizedRecords
 ├── mapping/         # HIL session, transform schema/loader, proposal providers, review sheet
+├── onboard/         # assisted format onboarding: analyzers, proposal lifecycle, verify-on-approve
 ├── ai/              # local AI assist ONLY (embeddings, local LLM, config, consent, doctor)
 ├── apply/           # pure conversion engine + batch orchestration
 ├── validate/        # SafeCard scoring + template rule enforcement
-└── render/          # deterministic CSV/docx rendering + OPC canonicalizer
+└── render/          # deterministic CSV/docx/PDF rendering + round-trip verifier + OPC canonicalizer
 templates/           # target formats as DATA (both INTERIM)
 profiles/            # source-shape fingerprints + extraction anchors as DATA
 seed/                # defect-code vocabulary + the two real Scopito demo PDFs
+                     #   (seed/holdout/ = quarantined acceptance fixtures - never read by code)
 specs/               # spec-kit artifacts: spec, plan, research, contracts, tasks
 tests/               # invariants/ golden/ unit/ integration/ fixtures/
 store/               # runtime artifacts (gitignored): DB, blobs, run outputs
@@ -399,7 +491,7 @@ value-map references are closed by construction.
 ## Development
 
 ```bash
-uv run pytest                 # full suite (111 tests)
+uv run pytest                 # full suite (188 tests; slow perf smoke: -m slow)
 uv run pytest tests/invariants/   # the never-cut guarantees only
 uv run ruff check src tests  # lint
 ```
@@ -431,8 +523,10 @@ data-processing agreement exists with that client. Three things enforce this:
 - **External is consent-gated.** The `external` mode refuses to run unless an
   explicit per-client consent flag is recorded (`rmu ai consent grant`); nothing
   is inferred, and consent is matched to an explicit `--client`.
-- **Manual always works.** The fully manual `--no-ai` path is a first-class,
-  always-working mode — not a fallback.
+- **Manual always works.** The fully manual `--no-ai` path can never rot (it is
+  the tested degradation floor), but it is the *fallback*, not the default: use
+  it when `rmu ai doctor` says the local assets aren't available. The normal
+  mode of operation is local AI.
 
 The repo builds and tests exclusively on the bundled public demo PDFs and
 synthetic fixtures, and AI is used only inside mapping sessions — never at apply
@@ -447,5 +541,7 @@ time, never on whole batches.
 | `STATUS.md` | Terse per-session build state, decisions, and DoD evidence |
 | `specs/001-report-mapping-v1/` | Spec-kit artifacts for the v1 pipeline: spec, plan, research, data model, contracts, tasks |
 | `specs/002-local-ai-assist/` | Spec-kit artifacts for the local AI assistance layer |
+| `specs/003-pdf-format-onboarding/` | Spec-kit artifacts for assisted format onboarding (incl. recipe/template/proposal contracts) |
+| `scripts/acceptance_003.md` | The human-run SC-001 acceptance protocol for onboarding |
 | `docs/eskom_dst34-1441_extraction.md` | Interim defect taxonomy source for the stand-in vocabulary |
 | `.specify/memory/constitution.md` | The nine non-negotiable engineering principles this repo is governed by |
