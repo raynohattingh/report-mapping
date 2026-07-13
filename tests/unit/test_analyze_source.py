@@ -73,3 +73,40 @@ def test_prose_pdf_yields_no_structure():
     doc = analyze([FIX / "prose_report.pdf"])
     assert _by_kind(doc, "record_table") == []
     assert _by_kind(doc, "record_column") == []
+
+
+def test_indented_header_detected():
+    """Regression: a table header indented right of the data rows must still be
+    recognised as the header — not fall back to the first data row (the bug that
+    broke onboarding the Scopito exports)."""
+    doc = analyze([FIX / "survey_report_indented.pdf"])
+    tables = _by_kind(doc, "record_table")
+    assert len(tables) == 1
+
+    # columns are the REAL header names, not data values like 'DF-001'
+    names = [c["payload"]["name"] for c in _by_kind(doc, "record_column")]
+    assert names == ["ref", "class", "component", "observation", "sheet"]
+
+    det = tables[0]["payload"]["detection"]
+    assert det["row_pattern"] == r"^DF\-\d{3}$"  # re.escape'd hyphen
+    assert det["table_header_regex"] == r"^Ref\s+Class\s+Component\s+Observation\s+Sheet$"
+
+
+def test_recurrence_matches_extraction(tmp_path, monkeypatch):
+    """The analyzer's row count (evidence.recurrence) must equal what the
+    deterministic extractor produces, so approve-time row_count_exact is a
+    genuine determinism guard — even when sparse rows would be dropped by the
+    detection fill-threshold."""
+    monkeypatch.setenv("RMU_STORE", str(tmp_path / "store"))
+    from rmu.extract.recipe_pdf import extract
+    from rmu.onboard.approve import recipe_from_elements
+
+    exemplar = FIX / "survey_report_indented.pdf"
+    doc = analyze([exemplar])
+    for e in doc["elements"]:
+        e["review_state"] = "confirmed"
+    recipe = recipe_from_elements(doc, "synthetic.pdf.indented", "v1")
+
+    table = _by_kind(doc, "record_table")[0]
+    n = extract(exemplar, recipe)
+    assert len(n["findings"]) == table["evidence"]["recurrence"] == 12

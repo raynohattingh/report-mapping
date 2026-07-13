@@ -107,9 +107,18 @@ def _analyze_one(pdf_path: Path) -> dict:
             # like furniture — furniture must not veto header candidacy.
             if len(words) < 4:
                 continue
+            # Column boundaries sit at the MIDPOINT between adjacent header
+            # words; the FIRST column extends to the left page edge so data
+            # indented left of the header (real exports e.g. Scopito indent the
+            # header a few points relative to the data rows — without this the
+            # data's first cell is dropped and a data row is mis-picked as the
+            # header). The last column keeps a BOUNDED right margin (+60): a
+            # far-right sentinel would let unrelated header-block lines swallow
+            # trailing words and masquerade as tables.
             starts = [w["x0"] for w in words]
-            ends = starts[1:] + [starts[-1] + 60]
-            x_ranges = [[round(s - 4, 1), round(e - 4, 1)] for s, e in zip(starts, ends)]
+            mids = [round((a + b) / 2, 1) for a, b in zip(starts, starts[1:])]
+            bounds = [0.0, *mids, starts[-1] + 60]
+            x_ranges = [[bounds[k], bounds[k + 1]] for k in range(len(starts))]
 
             def _candidate_rows(candidates: list[dict], header_text: str) -> list[dict]:
                 picked = []
@@ -160,6 +169,33 @@ def _analyze_one(pdf_path: Path) -> dict:
     if best_table:
         header_prefix = re.sub(r"\d+$", "", best_table["header_line"]["text"]).strip()
         furniture = [f for f in furniture if f != header_prefix]
+
+        # Recount rows the way the deterministic extractor will (row_pattern on
+        # the first cell) rather than by the fill-threshold used only to DETECT
+        # the table. This MUST mirror recipe_pdf.extract's row loop so that
+        # evidence.recurrence == extract() findings (approve row_count_exact is
+        # then a real determinism guard, not a heuristic-vs-extractor mismatch).
+        from rmu.extract.pdf_lines import assign_columns
+
+        row_pattern = _first_cell_pattern(
+            [r["first_cell"] for r in best_table["rows"][:20]]
+        )
+        pattern = re.compile(row_pattern)
+        x_ranges = best_table["x_ranges"]
+        header_text = best_table["header_line"]["text"]
+        matched: list[dict] = []
+        for lines in lines_by_page:
+            for line in lines:
+                if is_furniture(line["text"]) or line["text"] == header_text:
+                    continue
+                cells = assign_columns(line["words"], x_ranges)
+                first = cells[0] if cells else ""
+                if first and pattern.match(first):
+                    matched.append(
+                        {"top": line["top"], "words": line["words"], "first_cell": first}
+                    )
+        best_table["rows"] = matched
+        best_table["row_pattern"] = row_pattern
 
     # -- pass 3: header key/value fields on lead pages, above the table -------
     header_fields: list[dict] = []
@@ -259,7 +295,6 @@ def analyze(
         rows_n = len(table["rows"])
         table_conf = min(0.95, rows_n / (rows_n + 2))
         agreement = _agreement(extras, lambda r: bool(r["table"]))
-        first_cells = [r["first_cell"] for r in table["rows"][:20]]
         elements.append(
             _element(
                 "table-0", "record_table",
@@ -269,7 +304,9 @@ def analyze(
                 {"detection": {
                     "mode": "column_clusters",
                     "column_x_ranges": table["x_ranges"],
-                    "row_pattern": _first_cell_pattern(first_cells),
+                    # the pattern used for the recurrence recount (single source
+                    # of truth, so detection.row_pattern == extract()'s rule)
+                    "row_pattern": table["row_pattern"],
                     "table_header_regex": "^" + r"\s+".join(
                         re.escape(c) for c in table["columns"]
                     ) + "$",

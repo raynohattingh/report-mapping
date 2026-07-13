@@ -12,6 +12,7 @@ tests/invariants/test_quarantine.py for the enforced rule).
 Fixtures (tests/fixtures/onboarding/):
 - survey_report_a.pdf / survey_report_b.pdf  same new shape, different data
 - survey_report_drifted.pdf                  'Class' column renamed 'Category'
+- survey_report_indented.pdf                 table header indented right of data
 - prose_report.pdf                           valid text, no structure (FR-001b)
 - target_form.pdf                            AcroForm: text/checkbox/choice, required flags
 - target_fixed.pdf                           fixed-layout: labels + blank boxes + photo box
@@ -80,10 +81,13 @@ def _furniture(c: canvas.Canvas, page_no: int) -> None:
     c.drawString(40, 28, f"Confidential - page {page_no}")   # repeated footer line
 
 
-def _register_header(c: canvas.Canvas, y: int, class_col: str) -> int:
+def _register_header(c: canvas.Canvas, y: int, class_col: str, header_dx: int = 0) -> int:
+    # header_dx shifts the header words right of the data columns: real exports
+    # (e.g. Scopito) indent the table header relative to the data rows, which
+    # broke header-anchored column detection (see build_survey_indented).
     c.setFont("Helvetica-Bold", 9)
     for name, x in COLS.items():
-        c.drawString(x, y, class_col if name == "Class" else name)
+        c.drawString(x + header_dx, y, class_col if name == "Class" else name)
     c.setFont("Helvetica", 9)
     return y - 18
 
@@ -119,6 +123,37 @@ def build_survey(path: Path, title: str, rows: list[dict], class_col: str = "Cla
         c.drawString(COLS["Observation"], y, row["observation"])
         c.drawString(COLS["Sheet"], y, str(row["sheet"]))
         # per-record thumbnail right of the row -> image-region detection (FR-001a)
+        img = ImageReader(io.BytesIO(_png(row["rgb"])))
+        c.drawImage(img, 560, y - 4, width=16, height=16)
+        y -= 26
+    c.showPage()
+    c.save()
+
+
+def build_survey_indented(path: Path, title: str, rows: list[dict]) -> None:
+    """Regression fixture for two analyze_source pass-2 bugs seen on real
+    exports (e.g. Scopito):
+
+    (a) the table header is drawn ~12pt to the RIGHT of the data columns — real
+        exports indent the header relative to the data rows, which broke
+        header-anchored column-range detection; and
+    (b) every 4th row omits its middle cells (sparse row) — the old fill-
+        threshold row count then diverges from the deterministic extractor's
+        row_pattern count, so recurrence != extraction.
+    Single page, no continuation, so both effects are isolated."""
+    c = _canvas(path)
+    _furniture(c, 1)
+    _survey_header(c, title, len(rows))
+    c.setFont("Helvetica-Bold", 11)
+    c.drawString(40, 690, "Defect register")
+    y = _register_header(c, 670, "Class", header_dx=12)  # header indented right
+    for i, row in enumerate(rows, 1):
+        c.drawString(COLS["Ref"], y, row["ref"])       # ref + sheet on every row
+        c.drawString(COLS["Sheet"], y, str(row["sheet"]))
+        if i % 4 != 0:                                  # every 4th row is sparse
+            c.drawString(COLS["Class"], y, row["cls"])
+            c.drawString(COLS["Component"], y, row["component"])
+            c.drawString(COLS["Observation"], y, row["observation"])
         img = ImageReader(io.BytesIO(_png(row["rgb"])))
         c.drawImage(img, 560, y - 4, width=16, height=16)
         y -= 26
@@ -219,6 +254,11 @@ def main() -> None:
     build_survey(OUT / "survey_report_drifted.pdf", "Feeder 13 South - Defect Survey",
                  _survey_rows(rng, 7), class_col="Category")
     build_prose(OUT / "prose_report.pdf")
+    # Own RNG + built after the shared-rng reports so their committed bytes are
+    # unchanged; header indented right of the data columns (see build function).
+    irng = random.Random(20260713)
+    build_survey_indented(OUT / "survey_report_indented.pdf",
+                          "Feeder 14 West - Defect Survey", _survey_rows(irng, 12))
     build_form(OUT / "target_form.pdf")
     build_fixed(OUT / "target_fixed.pdf")
     build_encrypted(OUT / "target_encrypted.pdf")

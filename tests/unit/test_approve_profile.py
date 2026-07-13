@@ -84,6 +84,25 @@ def test_header_mismatch_fails_closed(session):
     assert not (profiles_root() / "synthetic.pdf.survey.v1.yaml").exists()
 
 
+def test_indented_header_onboards_end_to_end(session):
+    """The indentation fix must carry through verify-on-approve: a tabular
+    exemplar whose header is indented right of the data (and with sparse rows)
+    registers cleanly, with row_count_exact and the header/anchor checks all
+    passing."""
+    exemplar = FIX / "survey_report_indented.pdf"
+    store.put_file(exemplar)
+    document = analyze([exemplar])
+    for e in document["elements"]:
+        e["review_state"] = "confirmed"
+    p = Proposal.create(session, document)
+
+    row = approve_profile(session, p, "synthetic.pdf.indented", "v1", "rayno")
+
+    assert row.key == "synthetic.pdf.indented"
+    assert p.status == "approved" and p.row.verify_report["ok"] is True
+    assert (profiles_root() / "synthetic.pdf.indented.v1.yaml").exists()
+
+
 def test_fingerprint_collision_blocks_second_profile(session):
     first = _confirmed_proposal(session)
     approve_profile(session, first, "synthetic.pdf.survey", "v1", "rayno")

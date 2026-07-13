@@ -2,6 +2,49 @@
 
 Terse build state for the business side. Newest session first.
 
+## Session 2026-07-13 — fix: onboarding table detection on indented headers
+
+**Symptom** (found onboarding the real Scopito seed demos): `onboard approve`
+failed with `row_count_exact` mismatch + `fingerprint_no_collision` on the
+distribution demo, and `no confirmed record_table element` on the transmission
+demo. **Root cause:** the record-table detector (`onboard/analyze_source.py`
+pass 2) built column x-ranges from the **header** word positions, but these
+exports indent the header a few points RIGHT of the data rows — so every data
+cell fell outside the ranges, the real header was rejected, and the detector
+fell back to using the **first data row as the header** (garbage columns, a
+literal one-row `table_header_regex`; transmission got no table at all). A
+secondary issue: `recurrence` came from a fill-thresholded heuristic count that
+the deterministic extractor never reproduces, so `row_count_exact` was a
+spurious mismatch. The synthetic fixtures hid it — they draw header and data at
+identical x-positions.
+
+**Fix** (branch `003-pdf-format-onboarding`, full suite 191 green, ruff clean):
+1. Column boundaries now sit at **midpoints** between header words, with the
+   first column extended to the left page edge (catches left-indented data) and
+   the last kept to a bounded `+60` margin (a far-right sentinel let header-block
+   lines masquerade as tables — regressed `survey_report_a`, caught + fixed).
+2. `recurrence` (and the stored row set) is recomputed by the extractor's
+   `row_pattern` rule, not the detection fill-threshold, so analysis == apply by
+   construction and `row_count_exact` is a real determinism guard.
+3. New regression fixture `survey_report_indented.pdf` (indented header + sparse
+   rows) + unit/e2e tests; existing committed fixtures byte-identical.
+
+Verified read-only on the real demos: distribution now detects the true header
+and all **10** rows (was eating row 1 as the header); transmission detects a
+table at last. Both still (correctly) BLOCK at `fingerprint_no_collision` as
+duplicates of `scopito.pdf.powerline@v2020` — they are the same shape that
+profile already handles, not new profiles.
+
+**Open / follow-ups:**
+- The Zeitview thermal-roof holdout is a **non-tabular** narrative report
+  (full-page anomaly cards, no Id/Severity register) — needs a separate
+  record-card detection strategy; not addressed here.
+- Transmission mixes 6-/7-digit IDs, so its 7-digit row (`1050227`) is dropped by
+  dominant-class filtering (`^\d{6}$`) — a proposal-quality item the analyst
+  broadens in review, distinct from this bug.
+- Optional cleanup: factor a shared `iter_record_rows()` used by both the
+  analyzer and `recipe_pdf.extract` (row loops are currently mirrored by hand).
+
 ## Session 2026-07-12 (later) — fix: local LLM proposals were all dropped
 
 **Symptom** (found while dogfooding the quickstart with a real `qwen3:4b`): every
