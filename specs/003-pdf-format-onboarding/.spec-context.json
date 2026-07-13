@@ -3,7 +3,7 @@
   "specName": "[FEATURE NAME]",
   "branch": "worktree-003-pdf-format-onboarding",
   "currentStep": "implement",
-  "status": "implementing",
+  "status": "implemented",
   "history": [
     {
       "step": "specify",
@@ -241,9 +241,137 @@
       "kind": "complete",
       "by": "ai",
       "at": "2026-07-12T20:39:10.300Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T028a",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-12T20:45:34.319Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T028",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-12T20:45:34.384Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T029",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-12T20:45:34.452Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T030",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-12T20:45:34.519Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T023",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-12T20:52:16.763Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T024",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-12T20:52:16.830Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T025",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-12T20:52:16.897Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T026",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-12T20:52:16.968Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T027",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-13T07:30:16.988Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T031",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-13T07:30:17.056Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T021",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-13T07:31:32.243Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T022",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-13T07:31:32.312Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T032",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-13T07:36:36.619Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T033",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-13T07:36:36.685Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T034",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-13T07:36:36.751Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T035",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-13T07:36:36.820Z"
     }
   ],
-  "currentTask": "T020",
+  "currentTask": "T035",
   "task_summaries": {
     "T001": {
       "status": "DONE",
@@ -401,6 +529,124 @@
       "did": "US1 E2E: onboard->correct->approve->map->apply; same-shape fixture auto-converts 9/9 records, drift blocked w/ hint, misuse + skeleton paths covered",
       "files": [
         "tests/integration/test_onboard_source_e2e.py"
+      ]
+    },
+    "T028a": {
+      "status": "DONE",
+      "did": "Golden+roundtrip+determinism tests for both PDF renderers: exact form round-trip, frozen overlay coordinates, fail-closed oversize/missing, byte-identical re-runs",
+      "files": [
+        "tests/golden/test_pdf_render_golden.py",
+        "tests/invariants/test_render_determinism.py",
+        "tests/golden/data/overlay_regions.json"
+      ]
+    },
+    "T028": {
+      "status": "DONE",
+      "did": "pdf_form renderer: pypdf AcroForm fill w/ NeedAppearances, checkbox mapping, pinned metadata, RenderProblem fail-closed (missing/oversize/options)",
+      "files": [
+        "src/rmu/render/pdf_form.py"
+      ]
+    },
+    "T029": {
+      "status": "DONE",
+      "did": "pdf_overlay renderer: reportlab invariant overlay + pypdf merge, text align/font per region, images scale-to-fit-no-crop, stringWidth oversize guard",
+      "files": [
+        "src/rmu/render/pdf_overlay.py"
+      ]
+    },
+    "T030": {
+      "status": "DONE",
+      "did": "pdf_roundtrip verifier: pypdf field read-back exact match, pdfplumber text-in-bbox ±2pt, embedded-image pixel equality via PIL",
+      "files": [
+        "src/rmu/render/pdf_roundtrip.py"
+      ]
+    },
+    "T023": {
+      "status": "DONE",
+      "did": "Target analysis tests: pdf_declared hints (required/options/kinds), coordinate regions incl. image kind, reviewable cardinality",
+      "files": [
+        "tests/unit/test_analyze_target.py"
+      ]
+    },
+    "T024": {
+      "status": "DONE",
+      "did": "analyze_target: AcroForm enumeration w/ plain-type coercion, x-gap segment label detection, rect-anchored regions, region_too_small flag, image-height threshold",
+      "files": [
+        "src/rmu/onboard/analyze_target.py"
+      ]
+    },
+    "T025": {
+      "status": "DONE",
+      "did": "Review sheet covers template proposals via the generic element table (fields/regions/cardinality payloads incl. bbox); page-image overlays deferred as polish",
+      "files": [
+        "src/rmu/onboard/review_sheet.py"
+      ]
+    },
+    "T026": {
+      "status": "DONE",
+      "did": "approve_template: config assembly, sample-value test render + round-trip gate, PDF-declared required schema (FR-025), fail-closed narrow-region test",
+      "files": [
+        "src/rmu/onboard/approve.py",
+        "tests/unit/test_approve_template.py"
+      ]
+    },
+    "T027": {
+      "status": "DONE",
+      "did": "Target E2E: CLI onboard form+overlay templates, approve through test-render gate, map+apply produce 9 per-record verified PDFs each; fixed recipe engine to store record images as real PNGs",
+      "files": [
+        "tests/integration/test_onboard_target_e2e.py",
+        "src/rmu/onboard/cli.py",
+        "src/rmu/extract/recipe_pdf.py"
+      ]
+    },
+    "T031": {
+      "status": "DONE",
+      "did": "PDF kinds wired into batch apply: per-record/per-batch cardinality, round-trip verify on every render, RenderProblem->invalid_value + render_roundtrip exceptions, outputs manifest kinds",
+      "files": [
+        "src/rmu/apply/batch.py"
+      ]
+    },
+    "T021": {
+      "status": "DONE",
+      "did": "Draft-block completion: abandoned drafts never blamed; identical run blocked-as-draft then succeeds after approval (SC-006 both halves)",
+      "files": [
+        "tests/invariants/test_draft_block.py"
+      ]
+    },
+    "T022": {
+      "status": "DONE",
+      "did": "Onboarded registry rows append-only enforced; SC-008 provenance chain queryable (artifact->proposal->who/when/verify report) + CLI lineage output",
+      "files": [
+        "tests/invariants/test_append_only_onboarded.py"
+      ]
+    },
+    "T032": {
+      "status": "DONE",
+      "did": "SC-009 perf smoke: 300-page synthetic analysed well under 10-min budget; fixed-width ref lesson captured (variable-width IDs are analyst-correction territory)",
+      "files": [
+        "tests/integration/test_perf_smoke.py"
+      ]
+    },
+    "T033": {
+      "status": "DONE",
+      "did": "Quickstart synced to the implemented CLI (db init/seed, onboard/approve flags, real apply run commands, holdout path); full suite + ruff green",
+      "files": [
+        "specs/003-pdf-format-onboarding/quickstart.md"
+      ]
+    },
+    "T034": {
+      "status": "DONE",
+      "did": "SC-001 acceptance protocol for Rayno + quarantine enforcement test (zero code references to holdout; caught and scrubbed 2 pre-existing mentions)",
+      "files": [
+        "scripts/acceptance_003.md",
+        "tests/invariants/test_quarantine.py"
+      ]
+    },
+    "T035": {
+      "status": "DONE",
+      "did": "STATUS.md session entry: done/decisions/next/open incl. D10, holdout quarantine, T025 simplification, acceptance next-step",
+      "files": [
+        "STATUS.md"
       ]
     }
   }

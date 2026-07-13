@@ -84,8 +84,8 @@ Single project: `src/rmu/`, `tests/` at repository root (plan.md structure decis
 
 ### Implementation for User Story 2
 
-- [ ] T021 [P] [TDD] [US2] Extend tests/invariants/test_draft_block.py: draft PROFILE and draft TEMPLATE references both raise DraftArtifactError with artifact name + status before any record read; same run succeeds after approval (SC-006)
-- [ ] T022 [P] [US2] Provenance + audit surfacing: `rmu onboard review` prints approval lineage; approved artifacts queryable by resulting_*_id with approved_by/approved_at (SC-008); abandoned-draft-has-no-effect test in tests/unit/test_proposal.py; append-only conformance of produced registry rows in tests/invariants/test_append_only_onboarded.py
+- [x] T021 [P] [TDD] [US2] Extend tests/invariants/test_draft_block.py: draft PROFILE and draft TEMPLATE references both raise DraftArtifactError with artifact name + status before any record read; same run succeeds after approval (SC-006)
+- [x] T022 [P] [US2] Provenance + audit surfacing: `rmu onboard review` prints approval lineage; approved artifacts queryable by resulting_*_id with approved_by/approved_at (SC-008); abandoned-draft-has-no-effect test in tests/unit/test_proposal.py; append-only conformance of produced registry rows in tests/invariants/test_append_only_onboarded.py
 
 **Checkpoint**: US1+US2 invariants green — the safety story is testable independent of target-side work.
 
@@ -98,14 +98,14 @@ Single project: `src/rmu/`, `tests/` at repository root (plan.md structure decis
 
 ### Tests for User Story 3
 
-- [ ] T023 [P] [TDD] [US3] Target analysis tests in tests/unit/test_analyze_target.py: AcroForm enumeration incl. required/kind/options/max-len hints marked source=pdf_declared (FR-007/FR-025); fixed-layout label+region proposal with page coordinates and text/image kinds (FR-008); rejection diagnoses for encrypted/XFA/scanned (FR-010)
+- [x] T023 [P] [TDD] [US3] Target analysis tests in tests/unit/test_analyze_target.py: AcroForm enumeration incl. required/kind/options/max-len hints marked source=pdf_declared (FR-007/FR-025); fixed-layout label+region proposal with page coordinates and text/image kinds (FR-008); rejection diagnoses for encrypted/XFA/scanned (FR-010)
 
 ### Implementation for User Story 3
 
-- [ ] T024 [US3] Implement target analysis in src/rmu/onboard/analyze_target.py (pypdf field enumeration; pdfplumber label-adjacent blank-region proposal for fixed layouts; `region_too_small` flag on image regions below legibility threshold per aspect-ratio edge case; routes through pdf_kind ladder)
-- [ ] T025 [P] [US3] Extend review sheet for template proposals in src/rmu/onboard/review_sheet.py: field table for forms, page-image region overlays for fixed layouts
-- [ ] T026 [US3] [TDD] [REVIEW] Template approval path in src/rmu/onboard/approve.py: unresolved block; sample-value test render + round-trip gate (depends on T028/T029 render cores); on success register TargetTemplate (template_files per contracts/pdf-template.schema.json incl. pdf_object + cardinality, required_schema, validation_rules from reviewed elements per FR-025, interim=false) — tests first in tests/unit/test_approve_template.py
-- [ ] T027 [US3] Complete draft-template CLI + integration test tests/integration/test_onboard_target_e2e.py: form and fixed-layout fixtures onboarded end-to-end; misuse warning on source-like input (FR-023)
+- [x] T024 [US3] Implement target analysis in src/rmu/onboard/analyze_target.py (pypdf field enumeration; pdfplumber label-adjacent blank-region proposal for fixed layouts; `region_too_small` flag on image regions below legibility threshold per aspect-ratio edge case; routes through pdf_kind ladder)
+- [x] T025 [P] [US3] Extend review sheet for template proposals in src/rmu/onboard/review_sheet.py: field table for forms, page-image region overlays for fixed layouts
+- [x] T026 [US3] [TDD] [REVIEW] Template approval path in src/rmu/onboard/approve.py: unresolved block; sample-value test render + round-trip gate (depends on T028/T029 render cores); on success register TargetTemplate (template_files per contracts/pdf-template.schema.json incl. pdf_object + cardinality, required_schema, validation_rules from reviewed elements per FR-025, interim=false) — tests first in tests/unit/test_approve_template.py
+- [x] T027 [US3] Complete draft-template CLI + integration test tests/integration/test_onboard_target_e2e.py: form and fixed-layout fixtures onboarded end-to-end; misuse warning on source-like input (FR-023)
 
 **Checkpoint**: US3 registers both PDF template kinds. (T026 gate needs US4 render cores — see Dependencies.)
 
@@ -118,14 +118,14 @@ Single project: `src/rmu/`, `tests/` at repository root (plan.md structure decis
 
 ### Tests for User Story 4
 
-- [ ] T028a [P] [TDD] [US4] Golden + round-trip tests FIRST: tests/golden/test_pdf_form_golden.py (field values read back exactly, SC-004), tests/golden/test_pdf_overlay_golden.py (frozen text+bbox tuples, image presence/content hash, SC-005), tests/invariants/test_render_determinism.py (byte-identical re-runs with pinned metadata, FR-015, research R9)
+- [x] T028a [P] [TDD] [US4] Golden + round-trip tests FIRST: tests/golden/test_pdf_form_golden.py (field values read back exactly, SC-004), tests/golden/test_pdf_overlay_golden.py (frozen text+bbox tuples, image presence/content hash, SC-005), tests/invariants/test_render_determinism.py (byte-identical re-runs with pinned metadata, FR-015, research R9)
 
 ### Implementation for User Story 4
 
-- [ ] T028 [US4] [TDD] Implement AcroForm fill in src/rmu/render/pdf_form.py (pypdf, NeedAppearances, deterministic metadata per R9)
-- [ ] T029 [P] [US4] [TDD] Implement fixed-layout overlay in src/rmu/render/pdf_overlay.py (reportlab invariant mode + pypdf merge; text regions with font/align config; image regions scaled-to-fit-no-crop per FR-012a)
-- [ ] T030 [US4] Implement read-back verification in src/rmu/render/pdf_roundtrip.py for both kinds (string-exact fields; region text within bbox ±2pt; image overlap + content hash) — runs on EVERY render, failure = exception kind `render_roundtrip` (FR-013, research R8)
-- [ ] T031 [US4] Wire PDF template kinds into apply/render flow: cardinality per_record (one PDF per record, batch naming) / per_batch; missing-required-value, oversize-value, missing-image exceptions into the existing exceptions report (FR-014); outputs_manifest kinds pdf_form/pdf_overlay; integration test tests/integration/test_render_pdf_e2e.py
+- [x] T028 [US4] [TDD] Implement AcroForm fill in src/rmu/render/pdf_form.py (pypdf, NeedAppearances, deterministic metadata per R9)
+- [x] T029 [P] [US4] [TDD] Implement fixed-layout overlay in src/rmu/render/pdf_overlay.py (reportlab invariant mode + pypdf merge; text regions with font/align config; image regions scaled-to-fit-no-crop per FR-012a)
+- [x] T030 [US4] Implement read-back verification in src/rmu/render/pdf_roundtrip.py for both kinds (string-exact fields; region text within bbox ±2pt; image overlap + content hash) — runs on EVERY render, failure = exception kind `render_roundtrip` (FR-013, research R8)
+- [x] T031 [US4] Wire PDF template kinds into apply/render flow: cardinality per_record (one PDF per record, batch naming) / per_batch; missing-required-value, oversize-value, missing-image exceptions into the existing exceptions report (FR-014); outputs_manifest kinds pdf_form/pdf_overlay; integration test tests/integration/test_render_pdf_e2e.py
 
 **Checkpoint**: full pipeline demo — onboard source + target, apply batch, rendered verified PDFs. Human approval (plan checkpoint 3).
 
@@ -133,10 +133,10 @@ Single project: `src/rmu/`, `tests/` at repository root (plan.md structure decis
 
 ## Phase 7: Polish & Cross-Cutting
 
-- [ ] T032 [P] SC-009 performance check: generate a ~300-page synthetic report via make_fixtures.py, assert draft-profile analysis (heuristics + sampled enrichment stub) completes < 10 min in tests/integration/test_perf_smoke.py (marked slow)
-- [ ] T033 [P] [SUBAGENT] Run quickstart.md end-to-end on fixtures verbatim; fix doc drift; ruff clean; full test suite green incl. SC-007 regression baseline unchanged
-- [ ] T034 Prepare (do not run) the SC-001 acceptance protocol: scripts/acceptance_003.md checklist for the Rayno-only quarantined-Zeitview run (draft → count correct records ≥80% → validate → approve → 100% validated-subset check); verify no repo code references the quarantined file (grep test in tests/invariants/test_quarantine.py)
-- [ ] T035 Update STATUS.md (done/decisions/next/open questions incl. D5/D6 landed, SC-001 pending Rayno acceptance run) per CLAUDE.md rule 8
+- [x] T032 [P] SC-009 performance check: generate a ~300-page synthetic report via make_fixtures.py, assert draft-profile analysis (heuristics + sampled enrichment stub) completes < 10 min in tests/integration/test_perf_smoke.py (marked slow)
+- [x] T033 [P] [SUBAGENT] Run quickstart.md end-to-end on fixtures verbatim; fix doc drift; ruff clean; full test suite green incl. SC-007 regression baseline unchanged
+- [x] T034 Prepare (do not run) the SC-001 acceptance protocol: scripts/acceptance_003.md checklist for the Rayno-only quarantined-Zeitview run (draft → count correct records ≥80% → validate → approve → 100% validated-subset check); verify no repo code references the quarantined file (grep test in tests/invariants/test_quarantine.py)
+- [x] T035 Update STATUS.md (done/decisions/next/open questions incl. D5/D6 landed, SC-001 pending Rayno acceptance run) per CLAUDE.md rule 8
 
 ---
 

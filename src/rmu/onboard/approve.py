@@ -20,7 +20,7 @@ from rmu import store
 from rmu.config import profiles_root
 from rmu.detect.fingerprint import matches_fingerprint
 from rmu.extract.recipe_pdf import extract
-from rmu.models import SourceProfile
+from rmu.models import SourceProfile, TargetTemplate
 from rmu.onboard.proposal import Proposal
 from rmu.onboard.schemas import validate_recipe
 
@@ -289,7 +289,6 @@ def approve_template(
     """The only path from draft template proposal to registered TargetTemplate."""
     import json
 
-    from rmu.models import TargetTemplate
     from rmu.onboard.schemas import validate_pdf_template
 
     proposal.ensure_approvable()
