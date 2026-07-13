@@ -42,15 +42,42 @@ def _header_value(lines_by_page: list[list[dict]], field: dict) -> str:
     return ""
 
 
+def _to_png(width: int, height: int, samples: bytes) -> bytes | None:
+    """Rebuild a PNG from raw 8-bit RGB PDF image samples (the common case for
+    digitally-generated exports). None when the data doesn't fit that shape —
+    caller stores nothing rather than an undecodable blob."""
+    import struct
+    import zlib
+
+    if len(samples) != width * height * 3:
+        return None
+    rows = b"".join(
+        b"\x00" + samples[y * width * 3:(y + 1) * width * 3] for y in range(height)
+    )
+
+    def chunk(tag: bytes, data: bytes) -> bytes:
+        return (struct.pack(">I", len(data)) + tag + data
+                + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF))
+
+    ihdr = struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)
+    return (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", ihdr)
+            + chunk(b"IDAT", zlib.compress(rows, 9)) + chunk(b"IEND", b""))
+
+
 def _extract_images(page, rows_on_page: list[tuple[float, dict]], image_cfg: dict) -> None:
-    """Attach content-addressed image refs to the row each image y-overlaps."""
+    """Attach content-addressed image refs (as real PNG files, renderable
+    downstream) to the row each image y-overlaps."""
     name = image_cfg["name"]
     for img in page.images:
         img_top, img_bottom = img["top"], img["bottom"]
         for row_top, record in rows_on_page:
             if img_top - 14 <= row_top <= img_bottom + 14:
-                raw = img["stream"].get_rawdata()
-                record[f"{name}_ref"] = store.put_bytes(raw)
+                png = _to_png(
+                    int(img["srcsize"][0]), int(img["srcsize"][1]),
+                    img["stream"].get_data(),
+                )
+                if png is not None:
+                    record[f"{name}_ref"] = store.put_bytes(png)
                 break
 
 

@@ -160,3 +160,35 @@ all strictly stronger; please ratify or push back):
 - None blocking. AnthropicProvider is implemented but not yet exercised against the
   live API (needs `ANTHROPIC_API_KEY`; demo data only per A6) — worth one manual
   smoke test before the IAS demo.
+
+---
+
+## Session 2026-07-12/13 — feature 003 (pdf-format-onboarding) BUILT
+
+**Done**: full spec-kit cycle (spec w/ 4-round clarify+brainstorm → plan → 36 tasks →
+implement) on branch `003-pdf-format-onboarding`, PR #5. Assisted onboarding shipped:
+`rmu onboard draft-profile|draft-template|review|approve|abandon`. Heuristic structural
+analysis (3-pass, deterministic) proposes extraction recipes / template schemas with
+per-element structural confidence; optional 002 local-LLM naming hints (--no-ai clean);
+D1-style YAML + HTML review; verify-on-approve gate (exemplar re-extraction match,
+fingerprint self-match + collision check, template test-render round-trip) registers
+versioned SourceProfiles (generic `rmu.extract.recipe_pdf` engine — recipes are data)
+and TargetTemplates (pdf_form fill + pdf_overlay coordinate/image rendering, mandatory
+read-back verification, pinned-metadata determinism). Draft artifacts structurally
+cannot be applied (new `onboarding_proposals` table + pre-flight guard, SC-006 tested).
+E2E: never-seen shape → onboard → map → batch converts 9/9 records; drift blocked with
+seeded re-onboarding hint (FR-021). Full suite + SC-007 byte-identical regression
+baseline green; ruff clean.
+
+**Decisions**: D10 logged (pypdf runtime + reportlab dev→runtime; D5/D7 pre-existed).
+Zeitview holdout moved to `seed/holdout/` (existing tests sweep source_samples/ — the
+move IS the quarantine), kept untracked per owner; `tests/invariants/test_quarantine.py`
+enforces zero code references. T025 simplification: template review uses the generic
+element sheet (bbox shown as data), page-image overlays deferred to 004 Mapping Studio.
+
+**Next**: Rayno runs scripts/acceptance_003.md against the holdout (SC-001 ≥80% +
+SC-003 <30min datapoints) → record here. Then /speckit-analyze or PR review; 004
+Mapping Studio remains sequenced behind discovery (D9).
+
+**Open questions**: none blocking. SC-009 perf smoke is marked slow (run:
+`uv run pytest -m slow tests/integration/test_perf_smoke.py`).

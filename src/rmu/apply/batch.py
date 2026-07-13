@@ -97,7 +97,7 @@ class _Bundle:
 def _bundle(session: Session, transform: Transform, template_row: TargetTemplate) -> _Bundle:
     doc = parse_transform(transform.yaml_body)
     meta = template_meta(template_row)
-    if meta["kind"] not in ("csv", "docx"):
+    if meta["kind"] not in ("csv", "docx", "pdf_form", "pdf_overlay"):
         raise BatchError(f"renderer for template kind {meta['kind']!r} not available")
     return _Bundle(
         transform=transform,
@@ -240,6 +240,70 @@ def _render_pack_document(
     return render_pack(template_bytes, context), exceptions, len(finding_rows)
 
 
+def _render_pdf_documents(
+    bundle: _Bundle, normalized: dict, answers: dict, stem: str
+) -> tuple[list[tuple[str, bytes]], list[dict], int]:
+    """Feature 003 (FR-011/FR-012/FR-013/FR-014): resolve records, render one
+    filled PDF per record (or one per batch, per the template's declared
+    cardinality), round-trip verify EVERY output. Verification failures and
+    render problems are exceptions; the affected file never ships."""
+    import tempfile
+
+    from rmu.render.pdf_form import render_form_pdf
+    from rmu.render.pdf_overlay import render_overlay_pdf
+    from rmu.render.pdf_roundtrip import verify
+
+    config = bundle.meta
+    targets = sorted(
+        {f["target_field"] for f in config.get("fields", [])}
+        | {r["target_field"] for r in config.get("regions", [])}
+    )
+    rows, exceptions = apply_records(
+        bundle.doc, normalized, answers, bundle.value_maps, targets
+    )
+    rows, rule_problems = validate_rows(rows, bundle.vocabularies)
+    exceptions.extend(rule_problems)
+
+    render = render_form_pdf if config["kind"] == "pdf_form" else render_overlay_pdf
+    per_batch = config.get("cardinality") == "per_batch"
+    selected = rows[:1] if per_batch else rows
+
+    outputs: list[tuple[str, bytes]] = []
+    rendered = 0
+    with tempfile.TemporaryDirectory() as tmp:
+        for i, row in enumerate(selected, start=1):
+            ref = row.get("finding_id") or f"record-{i}"
+            suffix = "" if per_batch else f".{i:04d}"
+            out_name = f"{stem}.{bundle.template_row.name}{suffix}.pdf"
+            out_path = Path(tmp) / out_name
+            problems = render(config, row, out_path)
+            if problems:
+                exceptions.extend({
+                    "record_ref": ref,
+                    "kind": "invalid_value",
+                    "detail": {"field": p.field, "value": str(row.get(p.field, "")),
+                               "reason": p.reason,
+                               "suggestion": "fix the mapping/value or revise the "
+                                             "template as a new version (FR-014)"},
+                } for p in problems)
+                continue
+            report = verify(config, out_path, row)  # FR-013: every render
+            if not report.ok:
+                exceptions.append({
+                    "record_ref": ref,
+                    "kind": "render_roundtrip",
+                    "detail": {"field": report.mismatches[0]["field"],
+                               "value": report.mismatches[0]["got"],
+                               "reason": f"round-trip mismatch: {report.mismatches}",
+                               "suggestion": "rendering failure - the output was "
+                                             "withheld; inspect the template regions"},
+                })
+                continue
+            outputs.append((out_name, out_path.read_bytes()))
+            rendered += 1
+    return outputs, exceptions, rendered
+
+
 def run_batch(
     session: Session,
     folder: Path,
@@ -371,6 +435,25 @@ def run_batch(
                 content = render_csv(rows, b.meta["columns"])
                 out_name, out_kind = f"{pdf.stem}.defects.csv", "defect_csv"
                 n_rows = len(rows)
+            elif b.meta["kind"] in ("pdf_form", "pdf_overlay"):
+                # feature 003 (D7/D10): filled PDFs w/ mandatory round-trip
+                pdf_outputs, exceptions, n_rows = _render_pdf_documents(
+                    b, normalized, answers, pdf.stem
+                )
+                for e in exceptions:
+                    e["template"] = b.ref
+                for out_name, content in pdf_outputs:
+                    outputs.append((out_name, content))
+                    manifest.append({
+                        "document_sha": sha,
+                        "output_kind": b.meta["kind"],
+                        "template": b.ref,
+                        "filename": out_name,
+                        "store_hash": store.put_bytes(content),
+                    })
+                doc_exceptions.extend(exceptions)
+                rows_total += n_rows
+                continue
             else:  # docx report pack (record_scope: report)
                 content, exceptions, n_rows = _render_pack_document(
                     b.doc, normalized, answers, b.value_maps, b.template_row,

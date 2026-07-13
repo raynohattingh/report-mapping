@@ -153,8 +153,27 @@ def draft_template(
     if diag.kind is None:
         _reject(diag)
     _check_misuse(pdf, "draft-template", force)
-    typer.echo("error: target analysis not yet available (T024)")  # scaffold boundary
-    raise typer.Exit(2)
+
+    from rmu import store
+    from rmu.onboard.analyze_target import analyze
+    from rmu.onboard.proposal import Proposal
+    from rmu.onboard.review_sheet import write_sheet
+
+    with _session_factory()() as s:
+        store.put_file(pdf)  # the template PDF itself becomes the pdf_object
+        document = analyze(pdf, kind=diag.kind)
+        proposal = Proposal.create(s, document)
+        sheet = write_sheet(document, proposal.id)
+        flagged = sum(1 for e in document["elements"] if e.get("flags"))
+        typer.echo(f"proposal: {proposal.id}")
+        typer.echo(f"kind: {'pdf_form' if diag.kind == 'form' else 'pdf_overlay'}")
+        typer.echo(f"draft: {proposal.draft_path()}")
+        typer.echo(f"review sheet: {sheet}")
+        typer.echo(f"elements: {len(document['elements'])} (flagged: {flagged})")
+        typer.echo(
+            "next: review fields/regions + cardinality, edit the draft YAML, "
+            "then 'rmu onboard approve --name <name>@<version>'"
+        )
 
 
 @onboard_app.command("review")
@@ -203,7 +222,7 @@ def review(
 @onboard_app.command("approve")
 def approve(
     proposal_id: int = typer.Argument(...),
-    as_ref: str = typer.Option("", "--as", help="profile key@version, e.g. zeitview.pdf.roof@v1"),
+    as_ref: str = typer.Option("", "--as", help="profile key@version, e.g. acme.pdf.roof@v1"),
     name: str = typer.Option("", "--name", help="template name@version, e.g. ias.defect_form@1"),
     by: str = typer.Option("", "--by", help="approver identity (FR-017)"),
 ) -> None:
@@ -242,8 +261,25 @@ def approve(
             )
             typer.echo("this shape now detects and extracts deterministically - no AI")
         else:
-            typer.echo("error: template approval not yet available (T026)")
-            raise typer.Exit(2)
+            from rmu.onboard.approve import approve_template
+
+            if not name or "@" not in name:
+                typer.echo("error: template approval needs --name <name>@<version>")
+                raise typer.Exit(1)
+            tname, _, tver = name.partition("@")
+            try:
+                row = approve_template(s, p, tname, int(tver), operator)
+            except VerifyFailure as err:
+                typer.echo(f"error: {err}")
+                typer.echo("proposal stays draft; verify report persisted")
+                raise typer.Exit(1) from err
+            except ProposalStateError as err:
+                typer.echo(f"error: {err}")
+                raise typer.Exit(1) from err
+            typer.echo(
+                f"registered: TargetTemplate {row.name}@{row.version} "
+                f"(id {row.id}), approved by {operator}"
+            )
 
 
 @onboard_app.command("abandon")

@@ -10,6 +10,7 @@ persist the verify report and leave the proposal in draft.
 from __future__ import annotations
 
 import datetime
+from pathlib import Path
 
 import yaml
 from sqlalchemy import select
@@ -190,6 +191,145 @@ def _verify_profile(
     )
 
     return {"ok": all(c["ok"] for c in checks), "checks": checks}
+
+
+def template_config_from_elements(document: dict, pdf_object: str) -> dict:
+    """Assemble the registered template config from human-validated elements."""
+    fields = [_active_payload(e) for e in _elements(document, "form_field")]
+    regions = [_active_payload(e) for e in _elements(document, "overlay_region")]
+    if bool(fields) == bool(regions):
+        raise VerifyFailure(
+            {"ok": False, "checks": [{"check": "config_assembly", "ok": False,
+             "detail": "template needs form_field elements XOR overlay_region "
+                       "elements after review"}]}
+        )
+    cards = _elements(document, "cardinality")
+    cardinality = (
+        _active_payload(cards[0])["cardinality"] if cards else "per_record"
+    )
+    config: dict = {
+        "kind": "pdf_form" if fields else "pdf_overlay",
+        "pdf_object": pdf_object,
+        "cardinality": cardinality,
+    }
+    if fields:
+        config["fields"] = [
+            {k: v for k, v in f.items() if k != "required"} for f in fields
+        ]
+    else:
+        config["regions"] = regions
+    return config
+
+
+def _sample_png() -> bytes:
+    """Tiny deterministic PNG for the template test render (FR-022)."""
+    import struct
+    import zlib
+
+    size, rgb = 16, (120, 60, 180)
+    row = b"\x00" + bytes(rgb) * size
+
+    def chunk(tag: bytes, data: bytes) -> bytes:
+        return (struct.pack(">I", len(data)) + tag + data
+                + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF))
+
+    ihdr = struct.pack(">IIBBBBB", size, size, 8, 2, 0, 0, 0)
+    return (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", ihdr)
+            + chunk(b"IDAT", zlib.compress(row * size, 9)) + chunk(b"IEND", b""))
+
+
+def _sample_record(config: dict) -> dict:
+    sample: dict = {}
+    for f in config.get("fields", []):
+        if f.get("options"):
+            sample[f["target_field"]] = f["options"][0]
+        elif f["kind"] == "checkbox":
+            sample[f["target_field"]] = "yes"
+        else:
+            value = "S1"
+            sample[f["target_field"]] = value[: f.get("max_len") or len(value)]
+    for r in config.get("regions", []):
+        if r["kind"] == "image":
+            sample[r["target_field"]] = store.put_bytes(_sample_png())
+        else:
+            sample[r["target_field"]] = "S1"
+    return sample
+
+
+def _verify_template(config: dict) -> dict:
+    """FR-022 for templates: a sample-value test render must round-trip."""
+    import tempfile
+
+    from rmu.render.pdf_form import render_form_pdf
+    from rmu.render.pdf_overlay import render_overlay_pdf
+    from rmu.render.pdf_roundtrip import verify as roundtrip_verify
+
+    checks: list[dict] = []
+    sample = _sample_record(config)
+    render = render_form_pdf if config["kind"] == "pdf_form" else render_overlay_pdf
+    with tempfile.TemporaryDirectory() as tmp:
+        out = Path(tmp) / "sample.pdf"
+        problems = render(config, sample, out)
+        checks.append({
+            "check": "test_render", "ok": not problems,
+            "detail": "; ".join(str(p) for p in problems) or "sample render clean",
+        })
+        if not problems:
+            report = roundtrip_verify(config, out, sample)
+            checks.append({
+                "check": "test_roundtrip", "ok": report.ok,
+                "detail": str(report.mismatches) if not report.ok else "exact round-trip",
+            })
+    return {"ok": all(c["ok"] for c in checks), "checks": checks}
+
+
+def approve_template(
+    session: Session, proposal: Proposal, name: str, version: int, operator: str
+) -> "TargetTemplate":
+    """The only path from draft template proposal to registered TargetTemplate."""
+    import json
+
+    from rmu.models import TargetTemplate
+    from rmu.onboard.schemas import validate_pdf_template
+
+    proposal.ensure_approvable()
+    pdf_object = proposal.row.exemplar_shas[0]
+    config = template_config_from_elements(proposal.document, pdf_object)
+    validate_pdf_template(config)  # Constitution IV
+
+    report = _verify_template(config)
+    if not report["ok"]:
+        proposal.record_verify_failure(report)
+        raise VerifyFailure(report)
+
+    document = proposal.document
+    if config["kind"] == "pdf_form":
+        required = [
+            _active_payload(e)["target_field"]
+            for e in _elements(document, "form_field")
+            if _active_payload(e).get("required")
+        ]
+    else:  # every registered overlay region must receive a value
+        required = [r["target_field"] for r in config["regions"]]
+
+    row = TargetTemplate(
+        institution="ONBOARDED",
+        name=name,
+        version=version,
+        effective_from=datetime.date.today(),
+        template_files={
+            "template.json": store.put_bytes(
+                json.dumps(config, sort_keys=True).encode()
+            )
+        },
+        required_schema={"required": required},
+        validation_rules={},
+        interim=False,  # a real client format, not an interim stand-in
+    )
+    session.add(row)
+    session.flush()
+    proposal.mark_approved(operator, verify_report=report, resulting_template_id=row.id)
+    return row
 
 
 def approve_profile(

@@ -161,9 +161,89 @@
       "kind": "complete",
       "by": "ai",
       "at": "2026-07-12T20:16:44.969Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T012",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-12T20:23:10.758Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T017",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-12T20:23:10.822Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T011",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-12T20:27:12.315Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T013",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-12T20:27:12.380Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T014",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-12T20:30:39.504Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T016",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-12T20:30:39.572Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T018",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-12T20:30:39.637Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T015",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-12T20:39:10.169Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T019",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-12T20:39:10.234Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T020",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-12T20:39:10.300Z"
     }
   ],
-  "currentTask": "T010",
+  "currentTask": "T020",
   "task_summaries": {
     "T001": {
       "status": "DONE",
@@ -244,6 +324,83 @@
       "files": [
         "src/rmu/onboard/cli.py",
         "src/rmu/cli.py"
+      ]
+    },
+    "T012": {
+      "status": "DONE",
+      "did": "Recipe engine tests: 26-record extraction w/ page-break continuation, per-record image refs, furniture exclusion, drift->missing-anchor, byte-identical determinism invariant",
+      "files": [
+        "tests/unit/test_recipe_pdf.py",
+        "tests/invariants/test_recipe_determinism.py"
+      ]
+    },
+    "T017": {
+      "status": "DONE",
+      "did": "Generic recipe-driven extractor rmu.extract.recipe_pdf emitting rmu.normalized/1: header strategies, column-cluster rows, continuation, content-addressed images, fingerprint integrity anchors",
+      "files": [
+        "src/rmu/extract/recipe_pdf.py",
+        "src/rmu/extract/pdf_lines.py"
+      ]
+    },
+    "T011": {
+      "status": "DONE",
+      "did": "Heuristics unit tests: furniture exclusion, page-break row detection, structural-only confidence, cross-exemplar down-scoring, prose no-structure",
+      "files": [
+        "tests/unit/test_analyze_source.py"
+      ]
+    },
+    "T013": {
+      "status": "DONE",
+      "did": "analyze_source 3-pass deterministic heuristics: furniture anatomy, record-table via first-cell structure-class dominance, header fields, image correlation w/ orphan flags, fingerprint anchors, multi-exemplar cross-check",
+      "files": [
+        "src/rmu/onboard/analyze_source.py"
+      ]
+    },
+    "T014": {
+      "status": "DONE",
+      "did": "FR-001b skeleton: is_structureless + attach_diagnosis (searched/found/notes), schema-valid hand-fillable proposal; 2 tests green",
+      "files": [
+        "src/rmu/onboard/skeleton.py",
+        "tests/unit/test_skeleton.py"
+      ]
+    },
+    "T016": {
+      "status": "DONE",
+      "did": "Static HTML review sheet for onboarding proposals: per-element confidence/evidence/flags/state + diagnosis block, D1 pattern",
+      "files": [
+        "src/rmu/onboard/review_sheet.py"
+      ]
+    },
+    "T018": {
+      "status": "DONE",
+      "did": "Verify-on-approve gate: recipe assembly from validated elements, deterministic re-extraction checks (anchors/columns/row-count/header exactness), fingerprint self-match + collision check, fail-closed with persisted report; 3 tests green",
+      "files": [
+        "src/rmu/onboard/approve.py",
+        "tests/unit/test_approve_profile.py"
+      ]
+    },
+    "T015": {
+      "status": "DONE",
+      "did": "Local-AI enrichment: additive suggested_name hints via injectable LocalLLM, page sampling (SC-009), no-op without model, malformed output dropped; 4 tests",
+      "files": [
+        "src/rmu/onboard/enrich.py",
+        "tests/unit/test_enrich.py"
+      ]
+    },
+    "T019": {
+      "status": "DONE",
+      "did": "Full onboard CLI: draft-profile (multi-exemplar/--no-ai/--seed-from/--force), approve dispatch w/ VerifyFailure reporting, review --regenerate-sheet; FR-021 hints wired into batch exceptions",
+      "files": [
+        "src/rmu/onboard/cli.py",
+        "src/rmu/apply/batch.py",
+        "src/rmu/extract/recipe_pdf.py"
+      ]
+    },
+    "T020": {
+      "status": "DONE",
+      "did": "US1 E2E: onboard->correct->approve->map->apply; same-shape fixture auto-converts 9/9 records, drift blocked w/ hint, misuse + skeleton paths covered",
+      "files": [
+        "tests/integration/test_onboard_source_e2e.py"
       ]
     }
   }

@@ -6,8 +6,8 @@ deliberately DIFFERENT from profile scopito.pdf.powerline.v2020 — none of that
 profile's fingerprint anchors appear — so these PDFs exercise the
 unrecognised-source path (FR-001) without colliding with the registered profile.
 
-NEVER reads or imitates seed/source_samples/zeitview_* — that file is the
-quarantined SC-001 acceptance fixture.
+NEVER reads or imitates the quarantined SC-001 acceptance fixture (see
+tests/invariants/test_quarantine.py for the enforced rule).
 
 Fixtures (tests/fixtures/onboarding/):
 - survey_report_a.pdf / survey_report_b.pdf  same new shape, different data
