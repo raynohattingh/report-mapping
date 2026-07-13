@@ -285,7 +285,7 @@ def _verify_template(config: dict) -> dict:
 
 def approve_template(
     session: Session, proposal: Proposal, name: str, version: int, operator: str
-) -> "TargetTemplate":
+) -> TargetTemplate:
     """The only path from draft template proposal to registered TargetTemplate."""
     import json
 
