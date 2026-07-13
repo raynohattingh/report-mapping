@@ -3,7 +3,7 @@
   "specName": "[FEATURE NAME]",
   "branch": "worktree-003-pdf-format-onboarding",
   "currentStep": "implement",
-  "status": "implemented",
+  "status": "completed",
   "history": [
     {
       "step": "specify",
@@ -409,6 +409,13 @@
       "kind": "complete",
       "by": "ai",
       "at": "2026-07-13T08:49:41.247Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "kind": "complete",
+      "by": "extension",
+      "at": "2026-07-13T09:53:04.408Z"
     }
   ],
   "currentTask": "T040",
