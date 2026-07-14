@@ -2,6 +2,48 @@
 
 Terse build state for the business side. Newest session first.
 
+## Session 2026-07-14 — feat: grid-region detection for fixed-layout targets
+
+**Symptom** (onboarding the Eskom inspection checklist holdout as a target
+template): proposal contained only the default cardinality element — useless.
+**Root cause:** `analyze_target` fixed-layout pass only pairs `Label:` text
+with area rectangles; the Eskom form draws its grid as ~500 1pt hairline rects
+per page (lines, not boxes) and labels fields via grid rows/columns, so zero
+regions were found. The structure IS recoverable: pdfplumber line-strategy
+table reconstruction yields 458 cells / 373 blank across 4 pages.
+
+**Built** (spec `docs/superpowers/specs/2026-07-14-grid-region-detection-design.md`,
+plan `docs/superpowers/plans/2026-07-14-grid-region-detection.md`; suite 197
+green, ruff clean):
+- `_grid_region_elements` fallback in `analyze_target.py`: when the label+box
+  pass finds nothing, reconstruct the line grid and propose every blank,
+  size-valid cell as an overlay_region (bbox+page), named best-effort from its
+  row label, else column header, else position; analyst renames in review
+  (accepted bar: reviewable regions, human names them; all blank cells,
+  size-filtered only).
+- New fixture `target_grid.pdf` (lines only, degenerate sliver column, blank
+  2x2 grid) + unit and e2e tests; existing fixtures byte-identical; label+box
+  path untouched (fallback only).
+- **Verified on the real Eskom PDF:** 373 regions (was 0) — 269 row_label,
+  104 positional, spread 99/104/95/75 over the 4 pages. Name quality is
+  best-effort (long checklist prose truncates; numeric label cells slug to
+  numbers) — renaming stays a human review step.
+
+**Also fixed while verifying (dogfooding fallout):**
+- `seed load` crashed on any recipe written by `onboard approve`
+  (`effective_from` quoted string vs date) — loader now accepts both.
+- `test_regenerate_refused_on_approved_session` skipped its env bootstrap and
+  ran against the REAL dev DB (polluting it; outcome depended on dev state).
+- ⚠️ Checkout hygiene: `profiles/scopito.pdf.distribution.v1.yaml` +
+  `scopito.pdf.solar.v1.yaml` (untracked, from onboarding experiments against
+  a reset DB) — distribution@v1 claims the same fingerprint shape as seeded
+  `scopito.pdf.powerline@v2020`, so any freshly seeded DB (incl. test envs)
+  becomes ambiguous and `map start` blocks. Recommend deleting them; approve
+  into a seeded DB would have collision-blocked them (FR-024).
+
+**Open:** Zeitview thermal-roof (non-tabular narrative) and CID/broken-font
+PDFs (Tower demo) remain separate problems, diagnosed 2026-07-13, not built.
+
 ## Session 2026-07-13 — fix: onboarding table detection on indented headers
 
 **Symptom** (found onboarding the real Scopito seed demos): `onboard approve`
