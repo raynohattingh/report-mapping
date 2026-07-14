@@ -16,6 +16,7 @@ Fixtures (tests/fixtures/onboarding/):
 - prose_report.pdf                           valid text, no structure (FR-001b)
 - target_form.pdf                            AcroForm: text/checkbox/choice, required flags
 - target_fixed.pdf                           fixed-layout: labels + blank boxes + photo box
+- target_grid.pdf                            line-drawn grid form, no area rects
 - target_encrypted.pdf                       password-protected (FR-010)
 - scanned_only.pdf                           image-only pages, no text layer (FR-010)
 
@@ -222,6 +223,28 @@ def build_fixed(path: Path) -> None:
     c.save()
 
 
+def build_target_grid(path: Path) -> None:
+    """Line-drawn grid form (no area rects): the Eskom-checklist shape. Grid A
+    has a header row, row labels, blank answer cells and an 8pt degenerate
+    sliver column; Grid B is 2x2 fully blank (positional-name fallback)."""
+    c = _canvas(path)
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(40, 800, "Inspection Grid Sheet (synthetic)")
+    c.setFont("Helvetica", 9)
+    xs_a = [40, 180, 320, 460, 468]
+    ys_a = [622, 652, 682, 712, 742]
+    c.grid(xs_a, ys_a)
+    for col, text in enumerate(["Item", "Result", "Notes"]):
+        c.drawString(xs_a[col] + 4, 742 - 30 + 10, text)      # header row (top)
+    c.drawString(xs_a[0] + 4, 712 - 30 + 10, "Corrosion")     # row 1 label
+    c.drawString(xs_a[0] + 4, 682 - 30 + 10, "Paint")         # row 2 label
+    xs_b = [40, 120, 200]
+    ys_b = [340, 370, 400]
+    c.grid(xs_b, ys_b)                                        # 2x2, all blank
+    c.showPage()
+    c.save()
+
+
 def build_encrypted(path: Path) -> None:
     plain = io.BytesIO()
     c = canvas.Canvas(plain, pagesize=A4, invariant=1)
@@ -259,6 +282,7 @@ def main() -> None:
     irng = random.Random(20260713)
     build_survey_indented(OUT / "survey_report_indented.pdf",
                           "Feeder 14 West - Defect Survey", _survey_rows(irng, 12))
+    build_target_grid(OUT / "target_grid.pdf")
     build_form(OUT / "target_form.pdf")
     build_fixed(OUT / "target_fixed.pdf")
     build_encrypted(OUT / "target_encrypted.pdf")
