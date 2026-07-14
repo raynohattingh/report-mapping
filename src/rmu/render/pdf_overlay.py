@@ -67,8 +67,24 @@ def render_overlay_pdf(config: dict, record: dict, out_path: Path) -> list[Rende
     buffer = io.BytesIO()
     overlay = canvas.Canvas(buffer, invariant=1)  # research R9
     for page_no in range(1, len(template.pages) + 1):
-        media = template.pages[page_no - 1].mediabox
-        overlay.setPageSize((float(media.width), float(media.height)))
+        page = template.pages[page_no - 1]
+        media = page.mediabox
+        width, height = float(media.width), float(media.height)
+        overlay.setPageSize((width, height))
+        overlay.saveState()
+        # Region bboxes are registered in the VISUAL (rotation-aware) space
+        # pdfplumber reports; map them into the unrotated content space so
+        # /Rotate pages (e.g. landscape-via-rotation packs) render in-region.
+        rotation = page.rotation % 360
+        if rotation == 90:
+            overlay.translate(width, 0)
+            overlay.rotate(90)
+        elif rotation == 180:
+            overlay.translate(width, height)
+            overlay.rotate(180)
+        elif rotation == 270:
+            overlay.translate(0, height)
+            overlay.rotate(270)
         for region in by_page.get(page_no, []):
             x0, y0, x1, y1 = region["bbox"]
             value = record[region["target_field"]]
@@ -88,6 +104,7 @@ def render_overlay_pdf(config: dict, record: dict, out_path: Path) -> list[Rende
                     image, x0, y0, width=x1 - x0, height=y1 - y0,
                     preserveAspectRatio=True, anchor="c",
                 )
+        overlay.restoreState()
         overlay.showPage()
     overlay.save()
     buffer.seek(0)

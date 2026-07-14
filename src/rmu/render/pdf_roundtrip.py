@@ -62,14 +62,20 @@ def _verify_overlay(config: dict, pdf_path: Path, record: dict) -> RoundTripRepo
             top_max = float(page.height) - y0 + BBOX_TOLERANCE
             expected = str(record.get(region["target_field"], ""))
             if region["kind"] == "text":
-                words_in_region = [
-                    w["text"]
-                    for w in page.extract_words()
-                    if x0 - BBOX_TOLERANCE <= w["x0"] <= x1 + BBOX_TOLERANCE
-                    and top_min <= w["top"] <= top_max
-                ]
-                got = " ".join(words_in_region)
-                if expected not in got:
+                # Compare CHARS, not extract_words(): templates carry literal
+                # space characters inside cells that would split the rendered
+                # value into separate "words" and fake a mismatch.
+                chars_in_region = sorted(
+                    (
+                        c
+                        for c in page.chars
+                        if x0 - BBOX_TOLERANCE <= c["x0"] <= x1 + BBOX_TOLERANCE
+                        and top_min <= c["top"] <= top_max
+                    ),
+                    key=lambda c: (round(c["top"], 1), c["x0"]),
+                )
+                got = "".join(c["text"] for c in chars_in_region if c["text"].strip())
+                if expected.replace(" ", "") not in got:
                     report.add(region["target_field"], expected, got or "<empty region>")
             else:  # image presence + content (pixel-identical to the stored source)
                 if not _image_in_region(pdf_path, region, expected):

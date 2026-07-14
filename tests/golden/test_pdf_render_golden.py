@@ -118,6 +118,84 @@ def test_overlay_renders_at_registered_coordinates(env):
     assert placed == [tuple(x) for x in json.loads(GOLDEN.read_text())]
 
 
+@pytest.mark.parametrize("rotation", [90, 180, 270])
+def test_overlay_respects_page_rotation(env, rotation):
+    """Regions are registered in pdfplumber's rotation-aware visual space;
+    the renderer must land text there even when the page carries /Rotate
+    (real Eskom holdout pack: portrait mediabox displayed landscape)."""
+    from pypdf import PdfReader, PdfWriter
+
+    tmp_path, _, fixed_sha, photo_sha = env
+    writer = PdfWriter(clone_from=PdfReader(store.get_path(fixed_sha)))
+    for page in writer.pages:
+        page.rotate(rotation)
+    rotated = tmp_path / f"rotated_{rotation}.pdf"
+    with rotated.open("wb") as fh:
+        writer.write(fh)
+
+    import pdfplumber
+
+    with pdfplumber.open(rotated) as pdf:
+        visual_w, visual_h = float(pdf.pages[0].width), float(pdf.pages[0].height)
+    # bboxes in visual bottom-up coords, inside the rotated page bounds
+    config = {
+        "kind": "pdf_overlay",
+        "cardinality": "per_record",
+        "pdf_object": store.put_file(rotated),
+        "regions": [
+            {"label": "Asset ID:", "target_field": "asset_name", "kind": "text",
+             "page": 1, "bbox": [100, visual_h - 100, 320, visual_h - 84]},
+            {"label": "Defect code:", "target_field": "defect_code", "kind": "text",
+             "page": 1, "bbox": [100, 60, 320, 76]},
+            {"label": "Photo:", "target_field": "photo_ref", "kind": "image",
+             "page": 1, "bbox": [visual_w - 180, 100, visual_w - 40, 240]},
+        ],
+    }
+    record = {**RECORD, "photo_ref": photo_sha}
+    out = tmp_path / f"overlay_rot_{rotation}.pdf"
+
+    assert render_overlay_pdf(config, record, out) == []
+    report = verify(config, out, record)
+    assert report.ok, report.mismatches
+
+
+def test_overlay_roundtrip_survives_template_space_chars(env, tmp_path):
+    """Real templates (Word-exported grids) carry literal space characters
+    inside cells; the read-back must not let them split the rendered value
+    into separate words (Eskom holdout pack failure mode)."""
+    import io
+
+    from pypdf import PdfReader, PdfWriter
+    from reportlab.pdfgen import canvas
+
+    buf = io.BytesIO()
+    c = canvas.Canvas(buf, pagesize=(595, 842))
+    c.setFont("Helvetica", 9)
+    c.drawString(105, 704, "   ")  # template furniture: bare spaces in-cell
+    c.showPage()
+    c.save()
+    buf.seek(0)
+    template = tmp_path / "spacey.pdf"
+    with template.open("wb") as fh:
+        PdfWriter(clone_from=PdfReader(buf)).write(fh)
+
+    config = {
+        "kind": "pdf_overlay",
+        "cardinality": "per_record",
+        "pdf_object": store.put_file(template),
+        "regions": [
+            {"label": "cell", "target_field": "defect_code", "kind": "text",
+             "page": 1, "bbox": [100, 700, 160, 716]},
+        ],
+    }
+    record = {"defect_code": "S1"}
+    out = tmp_path / "spacey_out.pdf"
+
+    assert render_overlay_pdf(config, record, out) == []
+    report = verify(config, out, record)
+    assert report.ok, report.mismatches
+
+
 def test_overlay_oversize_and_missing_image_fail_closed(env):
     tmp_path, _, fixed_sha, photo_sha = env
     config = {**OVERLAY_CONFIG, "pdf_object": fixed_sha}
