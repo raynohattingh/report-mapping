@@ -1,0 +1,30 @@
+{
+  "workflow": "speckit",
+  "specName": "[FEATURE NAME]",
+  "branch": "004-mapping-studio",
+  "currentStep": "specify",
+  "status": "specified",
+  "history": [
+    {
+      "step": "specify",
+      "substep": null,
+      "kind": "start",
+      "by": "extension",
+      "at": "2026-07-14T14:58:56.758Z"
+    },
+    {
+      "step": "specify",
+      "substep": null,
+      "kind": "complete",
+      "by": "extension",
+      "at": "2026-07-14T15:04:25.989Z"
+    },
+    {
+      "step": "clarify",
+      "substep": null,
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-14T15:18:24.480Z"
+    }
+  ]
+}
