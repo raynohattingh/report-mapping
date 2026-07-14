@@ -51,3 +51,50 @@ def test_cardinality_is_a_reviewable_element():
     assert len(card) == 1
     assert card[0]["payload"]["cardinality"] == "per_record"
     assert card[0]["review_state"] == "proposed"
+
+
+def test_grid_form_proposes_blank_cells_as_regions():
+    """A line-drawn grid (no area rects) must yield one region per blank,
+    size-valid cell — not an empty skeleton (Eskom-checklist regression)."""
+    doc = analyze(FIX / "target_grid.pdf", kind="fixed_layout")
+    regions = _by_kind(doc, "overlay_region")
+    fields = {r["payload"]["target_field"] for r in regions}
+    # Grid A: rows 1-2 answer cells named by row label; row 3 by column header
+    assert {"corrosion", "corrosion_2", "paint", "paint_2"} <= fields
+    assert {"result", "notes"} <= fields          # row 3, cols 1-2 (col_header)
+    assert "paint_3" in fields                    # row 3, col 0 (above = 'Paint')
+    # Grid B: fully blank 2x2 -> positional names
+    assert {"cell_p1_r0_c0", "cell_p1_r0_c1", "cell_p1_r1_c0", "cell_p1_r1_c1"} <= fields
+    assert len(regions) == 11                     # sliver column filtered out
+    for r in regions:
+        assert r["payload"]["kind"] == "text"
+        assert r["payload"]["page"] == 1
+        assert len(r["payload"]["bbox"]) == 4
+        assert r["evidence"]["association"] in ("row_label", "col_header", "positional")
+        assert r["confidence"] == 0.6
+        assert r["review_state"] == "proposed"
+
+
+def test_grid_form_filled_and_degenerate_cells_skipped():
+    doc = analyze(FIX / "target_grid.pdf", kind="fixed_layout")
+    regions = _by_kind(doc, "overlay_region")
+    fields = {r["payload"]["target_field"] for r in regions}
+    assert "item" not in fields  # header cell itself (has text) not proposed
+    for r in regions:  # no region narrower than the 12pt minimum (sliver column)
+        x0, _, x1, _ = r["payload"]["bbox"]
+        assert x1 - x0 >= 12
+
+
+def test_grid_proposal_is_schema_valid():
+    from rmu.onboard.schemas import validate_proposal
+
+    validate_proposal(analyze(FIX / "target_grid.pdf", kind="fixed_layout"))
+
+
+def test_label_box_template_does_not_trigger_grid_pass():
+    """target_fixed.pdf has real label+box pairs: the box pass must keep
+    handling it (no grid-evidence keys, same regions as before)."""
+    doc = analyze(FIX / "target_fixed.pdf", kind="fixed_layout")
+    regions = _by_kind(doc, "overlay_region")
+    assert regions  # box pass found regions
+    assert all("association" not in r["evidence"] for r in regions)

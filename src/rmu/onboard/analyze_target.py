@@ -22,6 +22,11 @@ from pypdf import PdfReader
 MIN_IMAGE_REGION = 40
 #: a box at least this tall is proposed as an image region, not text
 IMAGE_HEIGHT_THRESHOLD = 40
+#: a grid cell narrower/shorter than this cannot hold a value (pt)
+GRID_MIN_CELL_W = 12
+GRID_MIN_CELL_H = 8
+#: the whole point is line-drawn grids: reconstruct cells from line strokes
+_GRID_TABLE_SETTINGS = {"vertical_strategy": "lines", "horizontal_strategy": "lines"}
 
 _LABEL_RE = re.compile(r"^([A-Z][A-Za-z ]{1,30}:)\s*$")
 _REQUIRED_FLAG = 2  # AcroForm /Ff bit 1 (value 2) = required
@@ -153,6 +158,76 @@ def _fixed_layout_elements(pdf_path: Path) -> list[dict]:
                 ))
                 counter += 1
                 rects.remove(box)
+    if not elements:
+        # No label+box pairs found: try line-grid reconstruction (grid forms
+        # draw their fillable cells as line strokes, not area rects).
+        return _grid_region_elements(pdf_path)
+    return elements
+
+
+def _grid_region_elements(pdf_path: Path) -> list[dict]:
+    """Fallback for line-drawn grid forms (e.g. inspection checklists): the
+    label+box pass sees only 1pt hairline rects and finds nothing, yet the
+    fillable areas are the grid's blank cells. Reconstruct cells from line
+    strokes and propose every blank, size-valid cell as an overlay region,
+    named best-effort from its row label, else column header, else position —
+    the analyst renames in review (design 2026-07-14, grid-region spec)."""
+    elements: list[dict] = []
+    used: dict[str, int] = {}
+    counter = 0
+    with pdfplumber.open(pdf_path) as pdf:
+        for page_no, page in enumerate(pdf.pages, start=1):
+            height = float(page.height)
+            for table in page.find_tables(table_settings=_GRID_TABLE_SETTINGS):
+                text = table.extract()
+
+                def cell_text(i: int, j: int, text=text) -> str:
+                    try:
+                        value = text[i][j]
+                    except (IndexError, TypeError):
+                        value = None
+                    return " ".join((value or "").split())
+
+                for i, row in enumerate(table.rows):
+                    for j, cell in enumerate(row.cells):
+                        if cell is None:  # merged/absent cell
+                            continue
+                        x0, top, x1, bottom = cell
+                        if x1 - x0 < GRID_MIN_CELL_W or bottom - top < GRID_MIN_CELL_H:
+                            continue
+                        if cell_text(i, j):
+                            continue  # pre-printed cell, not fillable
+                        label, association = "", "positional"
+                        for jj in range(j - 1, -1, -1):  # nearest left in row
+                            if cell_text(i, jj):
+                                label, association = cell_text(i, jj), "row_label"
+                                break
+                        if not label:
+                            for ii in range(i - 1, -1, -1):  # nearest above in col
+                                if cell_text(ii, j):
+                                    label, association = cell_text(ii, j), "col_header"
+                                    break
+                        label = label[:60]
+                        slug = _slug(label)
+                        if not slug:  # no context anywhere (or non-text glyphs)
+                            slug = f"cell_p{page_no}_r{i}_c{j}"
+                            label, association = slug, "positional"
+                        used[slug] = used.get(slug, 0) + 1
+                        if used[slug] > 1:
+                            slug = f"{slug}_{used[slug]}"
+                        elements.append(_element(
+                            f"rgn-{counter}", "overlay_region",
+                            0.6,  # geometry-reconstructed; weaker than a labeled box
+                            {"pages": [page_no], "source": "heuristic",
+                             "association": association, "row": i, "col": j},
+                            {"label": label,
+                             "target_field": slug,
+                             "kind": "text",
+                             "page": page_no,
+                             "bbox": [round(x0, 1), round(height - bottom, 1),
+                                      round(x1, 1), round(height - top, 1)]},
+                        ))
+                        counter += 1
     return elements
 
 
