@@ -38,3 +38,7 @@ Rule: every assumption here was made deliberately because the real answer was un
 - **D7** PDF-target rendering = AcroForm fill (`pdf_form`) + coordinate overlay via reportlab (`pdf_overlay`) first; HTML→PDF reconstruction deferred. Overflowing values are exceptions, never silent truncation.
 - **D8** Local AI = tiered: (1) CPU embeddings for field-routing candidates + fingerprint similarity, (2) optional local LLM via Ollama for value-map proposals (temp 0, strict JSON), (3) external API opt-in gated on a recorded per-client consent flag. Model names are config resolved at build time (A12). AI at apply time remains banned (constitution rule 2).
 - **D9** Build order 002-local-ai → 003-onboarding-assist → 004-mapping-studio; all of v1.1 stays SEQUENCED BEHIND Monday's discovery actions (Dexter nudge, incumbent-gap test) — features don't monetise an unsold product.
+
+## Decision log — 003 build (2026-07-12)
+
+- **D10** Stack extension for 003 (constitution "fixed stack" carve-out, justified in specs/003-pdf-format-onboarding/plan.md Complexity Tracking): `pypdf` added as runtime dependency (AcroForm enumerate/fill/read-back, encryption + XFA detection); `reportlab` promoted from dev to runtime dependency (fixed-layout text/image overlay per D7). Rejected: pdfrw (unmaintained), pikepdf (C++ wheel), external pdftk (non-Python runtime), hand-built content streams. Cite D10 in code/commits that rely on these libs.

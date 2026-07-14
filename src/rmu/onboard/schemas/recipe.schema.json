@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rmu/recipe.schema.json",
+  "title": "Source extraction recipe (onboarded profile YAML)",
+  "description": "Data interpreted by rmu.extract.recipe_pdf. Everything here is analyst-approved config, never code (FR-018).",
+  "type": "object",
+  "required": ["key", "structural_version", "platform", "export_kind", "job_type", "extractor_ref", "effective_from", "fingerprint", "records"],
+  "properties": {
+    "key": {"type": "string", "pattern": "^[a-z0-9_.-]+$"},
+    "structural_version": {"type": "string"},
+    "platform": {"type": "string"},
+    "export_kind": {"const": "pdf"},
+    "job_type": {"type": "string"},
+    "extractor_ref": {"const": "rmu.extract.recipe_pdf"},
+    "effective_from": {"type": "string", "format": "date"},
+    "fingerprint": {
+      "type": "object",
+      "description": "Same dict schema detect/fingerprint.py matches today (FR-024).",
+      "required": ["required_text"],
+      "properties": {
+        "required_text": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+        "table_header_regex": {"type": "string"},
+        "page_anatomy": {
+          "type": "object",
+          "description": "Optional recurring furniture signature; additive, ignored by older matchers.",
+          "properties": {
+            "recurring_lines": {"type": "array", "items": {"type": "string"}}
+          }
+        }
+      }
+    },
+    "header_fields": {
+      "type": "array",
+      "description": "Document-level key/value lookups.",
+      "items": {
+        "type": "object",
+        "required": ["name", "strategy"],
+        "properties": {
+          "name": {"type": "string"},
+          "strategy": {"enum": ["label_right", "label_below", "stacked_label"]},
+          "labels": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+          "value_pattern": {"type": "string"},
+          "pages": {"type": "string", "description": "page range expr, e.g. '1-2' (default: first 4)"}
+        }
+      }
+    },
+    "records": {
+      "type": "object",
+      "required": ["detection", "columns"],
+      "properties": {
+        "detection": {
+          "type": "object",
+          "required": ["mode"],
+          "properties": {
+            "mode": {"enum": ["ruled_table", "column_clusters"]},
+            "table_header_regex": {"type": "string"},
+            "row_pattern": {"type": "string", "description": "regex a row's first cell must match (e.g. id pattern)"},
+            "column_x_ranges": {
+              "type": "array",
+              "description": "column_clusters mode: [x0,x1] per column in page points",
+              "items": {"type": "array", "prefixItems": [{"type": "number"}, {"type": "number"}], "minItems": 2, "maxItems": 2}
+            },
+            "pages": {"type": "string"}
+          }
+        },
+        "columns": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "properties": {
+              "name": {"type": "string"},
+              "optional": {"type": "boolean", "default": false},
+              "list_separator": {"type": "string"}
+            }
+          }
+        },
+        "continuation": {
+          "type": "object",
+          "description": "How rows spanning page breaks are stitched.",
+          "properties": {"mode": {"enum": ["repeat_header", "carry_open_row"]}}
+        }
+      }
+    },
+    "images": {
+      "type": "array",
+      "description": "Per-record image extraction (FR-001a).",
+      "items": {
+        "type": "object",
+        "required": ["name", "association"],
+        "properties": {
+          "name": {"type": "string"},
+          "association": {"enum": ["row_y_overlap", "detail_page_marker"]},
+          "marker": {"type": "string"},
+          "pages": {"type": "string"}
+        }
+      }
+    },
+    "furniture": {
+      "type": "array",
+      "description": "Header/footer line signatures to exclude from record detection.",
+      "items": {"type": "string"}
+    }
+  }
+}

@@ -20,3 +20,11 @@ def store_root() -> Path:
     root = Path(os.environ.get("RMU_STORE", REPO_ROOT / "store"))
     root.mkdir(parents=True, exist_ok=True)
     return root
+
+
+def profiles_root() -> Path:
+    """Profile recipe YAML directory. Feature 003 registers onboarded recipe
+    files here; the env override keeps tests out of the repo copy."""
+    root = Path(os.environ.get("RMU_PROFILES", REPO_ROOT / "profiles"))
+    root.mkdir(parents=True, exist_ok=True)
+    return root

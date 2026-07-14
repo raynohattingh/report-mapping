@@ -34,6 +34,10 @@ app.add_typer(apply_app, name="apply")
 app.add_typer(runs_app, name="runs")
 app.add_typer(ai_app, name="ai")
 
+from rmu.onboard.cli import onboard_app  # noqa: E402  (feature 003, D5)
+
+app.add_typer(onboard_app, name="onboard")
+
 
 def session_factory():
     return make_session_factory(make_engine())

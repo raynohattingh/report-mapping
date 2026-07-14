@@ -57,6 +57,7 @@ def test_regenerate_supersedes_prior_stub_session(tmp_path, monkeypatch):
 
 
 def test_regenerate_refused_on_approved_session(tmp_path, monkeypatch):
+    _bootstrap(tmp_path, monkeypatch)  # NEVER run against the real dev DB
     session_id = approve_defect_csv_transform(runner, tmp_path)
     refused = runner.invoke(app, ["map", "regenerate", "--session", str(session_id)])
     assert refused.exit_code == 3

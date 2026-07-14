@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rmu/pdf-template.schema.json",
+  "title": "PDF TargetTemplate config (template_files JSON column)",
+  "description": "Registered target config for pdf_form and pdf_overlay kinds. Stored config, not code (US4).",
+  "type": "object",
+  "required": ["kind", "pdf_object", "cardinality"],
+  "properties": {
+    "kind": {"enum": ["pdf_form", "pdf_overlay"]},
+    "pdf_object": {"type": "string", "pattern": "^[a-f0-9]{64}$", "description": "content-addressed original PDF in store/objects"},
+    "cardinality": {"enum": ["per_record", "per_batch"], "description": "declared per template as data (clarification 2026-07-12)"},
+    "fields": {
+      "type": "array",
+      "description": "pdf_form kind: registered AcroForm fields.",
+      "items": {
+        "type": "object",
+        "required": ["field_id", "target_field", "kind"],
+        "properties": {
+          "field_id": {"type": "string", "description": "fully-qualified AcroForm name"},
+          "target_field": {"type": "string", "description": "NormalizedRecord / transform output field"},
+          "kind": {"enum": ["text", "checkbox", "radio", "choice"]},
+          "options": {"type": "array", "items": {"type": "string"}, "description": "fixed option export values (radio/choice)"},
+          "max_len": {"type": "integer", "minimum": 1}
+        }
+      }
+    },
+    "regions": {
+      "type": "array",
+      "description": "pdf_overlay kind: registered coordinate regions.",
+      "items": {
+        "type": "object",
+        "required": ["label", "target_field", "kind", "page", "bbox"],
+        "properties": {
+          "label": {"type": "string"},
+          "target_field": {"type": "string"},
+          "kind": {"enum": ["text", "image"]},
+          "page": {"type": "integer", "minimum": 1},
+          "bbox": {
+            "type": "array",
+            "description": "[x0, y0, x1, y1] in PDF points, origin bottom-left",
+            "prefixItems": [{"type": "number"}, {"type": "number"}, {"type": "number"}, {"type": "number"}],
+            "minItems": 4, "maxItems": 4
+          },
+          "font_size": {"type": "number", "default": 9},
+          "align": {"enum": ["left", "center", "right"], "default": "left"}
+        }
+      }
+    }
+  },
+  "allOf": [
+    {"if": {"properties": {"kind": {"const": "pdf_form"}}}, "then": {"required": ["fields"]}},
+    {"if": {"properties": {"kind": {"const": "pdf_overlay"}}}, "then": {"required": ["regions"]}}
+  ]
+}
