@@ -64,6 +64,19 @@ def test_overlay_template_registers_all_regions_required(session):
     }
 
 
+def test_grid_template_onboards_end_to_end(session):
+    """A line-grid target (no AcroForm, no area rects) must register as a
+    pdf_overlay template whose verify render/roundtrip passes."""
+    p = _confirmed(session, "target_grid.pdf", "fixed_layout")
+    row = approve_template(session, p, "synthetic_grid", 1, "rayno")
+
+    assert p.status == "approved" and p.row.verify_report["ok"] is True
+    assert row.name == "synthetic_grid" and row.interim is False
+    config = json.loads(store.get_bytes(row.template_files["template.json"]))
+    assert config["kind"] == "pdf_overlay"
+    assert len(config["regions"]) == 11  # every blank grid cell registered
+
+
 def test_broken_region_fails_the_test_render_and_stays_draft(session):
     p = _confirmed(session, "target_fixed.pdf", "fixed_layout")
     # analyst 'corrects' a region to an unusably narrow box: sample cannot fit
