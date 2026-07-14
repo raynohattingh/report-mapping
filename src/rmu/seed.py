@@ -40,6 +40,12 @@ def profile_config(key_at_version: str) -> dict:
     return yaml.safe_load(path.read_text())
 
 
+def _as_date(value: datetime.date | str) -> datetime.date:
+    """Recipes written by `onboard approve` quote effective_from (YAML str);
+    hand-authored seed YAMLs parse as dates. Accept both."""
+    return value if isinstance(value, datetime.date) else datetime.date.fromisoformat(value)
+
+
 def seed_profiles(session: Session) -> list[str]:
     added = []
     seen = {p.name: p for p in (REPO_ROOT / "profiles").glob("*.yaml")}
@@ -64,7 +70,7 @@ def seed_profiles(session: Session) -> list[str]:
                 fingerprint=cfg["fingerprint"],
                 extractor_ref=cfg["extractor_ref"],
                 declared_totals_fields=cfg.get("header", {}),
-                effective_from=cfg["effective_from"],
+                effective_from=_as_date(cfg["effective_from"]),
             )
         )
         added.append(f"{cfg['key']}@{cfg['structural_version']}")
