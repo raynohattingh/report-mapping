@@ -2,6 +2,35 @@
 
 Terse build state for the business side. Newest session first.
 
+## Session 2026-07-14 (2) — fix: overlay render on /Rotate pages + verify read-back
+
+**Symptom:** `onboard approve` of the Eskom holdout target (grid-region
+proposal from the previous session) failed verify-on-approve with EVERY
+region `<empty region>`. Two stacked root causes, both found on the real PDF
+and invisible to the synthetic fixtures:
+
+1. **Renderer ignored page rotation.** The Eskom pack is a portrait mediabox
+   displayed landscape via `/Rotate 90`. Region bboxes are registered in
+   pdfplumber's rotation-aware visual space (detection + roundtrip verifier
+   agree), but `render_overlay_pdf` drew at those coordinates on the raw
+   unrotated page — all text landed 90° away from its region. Fix: per-page
+   CTM transform (90/180/270) so drawing happens in visual space.
+2. **Verifier word-split by template furniture.** The Word-exported grid
+   carries literal space characters inside cells; pdfplumber `extract_words`
+   interleaves them with the rendered value, splitting `S1` into `S 1` and
+   faking a mismatch. Fix: roundtrip read-back now compares the region's
+   non-space CHARS in reading order, not word segmentation.
+
+TDD both: new `test_overlay_respects_page_rotation` (parametrized 90/180/270)
+and `test_overlay_roundtrip_survives_template_space_chars`; suite 201 green,
+unrotated golden coordinates byte-identical. **Result:** `rmu onboard approve 1
+--name eskom.annex.c@1 --by rayno` registers TargetTemplate `eskom.annex.c@1`
+(id 1) — the real Eskom checklist is now an onboarded target.
+
+**Open:** roundtrip in-region char match is substring-based (`expected` sans
+spaces in region chars) — honest for presence, but a value equal to template
+furniture text would self-match; fine for verify-on-approve sample values.
+
 ## Session 2026-07-14 — feat: grid-region detection for fixed-layout targets
 
 **Symptom** (onboarding the Eskom inspection checklist holdout as a target
