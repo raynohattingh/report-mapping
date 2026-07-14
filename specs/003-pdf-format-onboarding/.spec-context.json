@@ -1,6 +1,6 @@
 {
   "workflow": "speckit",
-  "specName": "[FEATURE NAME]",
+  "specName": "PDF Onboarding",
   "branch": "worktree-003-pdf-format-onboarding",
   "currentStep": "implement",
   "status": "completed",

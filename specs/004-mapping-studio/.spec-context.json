@@ -1,6 +1,6 @@
 {
   "workflow": "speckit",
-  "specName": "[FEATURE NAME]",
+  "specName": "Mapping Studio V1",
   "branch": "004-mapping-studio",
   "currentStep": "specify",
   "status": "specified",
