@@ -62,12 +62,51 @@ a machine-checked approval gate registers it as a versioned artifact. Drafts can
 never convert data. See
 [Onboarding a new format](#onboarding-a-new-format-source-or-target) below.
 
+**Mapping Studio** (feature `004-mapping-studio`, 2026-07-15): a strictly-local
+web app that becomes the primary human-in-the-loop surface — see the actual
+documents and connect them visually instead of hand-editing draft YAML. The
+studio owns **zero business logic**: every action runs the same code path as the
+CLI and produces identical stored artifacts, so the two surfaces are
+interchangeable mid-draft. It is a **deletable optional package** — the CLI stays
+canonical for batch and the full product works without it. See
+[Mapping Studio](#mapping-studio) below.
+
 ⚠️ **The shipped target formats are interim stand-ins.** The real
 client-mandated formats (Eskom Annexure H pro forma, SAP defect-record fields)
 are not in hand and are **never invented here** — they arrive later as new
 `TargetTemplate` versions, as pure data, with no pipeline changes. See
-`ASSUMPTIONS.md` (A1–A12, D1–D9) for the working assumptions and `STATUS.md` for
+`ASSUMPTIONS.md` (A1–A13, D1–D11) for the working assumptions and `STATUS.md` for
 current build state.
+
+## Mapping Studio
+
+A local, single-user web front-end for the mapping and onboarding sessions —
+the visual alternative to hand-editing draft YAML next to a static review sheet.
+
+```bash
+uv sync --group studio          # the studio's deps are an OPTIONAL group
+uv run rmu studio               # binds 127.0.0.1 only; prints/opens a
+                                # per-launch secret URL (never persisted)
+```
+
+- **Dashboard** of every registry, session, proposal and apply-run (with its
+  SafeCard verdicts, coverage and exceptions), plus local-AI health and
+  per-client external-consent management.
+- **Visual mapping canvas** — exemplar and target rendered as their real pages,
+  extraction elements highlighted, links drawn between panes; accept/reject AI
+  proposals, draw manual links, edit value maps at the link with observed values
+  in view, preview in the target's actual format, and approve — a whole session
+  without touching YAML.
+- **Visual onboarding review** — proposals reviewed on the rendered PDF with
+  keyboard triage (confirm/rename/remove + auto-advance), drag/resize and draw
+  missed regions; approval runs the same verify-on-approve proof.
+
+Everything the studio does is one of the existing lifecycle transitions through
+the same functions the CLI calls, so a draft started in one surface is finishable
+in the other. The studio binds loopback-only, guards every request with a
+per-launch secret + Host/Origin checks, and persists no document data in the
+browser. Deleting the `rmu.studio` package (or omitting the `studio` group)
+leaves every CLI capability and the full test suite intact.
 
 ## Quickstart
 

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Run {{ run.id }}{% endblock %}
+{% block content %}
+<h1>Run {{ run.id }} <span class="muted">{{ run.label }}</span></h1>
+
+<div class="panel">
+  <h2>SafeCard — batch verdict</h2>
+  <p>
+    {% for v, c in run.batch.verdicts.items() %}
+    <span class="chip {{ 'tier-T0' if v=='pass' else ('tier-T2' if v=='warn' else 'tier-T3') }}">{{ v }}: {{ c }}</span>
+    {% endfor %}
+    · {{ run.batch.total }} documents · {{ run.batch.exceptions_total }} exceptions
+  </p>
+</div>
+
+<div class="panel">
+  <h2>Per-document verdicts</h2>
+  <table><tr><th>document</th><th>verdict</th><th>value cov.</th><th>tier cov.</th><th>exceptions</th></tr>
+    {% for d in run.documents %}
+    <tr>
+      <td>{{ d.document }}</td>
+      <td class="{{ 'tier-confirmed' if d.verdict=='pass' else ('tier-pending' if d.verdict=='warn' else 'tier-missing') }}">{{ d.verdict }}</td>
+      <td>{{ d.value_coverage }}</td><td>{{ d.tier_coverage }}</td>
+      <td>{{ d.exception_count }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+
+{% if run.blocked %}
+<div class="panel">
+  <h2 class="tier-missing">Blocked documents</h2>
+  {% for doc in run.blocked %}
+  <div class="link-row missing">
+    <span class="field">{{ doc }}</span>
+    <span class="muted">SafeCard blocked — likely structural drift.</span>
+    {# FR-037a: the block verdict becomes the start of the fix #}
+    <a class="btn" href="/start/onboarding?seed_from={{ run.seed_profile }}"
+       title="re-onboard this shape, seeded from {{ run.seed_profile }}">
+      Re-onboard (seeded)…</a>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="panel">
+  <h2>Exceptions report</h2>
+  {% if run.exceptions %}
+  <div style="overflow:auto">
+  <table>
+    <tr>{% for k in run.exceptions[0].keys() %}<th>{{ k }}</th>{% endfor %}</tr>
+    {% for row in run.exceptions %}
+    <tr>{% for v in row.values() %}<td>{{ v }}</td>{% endfor %}</tr>
+    {% endfor %}
+  </table>
+  </div>
+  {% else %}
+  <p class="muted">exceptions report present, no rows.</p>
+  {% endif %}
+</div>
+{% endblock %}

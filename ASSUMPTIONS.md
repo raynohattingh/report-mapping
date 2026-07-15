@@ -42,3 +42,13 @@ Rule: every assumption here was made deliberately because the real answer was un
 ## Decision log — 003 build (2026-07-12)
 
 - **D10** Stack extension for 003 (constitution "fixed stack" carve-out, justified in specs/003-pdf-format-onboarding/plan.md Complexity Tracking): `pypdf` added as runtime dependency (AcroForm enumerate/fill/read-back, encryption + XFA detection); `reportlab` promoted from dev to runtime dependency (fixed-layout text/image overlay per D7). Rejected: pdfrw (unmaintained), pikepdf (C++ wheel), external pdftk (non-Python runtime), hand-built content streams. Cite D10 in code/commits that rely on these libs.
+
+## v1.1 additions — 004 build (2026-07-14)
+
+| ID | Assumption | Blast radius if wrong | How to clear |
+|---|---|---|---|
+| **A13** | A modern desktop browser (Chrome/Edge/Firefox/Safari current at build time; ES-module + canvas support sufficient for PDF.js) is available on the analyst machine (extends A5/A9). No minimum version is pinned; the vendored PDF.js build's own floor governs. | Studio unusable in that browser — CLI path (canonical, always functional) is the fallback; vendored PDF.js/HTMX can be swapped for older builds as a data/asset change. | First session on the actual pilot machine (Gate-2 demo prep). |
+
+## Decision log — 004 build (2026-07-14)
+
+- **D11** Stack extension for 004 (constitution "fixed stack" carve-out, justified in specs/004-mapping-studio/plan.md Complexity Tracking): `fastapi` + `uvicorn` + `python-multipart` added as an **optional `studio` dependency group** (`uv sync --group studio`) so the core install is unchanged and "suite green without the studio" (FR-042) is a real installation state; `htmx` and `pdf.js` are **vendored as pinned static assets inside `src/rmu/studio/static/vendor/`** (no CDN — the studio must work with zero network access; assets ship inside the deletable package). Rejected: stdlib `http.server` (hand-rolled routing/multipart/middleware = more security-sensitive code), Flask (no typed contract benefit; D6 names FastAPI), SPA framework + build toolchain (client-side state violates the zero-business-logic rule; FR-004). Cite D11 in code/commits that rely on these deps.

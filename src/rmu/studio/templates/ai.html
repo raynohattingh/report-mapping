@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}AI health{% endblock %}
+{% block content %}
+<h1>Local AI health</h1>
+<div class="panel">
+  <p>default mode: <code>{{ report.default_mode }}</code></p>
+  <table>
+    <tr><th>tier</th><th>status</th><th>detail</th></tr>
+    <tr>
+      <td>tier 1 embeddings</td>
+      <td class="{{ 'tier-confirmed' if report.embedding.ok else 'tier-missing' }}">
+        {{ 'OK' if report.embedding.ok else 'MISSING' }}</td>
+      <td>{{ report.embedding.model }}{% if not report.embedding.ok %} — {{ report.embedding.reason }}{% endif %}</td>
+    </tr>
+    <tr>
+      <td>tier 2 local LLM</td>
+      <td class="{{ 'tier-confirmed' if report.llm.ok else 'tier-missing' }}">
+        {{ 'OK' if report.llm.ok else 'MISSING' }}</td>
+      <td>{{ report.llm.model }} on {{ report.llm.host }}
+        ({{ 'loopback' if report.llm.loopback_bound else 'NON-LOOPBACK refused' }})
+        {% if not report.llm.ok %} — {{ report.llm.reason }}{% endif %}</td>
+    </tr>
+  </table>
+</div>
+
+<div class="panel">
+  <h2>External-API consent (per client)</h2>
+  {% include "fragments/consent_list.html" %}
+  <h2>grant / revoke</h2>
+  <form class="stack-form" hx-post="/ai/consent" hx-target="#consent-list" hx-swap="outerHTML">
+    <select name="action"><option value="grant">grant</option><option value="revoke">revoke</option></select>
+    <input name="client" placeholder="client id" required>
+    <input name="by" placeholder="owner" required>
+    <input name="note" placeholder="note (optional)">
+    <button type="submit">Record</button>
+  </form>
+</div>
+{% endblock %}

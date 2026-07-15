@@ -1,0 +1,19 @@
+<div class="panel approve-proposal">
+  <h2>approve</h2>
+  {% if geo.pending %}
+  <p class="tier-missing">{{ geo.pending | length }} element(s) still proposed —
+  approval is blocked until each is confirmed / corrected / removed.</p>
+  {% endif %}
+  <form hx-post="/proposals/{{ proposal_id }}/approve" hx-target="#workspace-flash"
+        hx-swap="innerHTML">
+    {% if geo.kind == 'profile' %}
+    <label>profile key@version
+      <input name="as_ref" placeholder="acme.pdf.roof@v1" required></label>
+    {% else %}
+    <label>template name@version
+      <input name="name" placeholder="ias.defect_form@1" required></label>
+    {% endif %}
+    <label>approver <input name="by" placeholder="rayno" required></label>
+    <button type="submit">Verify &amp; register</button>
+  </form>
+</div>

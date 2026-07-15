@@ -71,3 +71,24 @@ def load_value_maps(session: Session, doc: dict) -> dict[tuple[str, int], list[d
 def next_value_map_version(session: Session, name: str) -> int:
     versions = session.scalars(select(ValueMap.version).where(ValueMap.name == name)).all()
     return max(versions, default=0) + 1
+
+
+def create_value_map(session: Session, name: str, entries: list[dict]) -> int:
+    """Append a NEW version of a named value map (append-only, FR-019).
+
+    Extracted from `rmu valuemap create` (feature 004, research.md R4) so the
+    studio's "Register & pin" and the CLI insert identical rows. Raises
+    ValueError with the CLI's message on bad provenance."""
+    import datetime
+
+    for e in entries:
+        if e.get("provenance") not in ("human", "ai-accepted"):
+            raise ValueError(
+                f"error: entry {e.get('source_value')!r} needs provenance "
+                f"human|ai-accepted"
+            )
+    version = next_value_map_version(session, name)
+    session.add(ValueMap(name=name, version=version, entries=entries,
+                         effective_from=datetime.date.today()))
+    session.commit()
+    return version

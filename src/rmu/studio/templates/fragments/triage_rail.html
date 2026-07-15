@@ -1,0 +1,72 @@
+<div class="triage-rail" id="triage-rail">
+  <div class="panel">
+    <div class="pane-head">
+      REVIEW
+      <span class="muted">{{ geo.pending | length }} pending / {{ geo.spatial | length + geo.non_spatial | length }} total</span>
+    </div>
+    {% if not read_only %}
+    <div class="triage-keys muted">
+      <kbd>Y</kbd> confirm · <kbd>E</kbd> rename · <kbd>X</kbd> remove · auto-advance
+      <select id="triage-filter">
+        <option value="">all states</option>
+        <option value="proposed">proposed</option>
+        <option value="confirmed">confirmed</option>
+        <option value="corrected">corrected</option>
+        <option value="removed">removed</option>
+      </select>
+      <button hx-post="/proposals/{{ proposal_id }}/bulk-confirm"
+              hx-vals='{"page": 1}' hx-target="#triage-root" hx-swap="none"
+              title="confirm all still-proposed elements on this page">
+        bulk-confirm page
+      </button>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="panel">
+    <h2>spatial elements ({{ geo.spatial | length }})</h2>
+    {% for el in geo.spatial %}
+    <div class="link-row triage-el" data-element-id="{{ el.id }}"
+         data-page="{{ el.page }}" data-state="{{ el.review_state }}"
+         data-bbox="{{ el.bbox | join(',') }}">
+      <span class="chip {{ 'tier-T0' if el.review_state in ('confirmed','corrected') else ('tier-T3' if el.review_state == 'removed' else 'tier-T2') }}">{{ el.review_state[0] | upper }}</span>
+      <span class="field">{{ el.label }}</span>
+      {% if el.target_field %}<span class="muted">{{ el.target_field }}</span>{% endif %}
+      {% if el.source == 'analyst' %}<span class="chip">analyst</span>{% endif %}
+      {% if el.agreement is not none %}<span class="muted" title="cross-exemplar agreement">{{ '%.2f'|format(el.agreement) }}</span>{% endif %}
+      {% if not read_only %}
+      <button class="btn" title="confirm (Y)"
+              hx-post="/proposals/{{ proposal_id }}/elements/{{ el.id }}"
+              hx-vals='{"action": "confirm"}' hx-target="#triage-root" hx-swap="none">✓</button>
+      <button class="btn danger" title="remove (X)"
+              hx-post="/proposals/{{ proposal_id }}/elements/{{ el.id }}"
+              hx-vals='{"action": "remove"}' hx-target="#triage-root" hx-swap="none">✗</button>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if geo.non_spatial %}
+  <div class="panel">
+    <h2>non-spatial elements ({{ geo.non_spatial | length }})</h2>
+    {% for el in geo.non_spatial %}
+    <div class="link-row triage-el" data-element-id="{{ el.id }}" data-state="{{ el.review_state }}">
+      <span class="chip {{ 'tier-T0' if el.review_state in ('confirmed','corrected') else ('tier-T3' if el.review_state == 'removed' else 'tier-T2') }}">{{ el.review_state[0] | upper }}</span>
+      <span class="field">{{ el.element_kind }}</span>
+      {% if el.confidence is not none %}<span class="muted">conf {{ '%.2f'|format(el.confidence) }}</span>{% endif %}
+      {% for f in el.flags %}<span class="chip tier-T2">{{ f }}</span>{% endfor %}
+      {% if not read_only %}
+      <button class="btn" hx-post="/proposals/{{ proposal_id }}/elements/{{ el.id }}"
+              hx-vals='{"action": "confirm"}' hx-target="#triage-root" hx-swap="none">✓</button>
+      <button class="btn danger" hx-post="/proposals/{{ proposal_id }}/elements/{{ el.id }}"
+              hx-vals='{"action": "remove"}' hx-target="#triage-root" hx-swap="none">✗</button>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if not read_only %}
+  {% include "fragments/approve_proposal.html" %}
+  {% endif %}
+</div>

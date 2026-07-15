@@ -126,6 +126,93 @@ class Proposal:
     def unresolved(self) -> list[str]:
         return [e["id"] for e in self.elements if e["review_state"] == "proposed"]
 
+    # -- element review edits (shared by CLI hand-editing and the studio) -----
+    #
+    # These write exactly the review_state / corrected_payload a YAML hand-edit
+    # writes, then persist through save_draft()+commit so CLI review stays
+    # interchangeable mid-proposal (feature 004, FR-033).
+
+    def _write_document(self, document: dict) -> None:
+        validate_proposal(document)
+        self.row.document = document  # reassign so SQLAlchemy sees the JSON change
+        self.save_draft()
+        self._session.commit()
+
+    def _element(self, document: dict, element_id: str) -> dict:
+        for e in document.get("elements", []):
+            if e["id"] == element_id:
+                return e
+        raise ProposalStateError(f"no element {element_id!r} in proposal #{self.row.id}")
+
+    def set_review_state(
+        self, element_id: str, state: str,
+        corrected_payload: dict | None = None,
+    ) -> None:
+        """confirm / correct / remove one element (FR-033)."""
+        self._require_draft("review element of")
+        if state not in ("proposed", "confirmed", "corrected", "removed"):
+            raise ProposalStateError(f"invalid review_state {state!r}")
+        document = dict(self.row.document)
+        document["elements"] = [dict(e) for e in document.get("elements", [])]
+        element = self._element(document, element_id)
+        element["review_state"] = state
+        if state == "corrected":
+            if corrected_payload is None:
+                raise ProposalStateError("correction needs a corrected_payload")
+            element["corrected_payload"] = corrected_payload
+        else:
+            element.pop("corrected_payload", None)
+        self._write_document(document)
+
+    def add_element(self, element: dict) -> str:
+        """Add an analyst-sourced element the detector missed (FR-033a).
+
+        Passes through the same review lifecycle and verify-on-approve as
+        detected elements; evidence.source is forced to 'analyst'."""
+        self._require_draft("add an element to")
+        document = dict(self.row.document)
+        elements = [dict(e) for e in document.get("elements", [])]
+        existing = {e["id"] for e in elements}
+        base = element.get("id") or f"analyst_{element['element_kind']}"
+        eid = base
+        n = 1
+        while eid in existing:
+            n += 1
+            eid = f"{base}_{n}"
+        new = {
+            "id": eid,
+            "element_kind": element["element_kind"],
+            "confidence": element.get("confidence", 1.0),
+            "evidence": {**element.get("evidence", {}), "source": "analyst"},
+            "review_state": element.get("review_state", "confirmed"),
+            "payload": element["payload"],
+        }
+        if new["review_state"] == "corrected":
+            new["corrected_payload"] = element.get("corrected_payload", element["payload"])
+        elements.append(new)
+        document["elements"] = elements
+        self._write_document(document)
+        return eid
+
+    def bulk_confirm_page(self, page: int) -> list[str]:
+        """Confirm every still-'proposed' element on a page (FR-034).
+
+        Recorded per element — indistinguishable from confirming each one."""
+        self._require_draft("bulk-confirm elements of")
+        document = dict(self.row.document)
+        elements = [dict(e) for e in document.get("elements", [])]
+        confirmed: list[str] = []
+        for e in elements:
+            if e["review_state"] != "proposed":
+                continue
+            pages = e.get("evidence", {}).get("pages") or [e.get("payload", {}).get("page")]
+            if page in pages:
+                e["review_state"] = "confirmed"
+                confirmed.append(e["id"])
+        document["elements"] = elements
+        self._write_document(document)
+        return confirmed
+
     # -- lifecycle -------------------------------------------------------------
 
     def _require_draft(self, action: str) -> None:

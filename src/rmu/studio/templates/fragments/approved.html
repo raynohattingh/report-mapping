@@ -1,0 +1,9 @@
+<div class="panel approved">
+  <h2 class="tier-confirmed">Approved — transform v{{ version }}</h2>
+  <p>Stored Transform id {{ transform_id }} by {{ by }};
+  {{ decisions }} decision{{ '' if decisions == 1 else 's' }} recorded.</p>
+  <p class="muted">Run a batch from the CLI with this transform (batch stays
+  CLI-canonical):</p>
+  <pre class="diff">uv run rmu apply run &lt;folder&gt; --transform &lt;profile&gt;:&lt;template&gt;</pre>
+  <a class="btn" href="/sessions/{{ session_id }}">Back to session (read-only)</a>
+</div>

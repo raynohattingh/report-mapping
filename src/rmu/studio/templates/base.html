@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="studio-token" content="{{ studio_token }}">
+  <title>{% block title %}Mapping Studio{% endblock %} · rmu</title>
+  <link rel="stylesheet" href="/static/studio.css">
+  <script src="/static/vendor/htmx.min.js" defer></script>
+  <script src="/static/js/studio.js" type="module" defer></script>
+</head>
+<body>
+  <nav class="rail" aria-label="Studio navigation">
+    <div class="rail-logo" title="Mapping Studio">◈</div>
+    <a href="/dashboard" class="rail-item {% if nav == 'dashboard' %}active{% endif %}" title="Dashboard">▦<span>Dashboard</span></a>
+    <a href="/dashboard#sessions" class="rail-item {% if nav == 'sessions' %}active{% endif %}" title="Sessions">⇄<span>Sessions</span></a>
+    <a href="/dashboard#proposals" class="rail-item {% if nav == 'proposals' %}active{% endif %}" title="Proposals">▤<span>Proposals</span></a>
+    <a href="/dashboard#runs" class="rail-item {% if nav == 'runs' %}active{% endif %}" title="Runs">▶<span>Runs</span></a>
+    <a href="/ai" class="rail-item {% if nav == 'ai' %}active{% endif %}" title="AI health &amp; consent">✳<span>AI</span></a>
+  </nav>
+  <main class="workspace">
+    <div id="workspace-flash"></div>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

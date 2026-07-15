@@ -26,3 +26,9 @@ Thumbs.db
 
 # SC-001 quarantined acceptance fixtures stay untracked (owner decision 2026-07-12)
 seed/holdout/*.pdf
+
+# superpowers visual-companion sessions
+.superpowers/
+.claude-flow/
+.swarm/
+.hive-mind/

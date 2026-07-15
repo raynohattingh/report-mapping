@@ -40,5 +40,5 @@ M1 scaffold + registries → M2 Scopito PDF extraction + profile detection → M
 When a TBD resolves (spec files arrive in `docs/` as `spec_update_*.md`), read the file, propose the delta in STATUS.md, then implement as template/data changes first.
 
 <!-- SPECKIT START -->
-Active feature plan: specs/003-pdf-format-onboarding/plan.md (spec: specs/003-pdf-format-onboarding/spec.md)
+Active feature plan: specs/004-mapping-studio/plan.md (spec: specs/004-mapping-studio/spec.md)
 <!-- SPECKIT END -->

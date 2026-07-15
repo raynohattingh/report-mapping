@@ -1,0 +1,14 @@
+<div class="panel registered">
+  <h2 class="tier-confirmed">Registered — {{ registered }}</h2>
+  <p>Verify-on-approve passed; approved by {{ by }}. This is now an append-only
+  registry version.</p>
+  <h2>next step</h2>
+  {% if next_kind == 'template' %}
+  <p>Start a mapping session that targets the newly registered template:</p>
+  <a class="btn" href="/start/session?template={{ next_ref }}">Start a mapping session…</a>
+  {% else %}
+  <p>Start a mapping session using the newly registered source profile:</p>
+  <a class="btn" href="/start/session?profile={{ next_ref }}">Start a mapping session…</a>
+  {% endif %}
+  <p class="muted">Offered, never started automatically (FR-035a).</p>
+</div>

@@ -2,6 +2,178 @@
 
 Terse build state for the business side. Newest session first.
 
+## Session 2026-07-15 (2) — fix: Studio "nothing works" — two headline bugs + dashboard polish
+
+Dogfooded the studio against the real dev DB after the owner reported "loads of
+bugs, nothing works, UI/UX clunky." Found and fixed **two real bugs** (both with
+TDD regressions), polished the dashboard, and separated genuine bugs from an
+automation artifact. Studio suite **166 green**, ruff clean.
+
+**Bug 1 — session view 500 (dangling profile recipe).** See detail below.
+
+**Bug 2 — the core draw-link gesture was broken for every required field.**
+`map start` seeds every required target field as a T3 stub route (`from: '?'`,
+mapping/session.py:58). The canvas draw gesture (click source → click target,
+FR-013) POSTs to `create_route`, which **refused any field already in `routes`**
+— i.e. every required field. So on the real workflow you could not draw a manual
+link to any field that needed mapping; only optional (non-seeded) fields worked,
+which is why the parity tests (they reject a T2 proposal first, then draw on the
+now-empty field) stayed green and missed it. **Fix:** `create_route` now ADOPTS a
+T3 stub (fills its `from`, recomputes the derived tier), refusing only a real
+T0/T1/T2 route (→ re-route/accept, never clobbered). New regressions
+`test_draw_link_fills_a_seeded_t3_stub` + `..._still_refuses_over_a_confirmed_route`.
+Verified live: drawing on a T3 field returns 200 and the link becomes T0/confirmed.
+
+**UX — dashboard empty-states.** Empty registry sections (Transforms, Value maps,
+Apply runs, etc.) rendered as bare column headers with no rows — looked broken.
+Added a `{% else %}` muted empty-state line per section ("No approved transforms
+yet — approve a mapping session to create one", etc.). Template-only; dashboard
+tests green.
+
+**Bug 3/4/5 — three reachable-500 robustness holes (QA sub-agent found; lead
+fixed).** A QA pass driving every studio route surfaced three malformed-but-
+plausible requests that hit an unhandled exception → HTTP 500 instead of the
+studio's uniform 422 refusal:
+- **Template approval with a non-integer version** (`proposals.py` — `int(tver)`
+  after only checking `@` is present): the approve form is a free-text
+  `name@version` box, so a typo like `ias.defect_form@v1` / `@` / `@1.0` crashed
+  the server. Now validated → clean 422 refusal.
+- **Value-map staging with unequal parallel columns** (`valuemaps.entries_from_
+  parallel` `zip(strict=True)`): a partial/hand-built POST 500'd. Now a 422.
+- **Path-traversal value-map name** (`name` form field became a draft filename
+  unsanitised): now rejected at the boundary (CLAUDE.md: validate at system
+  boundaries).
+Fixes in `routes/proposals.py` + `routes/links.py`; QA's pins in
+`tests/studio/test_route_robustness.py` converted from xfail to passing
+regressions (+ a new path-traversal case). QA also VERIFIED clean: FR-006
+terminal read-only (8 mutating routes all 422 on approved sessions; zero
+hx-post forms), FR-031 approval-gate parity, base_hash validation on every
+draft mutation, and register-&-pin's pre-INSERT lease check.
+
+**UX polish (sub-agent):** studio.css restyled within existing selectors —
+per-tier left-edge stripe on link/triage rows (amber pending / red missing /
+green confirmed scannable down hundreds of rows), machine keys in a mono face,
+readiness bar with a label + tier dot-markers + tabular counts + next-blocking
+CTA, crisper rail hover/active, unified chips/buttons, reduced-motion honoured.
+Dashboard empty-states added by the lead (bare-header sections now read as
+intentional). Presentation only; all JS/test hooks preserved.
+
+**NOT a bug (automation artifact):** the source/target PDF panes appear blank
+under headless browser automation because a backgrounded tab throttles
+`requestAnimationFrame`/`IntersectionObserver` (PDF.js renders pages lazily on
+scroll). Proven fine by rendering a page manually in-tab; a foreground browser
+(real usage) paints normally. Recorded as a memory so future studio debugging
+doesn't chase it.
+
+**Recommended (NOT done — needs owner decision, touches append-only rows):** the
+real dev DB carries a dangling profile `scopito.distribution@1` (registered by
+onboarding proposal 2 but its recipe YAML was deleted in the 2026-07-14 hygiene
+cleanup) and session 1 hangs off it targeting the 373-region Eskom holdout.
+The studio now tolerates this gracefully, but for a clean demo state consider
+abandoning session 1 (a normal lifecycle transition) and/or restoring the recipe.
+Left for the owner — deleting registered artifacts conflicts with Constitution III.
+
+### Bug 1 detail — session view 500 (dangling profile recipe)
+
+**Symptom** (dogfooding the studio on the real dev DB): the dashboard, proposals
+and AI pages load, but opening the ONE mapping session (`/sessions/1`, the
+headline canvas) returns **500 Internal Server Error** — so from the owner's
+seat the studio's main surface "doesn't work."
+
+**Root cause:** `studio/geometry._source_boxes` re-reads the profile *recipe
+YAML* (`profile_config`) purely to draw source-side spatial overlay boxes. The
+real DB's active profile `scopito.distribution@1` (registered by onboarding
+proposal 2) has **no recipe file on disk** — the untracked experimental
+profile YAMLs were deleted (checkout-hygiene, flagged in the 2026-07-14 entry)
+but the DB row remained. `profile_config` raised an uncaught `FileNotFoundError`
+→ 500. Confirmed a studio-only divergence: `rmu map review/preview --session 1`
+**succeed** on the same session (they read the stored extraction, not the
+recipe), so the studio broke where the CLI does not — violating FR-002
+interchangeability.
+
+**Fix** (TDD; studio suite 164 green, ruff clean): `_source_boxes` tolerates a
+missing/unreadable recipe (`FileNotFoundError`/`OSError` → `[]`). Spatial boxes
+are a projection aid, never source-of-truth; the canvas renders from the stored
+extraction exactly as the CLI does. New regression
+`test_source_boxes_tolerate_missing_profile_recipe`. Verified end-to-end: every
+studio route on the real DB now returns 200 (`/sessions/1`, `/sessions/1/geometry`,
+`/dashboard`, `/proposals/1-3`, `/ai`).
+
+**Investigated & NOT a product bug:** the source/target PDF panes look blank
+under headless browser automation because a backgrounded tab throttles
+`requestAnimationFrame`/`IntersectionObserver` (PDF.js renders lazily on scroll).
+Proven fine by rendering a page manually in-tab; a foreground browser (the
+owner's real usage) paints normally. **Open (UX, not yet actioned):** owner
+reports the surfaces feel "clunky" — needs a direction (empty dashboard sections
+show bare headers; the Eskom target's 373 un-renamed grid regions make a very
+long cryptic link list). Awaiting owner priorities before any redesign.
+
+## Session 2026-07-15 — feat(004): Mapping Studio (D6) — full vertical slice
+
+Built the **Mapping Studio** (feature 004, per D6/D9): a strictly-local,
+single-user web app that is now the PRIMARY human-in-the-loop surface, with the
+CLI still canonical for batch. Implemented as a **deletable `rmu.studio`
+subpackage** (FastAPI + uvicorn behind an optional `studio` dependency group;
+HTMX + PDF.js vendored — logged as **D11 / A13** in ASSUMPTIONS.md). Launched
+with `uv run rmu studio` (127.0.0.1 only, per-launch secret in the URL).
+
+**All 53 tasks done; 227 pre-existing tests + 159 new studio tests green; ruff
+clean; suite green WITHOUT the studio group installed (SC-004).**
+
+Delivered, all seven user stories:
+- **Dashboard** — registries, sessions, proposals, runs (SafeCard verdicts +
+  coverage + exceptions), AI health + per-client consent grant/revoke.
+- **Visual mapping canvas** — source & target rendered as real pages, element
+  overlays (bbox×scale, correct on rotated pages), focus wires + colour
+  pairing, tri-directional selection, draw/accept/reject/re-route links,
+  readiness bar fed by the *actual* approval gate.
+- **Link detail & value mapping** — observed values, staged value-map editing,
+  explicit Register & pin (append-only version), constants/formulas/prompts;
+  tier derived from mechanism (T0/T1), never hand-picked.
+- **Preview & approve** — native/honest preview (PDF inline, CSV table, docx
+  as the real file), same gate + same stored Transform as `rmu map approve`.
+- **Visual onboarding review** — PDF-first keyboard triage (Y/E/X + auto-
+  advance), drag/resize + draw-new regions, bulk-confirm, verify-on-approve
+  per-check report, post-approval next-step offer.
+- **Initiation** — start sessions / onboarding drafts from browser uploads
+  (content-addressed → identical artifacts), verbatim CLI refusals, drift→
+  re-onboard shortcut in the run view.
+- **Locality & deletability** — loopback bind + per-launch secret + Host/Origin
+  checks (every route), no browser-persisted data, import invariant, deletion
+  drill.
+
+**Load-bearing rule honoured (D6):** the studio owns ZERO business logic — every
+action delegates to the exact CLI code path. Enforced by ~50 parity/audit tests
+(byte-equal drafts, row-equal registry writes, bidirectional cross-surface
+finishability) plus `tests/invariants/test_no_studio_in_core.py`. CLI bodies
+for `map start/regenerate/preview/approve/abandon`, `valuemap create`, and
+`onboard draft-*` were refactored into shared functions (no behaviour change);
+added `rmu map abandon`.
+
+**Manual demo checklist** (quickstart.md) — not automatable, for the Gate-2
+demo run on real hardware: rotated-overlay eyeball on the Eskom holdout, SC-010
+5-second open on a 100+-page exemplar, SC-008 <30-min holdout triage, SC-009
+unaided first-attempt canvas journey.
+
+**CLI behaviour deltas from the refactor (intentional, not regressions):**
+- `rmu map approve` now refuses a non-draft session (`approve_session` guards
+  `status != draft`) — previously it would have registered a second Transform
+  from an already-approved session. This also closes the racing-approval hole
+  across surfaces (studio + CLI can't double-register).
+- `parse_transform` now reports malformed-YAML drafts as a `TransformValidationError`
+  (one clean refusal) instead of a raw parser traceback — improves both surfaces.
+
+**Post-review fixes (independent code review, 2026-07-15):** register-&-pin now
+draft-conflict-checks BEFORE the registry INSERT, so a conflicting register can
+never orphan/duplicate a ValueMap version (FR-003 row-parity on the FR-005
+path); a global `TransformValidationError` handler returns 422 (not 500) if a
+draft is hand-corrupted. Both regression-tested. Full review recorded in
+`specs/004-mapping-studio/checklist-review.md`.
+
+**Open:** `starlette.testclient` emits a deprecation warning (httpx vs httpx2);
+cosmetic. PDF.js/HTMX vendored versions pinned in `static/vendor/VENDOR.md`,
+updated manually.
+
 ## Session 2026-07-14 (2) — fix: overlay render on /Rotate pages + verify read-back
 
 **Symptom:** `onboard approve` of the Eskom holdout target (grid-region

@@ -1,6 +1,6 @@
 {
   "workflow": "speckit",
-  "specName": "[FEATURE NAME]",
+  "specName": "Local AI Assist",
   "branch": "main",
   "currentStep": "implement",
   "status": "completed",

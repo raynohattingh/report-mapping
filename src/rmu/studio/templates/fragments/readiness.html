@@ -1,0 +1,17 @@
+<div id="readiness" class="readiness {{ 'ready' if gate.approvable else '' }}"
+     {% if oob %}hx-swap-oob="true"{% endif %}>
+  <span class="readiness-label">Readiness</span>
+  <div class="bar"><div style="width: {{ ((100 * gate.ready / gate.total_required) if gate.total_required else 0) | round | int }}%"></div></div>
+  <span class="count">{{ gate.ready }}/{{ gate.total_required }} fields ready</span>
+  <span class="tier-pending">{{ gate.t2_pending | length }} pending</span>
+  <span class="tier-missing">{{ gate.t3_unmapped | length }} unmapped</span>
+  <span class="{{ 'tier-pending' if gate.unresolved_value_maps else 'muted' }}">
+    {{ gate.unresolved_value_maps | length }} value maps unregistered</span>
+  {% if gate.approvable %}
+  <button class="btn" hx-get="/sessions/{{ session_id }}/approve/dialog"
+          hx-target="#workspace-flash" hx-swap="innerHTML">Approve…</button>
+  {% elif gate.next_blocking %}
+  <button class="btn" data-focus-field="{{ gate.next_blocking[0] }}"
+          title="jump to the next blocking item">next: {{ gate.next_blocking[0] }}</button>
+  {% endif %}
+</div>

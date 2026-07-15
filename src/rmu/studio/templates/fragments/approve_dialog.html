@@ -1,0 +1,17 @@
+<div class="panel approve-dialog">
+  <h2>Approve session {{ session_id }}</h2>
+  {% if gate.approvable %}
+  <p>All required fields are ready ({{ gate.ready }}/{{ gate.total_required }}).
+  Approving stores a new versioned Transform — identical to what
+  <code>rmu map approve</code> would store.</p>
+  <form hx-post="/sessions/{{ session_id }}/approve" hx-target="#workspace-flash"
+        hx-swap="innerHTML">
+    <label>Approver identity
+      <input name="by" required placeholder="e.g. rayno" autocomplete="off">
+    </label>
+    <button type="submit">Approve &amp; store transform</button>
+  </form>
+  {% else %}
+  <p class="tier-missing">Not approvable yet — resolve the readiness blockers first.</p>
+  {% endif %}
+</div>

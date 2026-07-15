@@ -1,0 +1,15 @@
+<div class="panel verify-report" role="alert">
+  <h2 class="tier-missing">Verify-on-approve failed — proposal stays draft</h2>
+  <p class="muted">Approval is a machine-checked proof: the corrected recipe was
+  re-run and did not reproduce what was confirmed. Fix the implicated elements
+  and approve again.</p>
+  <ul class="error-list">
+    {% for check in report.checks %}
+    {% if not check.ok %}
+    <li><strong>{{ check.check }}</strong>: {{ check.detail }}</li>
+    {% endif %}
+    {% endfor %}
+  </ul>
+  {% set failed = report.checks | rejectattr('ok') | list %}
+  <p class="muted">{{ failed | length }} failed check(s) of {{ report.checks | length }}.</p>
+</div>

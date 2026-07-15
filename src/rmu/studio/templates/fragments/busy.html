@@ -1,0 +1,7 @@
+<div class="panel busy" role="alert">
+  <h2>Database busy</h2>
+  <p class="muted">Another process (a CLI batch or migration) is holding the
+  database. Nothing was applied — retry in a moment.</p>
+  <p class="muted"><code>{{ detail }}</code></p>
+  <button onclick="location.reload()">Retry</button>
+</div>

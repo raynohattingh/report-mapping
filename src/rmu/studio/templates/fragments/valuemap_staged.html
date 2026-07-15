@@ -1,0 +1,19 @@
+<div class="panel valuemap-staged">
+  <h2 class="tier-confirmed">Staged — {{ vm_name }} ({{ entries | length }} entries)</h2>
+  <p class="muted">Staged in the session draft value-map file; no registry
+  version created yet. Register &amp; pin to make the append-only version.</p>
+  <table>
+    <tr><th>source</th><th>target</th><th>provenance</th></tr>
+    {% for e in entries %}
+    <tr><td>{{ e.source_value }}</td><td>{{ e.target_value }}</td>
+        <td>{{ e.provenance }}</td></tr>
+    {% endfor %}
+  </table>
+  <form hx-post="/sessions/{{ session_id }}/links/{{ field }}/valuemap/register"
+        hx-target="#link-list" hx-swap="outerHTML">
+    <input type="hidden" name="name" value="{{ vm_name }}">
+    <input type="hidden" name="base_hash" value="">
+    <button type="submit" hx-get="/sessions/{{ session_id }}/links/{{ field }}"
+            hx-target="#workspace-flash">Back to link</button>
+  </form>
+</div>

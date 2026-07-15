@@ -1,0 +1,64 @@
+<div class="panel preview" data-kind="{{ result.kind }}" data-unresolved="{{ result.unresolved }}">
+  <h2>Preview — {{ result.kind }}
+    <span class="{{ 'tier-pending' if result.unresolved else 'tier-confirmed' }}">
+      {{ result.unresolved }} unresolved cell{{ '' if result.unresolved == 1 else 's' }}</span>
+  </h2>
+
+  {% if result.render_problems %}
+  <ul class="error-list">
+    {% for p in result.render_problems %}
+    <li>render problem: {{ p.field }}: {{ p.reason }} [{{ p.kind }}]</li>
+    {% endfor %}
+  </ul>
+  <p class="muted">Problems block the render — no output file was written
+  (exceptions, never truncation).</p>
+  {% endif %}
+
+  {% if result.kind == 'csv' and table %}
+  <div style="overflow:auto; max-height: 50vh">
+  <table>
+    {% for row in table %}
+    <tr>
+      {% for cell in row %}
+      {% if loop.index0 is defined and loop.first is defined %}{% endif %}
+      <td class="{{ 'tier-missing' if cell.startswith('<<') else '' }}">{{ cell }}</td>
+      {% endfor %}
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+  {% elif result.kind in ('pdf_form', 'pdf_overlay') %}
+    {% if not result.render_problems %}
+    <div data-pdf-pane="preview" data-url="{{ file_url }}"></div>
+    <script type="module">
+      import { mountPdfPane } from "/static/js/viewer.js";
+      const pane = document.querySelector('[data-pdf-pane="preview"]');
+      import("/static/vendor/pdf.mjs").then(async (pdfjs) => {
+        pdfjs.GlobalWorkerOptions.workerSrc = "/static/vendor/pdf.worker.mjs";
+        const doc = await pdfjs.getDocument({ url: pane.dataset.url }).promise;
+        for (let n = 1; n <= doc.numPages; n++) {
+          const page = await doc.getPage(n);
+          const viewport = page.getViewport({ scale: 720 / page.getViewport({scale:1}).width });
+          const canvas = document.createElement("canvas");
+          canvas.width = viewport.width; canvas.height = viewport.height;
+          const holder = document.createElement("div");
+          holder.className = "page-holder"; holder.style.width = canvas.width + "px";
+          holder.appendChild(canvas); pane.appendChild(holder);
+          await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
+        }
+      });
+    </script>
+    {% endif %}
+  {% else %}
+  <p>The rendered pack is the actual output file — open it locally
+  (never an HTML approximation of the docx):</p>
+  <a class="btn" href="{{ file_url }}" download="{{ filename }}">Open {{ filename }}</a>
+  <h2>per-field resolved values (header)</h2>
+  <table>
+    {% for field, value in result.header_values.items() %}
+    <tr><td>{{ field }}</td>
+        <td class="{{ 'tier-missing' if value.startswith('<<') else '' }}">{{ value }}</td></tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+</div>

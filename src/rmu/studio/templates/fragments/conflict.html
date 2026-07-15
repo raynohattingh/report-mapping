@@ -1,0 +1,19 @@
+<div class="panel conflict" role="alertdialog" data-conflict="{{ path }}">
+  <h2 class="tier-pending">Draft changed underneath your edit</h2>
+  <p><code>{{ path }}</code> was modified by another writer (CLI or editor)
+  since you loaded it. Your edit was <strong>not</strong> saved.</p>
+  {% if base_known %}
+  <pre class="diff">{{ diff }}</pre>
+  {% else %}
+  <p class="muted">The version you loaded is no longer available to diff
+  (studio restarted); reload to review the latest draft.</p>
+  {% endif %}
+  <div class="conflict-actions">
+    <button class="btn" data-action="reload">Reload latest (discard my edit)</button>
+    {% if base_known %}
+    <button class="btn danger" data-action="overwrite" data-base-hash="{{ base_hash }}">
+      Overwrite with mine
+    </button>
+    {% endif %}
+  </div>
+</div>

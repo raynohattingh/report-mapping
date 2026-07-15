@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Proposal {{ proposal_id }}{% endblock %}
+{% block content %}
+<h1>
+  Proposal {{ proposal_id }}
+  <span class="muted">{{ geo.kind }} onboarding</span>
+  <span class="chip {{ 'tier-T0' if geo.status == 'approved' else ('tier-T3' if geo.status == 'abandoned' else 'tier-T2') }}">{{ geo.status }}</span>
+</h1>
+
+{% if geo.diagnosis and not geo.spatial %}
+<div class="panel">
+  <h2>Diagnosis — no reviewable structure found</h2>
+  <p>{{ geo.diagnosis.notes }}</p>
+  <form hx-post="/proposals/{{ proposal_id }}/abandon" hx-target="#workspace-flash">
+    <button class="danger" type="submit">Abandon proposal</button>
+  </form>
+</div>
+{% else %}
+
+{% if read_only %}
+<div class="panel muted">This proposal is {{ geo.status }} — read-only.</div>
+{% endif %}
+
+<div class="triage" data-proposal-id="{{ proposal_id }}"
+     data-read-only="{{ '1' if read_only else '' }}" id="triage-root">
+  <div class="doc-pane" id="proposal-pane">
+    <div class="pane-head">
+      <span>EXEMPLAR</span>
+      {% if geo.exemplars | length > 1 %}
+      <select id="exemplar-switcher" title="switch exemplar (FR-032a)">
+        {% for ex in geo.exemplars %}
+        <option value="{{ ex.index }}">exemplar {{ ex.index }}{{ ' (primary)' if ex.primary else '' }}</option>
+        {% endfor %}
+      </select>
+      {% endif %}
+      <span class="muted" data-page-indicator="proposal"></span>
+    </div>
+    <div data-pdf-pane="proposal"></div>
+  </div>
+
+  {% include "fragments/triage_rail.html" %}
+</div>
+
+<div id="proposal-status" hidden
+     data-pending="{{ geo.pending | length }}"></div>
+<script type="module" src="/static/js/triage.js"></script>
+<script type="module" src="/static/js/regions.js"></script>
+{% endif %}
+{% endblock %}

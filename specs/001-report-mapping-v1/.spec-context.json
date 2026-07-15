@@ -1,6 +1,6 @@
 {
   "workflow": "speckit",
-  "specName": "[FEATURE NAME]",
+  "specName": "Report Mapping V1",
   "branch": "main",
   "currentStep": "implement",
   "status": "completed",

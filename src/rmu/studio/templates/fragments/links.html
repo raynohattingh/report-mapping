@@ -1,0 +1,44 @@
+<div id="link-list" class="link-rail" data-state="{{ state }}">
+  <div class="pane-head">
+    <span>LINKS</span>
+    <select name="state" hx-get="/sessions/{{ session_id }}/fragments/links"
+            hx-target="#link-list" hx-swap="outerHTML">
+      <option value="" {% if not state %}selected{% endif %}>all</option>
+      <option value="pending" {% if state == 'pending' %}selected{% endif %}>pending (T2)</option>
+      <option value="confirmed" {% if state == 'confirmed' %}selected{% endif %}>confirmed (T0/T1)</option>
+      <option value="missing" {% if state == 'missing' %}selected{% endif %}>unmapped (T3)</option>
+    </select>
+  </div>
+  {% for link in links %}
+  <div class="link-row {{ 'missing' if link.state == 'missing' else '' }}"
+       data-field="{{ link.target_field }}" data-tag="{{ link.tag }}"
+       data-source="{{ link['from'] }}" data-tier="{{ link.tier }}">
+    <span class="badge tier-{{ link.tier }}">{{ link.tag }}</span>
+    <span class="from muted">{{ link['from'] }}</span>
+    <span class="arrow">→</span>
+    <span class="field">{{ link.target_field }}</span>
+    <span class="chip tier-{{ link.tier }}">{{ link.tier }}</span>
+    {% if link.mechanism != 'route' %}<span class="chip">{{ link.mechanism }}</span>{% endif %}
+    {% if not read_only %}
+      {% if link.state == 'pending' %}
+      <button class="btn" title="accept proposal"
+              hx-post="/sessions/{{ session_id }}/routes/{{ link.target_field }}"
+              hx-vals='{"action": "accept"}' hx-target="#link-list" hx-swap="outerHTML">✓</button>
+      <button class="btn danger" title="reject proposal"
+              hx-post="/sessions/{{ session_id }}/routes/{{ link.target_field }}"
+              hx-vals='{"action": "reject"}' hx-target="#link-list" hx-swap="outerHTML">✗</button>
+      {% elif link.mechanism == 'route' and link.state == 'confirmed' %}
+      <button class="btn danger" title="delete route"
+              hx-post="/sessions/{{ session_id }}/routes/{{ link.target_field }}"
+              hx-vals='{"action": "delete"}' hx-target="#link-list" hx-swap="outerHTML">✗</button>
+      {% endif %}
+      {% if link.mechanism != 'prompt' %}
+      <a class="btn" title="link detail &amp; value mapping"
+         hx-get="/sessions/{{ session_id }}/links/{{ link.target_field }}"
+         hx-target="#workspace-flash" hx-swap="innerHTML">…</a>
+      {% endif %}
+    {% endif %}
+  </div>
+  {% endfor %}
+  {% if not links %}<div class="muted">no links{% if state %} in this state{% endif %}</div>{% endif %}
+</div>

@@ -98,6 +98,29 @@ def build_draft(
     return banner + yaml.safe_dump(doc, sort_keys=True, allow_unicode=True)
 
 
+def split_draft(text: str) -> tuple[str, dict]:
+    """Split a draft file into its comment banner and parsed document.
+
+    The banner (source inventory, AI shortlists) is analyst-facing context that
+    yaml round-trips would destroy; any programmatic edit — studio or script —
+    must preserve it via split_draft/render_draft so both surfaces produce the
+    same bytes for the same decisions (FR-002/FR-003)."""
+    lines = text.splitlines(keepends=True)
+    body_start = 0
+    for i, line in enumerate(lines):
+        if line.strip() and not line.lstrip().startswith("#"):
+            body_start = i
+            break
+    banner = "".join(lines[:body_start])
+    doc = yaml.safe_load("".join(lines[body_start:]))
+    return banner, doc
+
+
+def render_draft(banner: str, doc: dict) -> str:
+    """Canonical draft serialization — the exact form build_draft emits."""
+    return banner + yaml.safe_dump(doc, sort_keys=True, allow_unicode=True)
+
+
 def proposals_for_lineage(proposals: list[Proposal]) -> list[dict]:
     at = _now_iso()
     return [{**asdict(p), "at": at} for p in proposals]
