@@ -29,3 +29,6 @@ seed/holdout/*.pdf
 
 # superpowers visual-companion sessions
 .superpowers/
+.claude-flow/
+.swarm/
+.hive-mind/

@@ -27,8 +27,15 @@ class TransformValidationError(ValueError):
 
 
 def parse_transform(yaml_text: str) -> dict:
-    """Parse + schema-validate a transform document. Raises on any violation."""
-    doc = yaml.safe_load(yaml_text)
+    """Parse + schema-validate a transform document. Raises on any violation.
+
+    Malformed YAML is reported as a TransformValidationError too, so every
+    caller (CLI and studio) surfaces a corrupt draft as one clean validation
+    failure rather than a raw parser traceback."""
+    try:
+        doc = yaml.safe_load(yaml_text)
+    except yaml.YAMLError as err:
+        raise TransformValidationError([f"draft is not valid YAML: {err}"]) from err
     validator = jsonschema.Draft7Validator(_schema)
     errors = [
         f"{'/'.join(str(p) for p in e.absolute_path) or '<root>'}: {e.message}"

@@ -1,0 +1,14 @@
+<div class="panel kind-misuse" role="alert">
+  <h2 class="tier-pending">Document-kind warning</h2>
+  <p>{{ warning }}</p>
+  <p class="muted">Proceed anyway only if you are sure — this is the studio
+  equivalent of the CLI's <code>--force</code> flag.</p>
+  <form hx-post="/start/onboarding" hx-encoding="multipart/form-data"
+        hx-target="#workspace-flash" hx-swap="innerHTML">
+    <input type="hidden" name="kind" value="{{ kind }}">
+    <input type="hidden" name="force" value="true">
+    <label>re-select {{ filename }} <input type="file" name="document"
+           accept="application/pdf" required></label>
+    <button class="danger" type="submit">Proceed anyway</button>
+  </form>
+</div>

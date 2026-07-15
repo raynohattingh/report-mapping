@@ -2,6 +2,72 @@
 
 Terse build state for the business side. Newest session first.
 
+## Session 2026-07-15 — feat(004): Mapping Studio (D6) — full vertical slice
+
+Built the **Mapping Studio** (feature 004, per D6/D9): a strictly-local,
+single-user web app that is now the PRIMARY human-in-the-loop surface, with the
+CLI still canonical for batch. Implemented as a **deletable `rmu.studio`
+subpackage** (FastAPI + uvicorn behind an optional `studio` dependency group;
+HTMX + PDF.js vendored — logged as **D11 / A13** in ASSUMPTIONS.md). Launched
+with `uv run rmu studio` (127.0.0.1 only, per-launch secret in the URL).
+
+**All 53 tasks done; 227 pre-existing tests + 159 new studio tests green; ruff
+clean; suite green WITHOUT the studio group installed (SC-004).**
+
+Delivered, all seven user stories:
+- **Dashboard** — registries, sessions, proposals, runs (SafeCard verdicts +
+  coverage + exceptions), AI health + per-client consent grant/revoke.
+- **Visual mapping canvas** — source & target rendered as real pages, element
+  overlays (bbox×scale, correct on rotated pages), focus wires + colour
+  pairing, tri-directional selection, draw/accept/reject/re-route links,
+  readiness bar fed by the *actual* approval gate.
+- **Link detail & value mapping** — observed values, staged value-map editing,
+  explicit Register & pin (append-only version), constants/formulas/prompts;
+  tier derived from mechanism (T0/T1), never hand-picked.
+- **Preview & approve** — native/honest preview (PDF inline, CSV table, docx
+  as the real file), same gate + same stored Transform as `rmu map approve`.
+- **Visual onboarding review** — PDF-first keyboard triage (Y/E/X + auto-
+  advance), drag/resize + draw-new regions, bulk-confirm, verify-on-approve
+  per-check report, post-approval next-step offer.
+- **Initiation** — start sessions / onboarding drafts from browser uploads
+  (content-addressed → identical artifacts), verbatim CLI refusals, drift→
+  re-onboard shortcut in the run view.
+- **Locality & deletability** — loopback bind + per-launch secret + Host/Origin
+  checks (every route), no browser-persisted data, import invariant, deletion
+  drill.
+
+**Load-bearing rule honoured (D6):** the studio owns ZERO business logic — every
+action delegates to the exact CLI code path. Enforced by ~50 parity/audit tests
+(byte-equal drafts, row-equal registry writes, bidirectional cross-surface
+finishability) plus `tests/invariants/test_no_studio_in_core.py`. CLI bodies
+for `map start/regenerate/preview/approve/abandon`, `valuemap create`, and
+`onboard draft-*` were refactored into shared functions (no behaviour change);
+added `rmu map abandon`.
+
+**Manual demo checklist** (quickstart.md) — not automatable, for the Gate-2
+demo run on real hardware: rotated-overlay eyeball on the Eskom holdout, SC-010
+5-second open on a 100+-page exemplar, SC-008 <30-min holdout triage, SC-009
+unaided first-attempt canvas journey.
+
+**CLI behaviour deltas from the refactor (intentional, not regressions):**
+- `rmu map approve` now refuses a non-draft session (`approve_session` guards
+  `status != draft`) — previously it would have registered a second Transform
+  from an already-approved session. This also closes the racing-approval hole
+  across surfaces (studio + CLI can't double-register).
+- `parse_transform` now reports malformed-YAML drafts as a `TransformValidationError`
+  (one clean refusal) instead of a raw parser traceback — improves both surfaces.
+
+**Post-review fixes (independent code review, 2026-07-15):** register-&-pin now
+draft-conflict-checks BEFORE the registry INSERT, so a conflicting register can
+never orphan/duplicate a ValueMap version (FR-003 row-parity on the FR-005
+path); a global `TransformValidationError` handler returns 422 (not 500) if a
+draft is hand-corrupted. Both regression-tested. Full review recorded in
+`specs/004-mapping-studio/checklist-review.md`.
+
+**Open:** `starlette.testclient` emits a deprecation warning (httpx vs httpx2);
+cosmetic. PDF.js/HTMX vendored versions pinned in `static/vendor/VENDOR.md`,
+updated manually.
+
 ## Session 2026-07-14 (2) — fix: overlay render on /Rotate pages + verify read-back
 
 **Symptom:** `onboard approve` of the Eskom holdout target (grid-region

@@ -1,0 +1,12 @@
+<div class="panel source-panel">
+  <div class="pane-head">SOURCE ELEMENTS <span class="muted">(no page anchor — listed, FR-011)</span></div>
+  {% for el in panel %}
+  <div class="link-row source-el" data-source-key="{{ el.key }}">
+    <span class="field">{{ el.key }}</span>
+    <span class="muted">{{ el.sample }}</span>
+    {% if el.observed %}
+    <span class="muted" title="observed values">{{ el.observed | join(' · ') }}</span>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>

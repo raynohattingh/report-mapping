@@ -1,0 +1,139 @@
+/* Mapping Studio — dark graphite chrome (FR-017, brainstorm 2026-07-14).
+   Rendered document pages are the bright focal surfaces; tier colours are the
+   only loud accent language (FR-015/FR-018):
+   T0/T1 confirmed = green · T2 pending = amber · T3/unmapped = red. */
+
+:root {
+  --bg: #1c1d22;
+  --panel: #26272e;
+  --panel-edge: #34353d;
+  --text: #e4e4e9;
+  --text-dim: #9ea0ab;
+  --accent: #8b8cf8;
+  --accent-dim: #3b3d8f;
+  --tier-confirmed: #4ade80;
+  --tier-confirmed-bg: #143322;
+  --tier-pending: #fbbf24;
+  --tier-pending-bg: #38300f;
+  --tier-missing: #f87171;
+  --tier-missing-bg: #3a1717;
+  --page-bg: #ffffff;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  display: flex;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.45 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* --- navigation rail (FR-017) --- */
+.rail {
+  width: 56px; flex: none; display: flex; flex-direction: column;
+  align-items: center; gap: 4px; padding: 10px 0;
+  background: var(--panel); border-right: 1px solid var(--panel-edge);
+}
+.rail-logo { color: var(--accent); font-size: 22px; margin-bottom: 14px; }
+.rail-item {
+  width: 44px; padding: 8px 2px; border-radius: 8px; text-align: center;
+  color: var(--text-dim); text-decoration: none; font-size: 16px;
+}
+.rail-item span { display: block; font-size: 8px; letter-spacing: .02em; }
+.rail-item:hover { background: var(--panel-edge); color: var(--text); }
+.rail-item.active { background: var(--accent-dim); color: #c7c8ff; }
+
+.workspace { flex: 1; min-width: 0; padding: 18px 22px; overflow: auto; }
+
+h1 { font-size: 17px; font-weight: 600; margin: 0 0 12px; }
+h2 { font-size: 14px; font-weight: 600; margin: 18px 0 8px; color: var(--text-dim); }
+a { color: var(--accent); }
+code { background: var(--panel); padding: 1px 5px; border-radius: 4px; }
+
+.panel {
+  background: var(--panel); border: 1px solid var(--panel-edge);
+  border-radius: 8px; padding: 12px 14px; margin-bottom: 12px;
+}
+table { border-collapse: collapse; width: 100%; }
+th, td { text-align: left; padding: 5px 10px 5px 0; border-bottom: 1px solid var(--panel-edge); }
+th { color: var(--text-dim); font-weight: 500; font-size: 12px; }
+
+button, .btn {
+  background: var(--accent-dim); color: #c7c8ff; border: 0; border-radius: 6px;
+  padding: 6px 12px; font: inherit; cursor: pointer; text-decoration: none;
+  display: inline-block;
+}
+button:hover, .btn:hover { filter: brightness(1.2); }
+button.danger { background: var(--tier-missing-bg); color: var(--tier-missing); }
+input, select {
+  background: var(--bg); color: var(--text); border: 1px solid var(--panel-edge);
+  border-radius: 6px; padding: 6px 8px; font: inherit;
+}
+
+/* --- tier language (FR-015/FR-018) --- */
+.tier-T0, .tier-T1, .tier-confirmed { color: var(--tier-confirmed); }
+.tier-T2, .tier-pending { color: var(--tier-pending); }
+.tier-T3, .tier-missing { color: var(--tier-missing); }
+.chip { border-radius: 10px; padding: 1px 8px; font-size: 11px; }
+.chip.tier-T0, .chip.tier-T1 { background: var(--tier-confirmed-bg); }
+.chip.tier-T2 { background: var(--tier-pending-bg); }
+.chip.tier-T3 { background: var(--tier-missing-bg); }
+.badge {
+  display: inline-flex; width: 16px; height: 16px; border-radius: 50%;
+  align-items: center; justify-content: center; font-size: 10px; color: #101015;
+  font-weight: 700;
+}
+.badge.tier-T0, .badge.tier-T1 { background: var(--tier-confirmed); }
+.badge.tier-T2 { background: var(--tier-pending); }
+.badge.tier-T3 { background: var(--tier-missing); }
+
+/* --- canvas layout (FR-010/FR-018) --- */
+.canvas { display: grid; grid-template-columns: 1fr 300px 1fr; gap: 12px; height: calc(100vh - 130px); }
+.doc-pane { overflow: auto; background: var(--bg); border: 1px solid var(--panel-edge); border-radius: 8px; padding: 10px; position: relative; }
+.doc-pane .pane-head { position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 2px 0 8px; display: flex; gap: 8px; align-items: center; color: var(--text-dim); font-size: 12px; }
+.page-holder { position: relative; margin: 0 auto 14px; background: var(--page-bg); box-shadow: 0 2px 10px rgba(0,0,0,.5); }
+.page-holder canvas { display: block; }
+.overlay-layer { position: absolute; inset: 0; }
+.el-box { position: absolute; border: 1.5px solid; border-radius: 2px; cursor: pointer; }
+.el-box.tier-T0, .el-box.tier-T1 { border-color: var(--tier-confirmed); background: rgba(74,222,128,.14); }
+.el-box.tier-T2 { border-color: var(--tier-pending); background: rgba(251,191,36,.16); }
+.el-box.tier-T3, .el-box.unlinked { border-color: var(--tier-missing); background: rgba(248,113,113,.12); }
+.el-box.neutral { border-color: var(--accent); background: rgba(139,140,248,.10); }
+.el-box.focused { outline: 2px solid var(--accent); outline-offset: 1px; }
+.el-tag { position: absolute; top: -9px; right: -9px; }
+
+.link-rail { overflow: auto; display: flex; flex-direction: column; gap: 6px; }
+.link-row {
+  display: flex; gap: 8px; align-items: center; padding: 6px 9px;
+  background: var(--panel); border: 1px solid var(--panel-edge); border-radius: 7px;
+  cursor: pointer; font-size: 12.5px;
+}
+.link-row:hover, .link-row.focused { border-color: var(--accent); }
+.link-row .arrow { color: var(--text-dim); }
+.link-row.missing { border-color: var(--tier-missing-bg); background: var(--tier-missing-bg); }
+
+/* focus wire canvas sits over the whole workspace (FR-018) */
+#wire-layer { position: fixed; inset: 0; pointer-events: none; z-index: 40; }
+
+/* --- readiness bar (FR-019) --- */
+.readiness {
+  position: sticky; bottom: 0; display: flex; gap: 14px; align-items: center;
+  background: var(--panel); border: 1px solid var(--panel-edge); border-radius: 8px;
+  padding: 8px 14px; margin-top: 10px; font-size: 12.5px;
+}
+.readiness .bar { flex: 1; height: 7px; border-radius: 4px; background: var(--bg); overflow: hidden; }
+.readiness .bar > div { height: 100%; background: var(--accent-dim); }
+.readiness.ready .bar > div { background: var(--tier-confirmed); }
+
+/* --- triage rail (FR-034) --- */
+.triage { display: grid; grid-template-columns: 1fr 320px; gap: 12px; height: calc(100vh - 120px); }
+.triage-rail { overflow: auto; display: flex; flex-direction: column; gap: 8px; }
+kbd {
+  background: var(--bg); border: 1px solid var(--panel-edge); border-bottom-width: 2px;
+  border-radius: 4px; padding: 0 5px; font-size: 11px;
+}
+
+.muted { color: var(--text-dim); }
+.error-list li { color: var(--tier-missing); }
+pre.diff { background: var(--bg); border: 1px solid var(--panel-edge); border-radius: 6px; padding: 10px; overflow: auto; font-size: 12px; }

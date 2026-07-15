@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Session {{ session_id }}{% endblock %}
+{% block content %}
+<h1>
+  Session {{ session_id }}
+  <span class="muted">{{ geo.source.profile }} → {{ geo.target.template }}</span>
+  <span class="chip {{ 'tier-T0' if geo.status == 'approved' else ('tier-T3' if geo.status == 'abandoned' else 'tier-T2') }}">{{ geo.status }}</span>
+</h1>
+{% if read_only %}
+<div class="panel muted">This session is {{ geo.status }} — read-only view; no
+mutating actions are available (new versions arise only through new sessions).</div>
+{% endif %}
+
+<div class="canvas"
+     data-session-id="{{ session_id }}"
+     data-read-only="{{ '1' if read_only else '' }}"
+     id="canvas-root">
+  <div class="doc-pane" id="source-pane">
+    <div class="pane-head">
+      <span>SOURCE · {{ geo.source.filename }}</span>
+      <span class="muted" data-page-indicator="source"></span>
+    </div>
+    {% if geo.source.pdf_sha %}
+    <div data-pdf-pane="source" data-sha="{{ geo.source.pdf_sha }}"></div>
+    {% endif %}
+    {% with panel = geo.source.panel %}{% include "fragments/source_panel.html" %}{% endwith %}
+  </div>
+
+  {% with links = geo.links, state = "" %}{% include "fragments/links.html" %}{% endwith %}
+
+  <div class="doc-pane" id="target-pane">
+    <div class="pane-head">
+      <span>TARGET · {{ geo.target.template }}</span>
+      <span class="muted" data-page-indicator="target"></span>
+    </div>
+    {% if geo.target.pdf_sha %}
+    <div data-pdf-pane="target" data-sha="{{ geo.target.pdf_sha }}"></div>
+    {% endif %}
+    {% if geo.target.panel %}
+    {% with panel = geo.target.panel, kind = geo.target.kind %}{% include "fragments/target_panel.html" %}{% endwith %}
+    {% endif %}
+  </div>
+</div>
+
+{% with oob = False, gate = geo.gate %}{% include "fragments/readiness.html" %}{% endwith %}
+<div id="draft-hash" data-hash="{{ draft_hash }}" hidden></div>
+<svg id="wire-layer"></svg>
+<script type="module" src="/static/js/canvas.js"></script>
+{% endblock %}

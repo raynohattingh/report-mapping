@@ -39,6 +39,23 @@ from rmu.onboard.cli import onboard_app  # noqa: E402  (feature 003, D5)
 app.add_typer(onboard_app, name="onboard")
 
 
+@app.command("studio")
+def studio(
+    port: int = typer.Option(None, "--port", help="port on 127.0.0.1 (default: first free)"),
+    no_browser: bool = typer.Option(False, "--no-browser", help="print the URL only"),
+) -> None:
+    """Launch the Mapping Studio — strictly-local web HIL surface (feature 004, D6).
+
+    Binds 127.0.0.1 only; prints a per-launch secret URL (FR-040/FR-040a)."""
+    try:
+        from rmu.studio.launch import run_studio  # lazy: optional dep group (D11)
+    except ModuleNotFoundError as err:
+        typer.echo("error: studio dependencies are not installed - run "
+                   "`uv sync --group studio` (optional group, D11)")
+        raise typer.Exit(1) from err
+    run_studio(port=port, open_browser=not no_browser)
+
+
 def session_factory():
     return make_session_factory(make_engine())
 
@@ -135,85 +152,29 @@ def valuemap_create(
     ),
 ) -> None:
     """Insert a NEW version of a named value map (append-only, FR-019)."""
-    import datetime
-
     import yaml
 
-    from rmu.registry import next_value_map_version
+    from rmu.registry import create_value_map
 
     entries = yaml.safe_load(open(file, encoding="utf-8"))["entries"]
-    for e in entries:
-        if e.get("provenance") not in ("human", "ai-accepted"):
-            typer.echo(f"error: entry {e.get('source_value')!r} needs provenance human|ai-accepted")
-            raise typer.Exit(1)
     with session_factory()() as s:
-        version = next_value_map_version(s, name)
-        s.add(ValueMap(name=name, version=version, entries=entries,
-                       effective_from=datetime.date.today()))
-        s.commit()
+        try:
+            version = create_value_map(s, name, entries)
+        except ValueError as err:
+            typer.echo(str(err))
+            raise typer.Exit(1) from err
     typer.echo(f"valuemap: created {name}@{version} ({len(entries)} entries)")
 
 
-def _generate_assist(mode, session_mode, *, stub_ai, provider, normalized,
-                     template_row, defect_codes, client):
-    """Shared assist generation for `map start` and `map regenerate`.
-
-    Returns (proposals, assist_stats). For local mode it composes tier-1 rankings
-    and tier-2 LLM proposals via LocalProvider.assist and emits per-tier
-    degradation messages on stderr (FR-011)."""
-    import datetime
-
-    from rmu.registry import required_fields
-
-    generated_at = datetime.datetime.now(datetime.UTC).isoformat(timespec="seconds")
-
-    if mode == "local" and not stub_ai:
-        from rmu.ai.ranking import descriptor_for_target
-
-        schema = template_row.required_schema
-        labels = schema.get("field_labels", {})
-        target_fields_all = (
-            list(schema.get("required", []))
-            + list(schema.get("optional", []))
-            + list(schema.get("finding_fields", []))
-        )
-        target_desc = {t: descriptor_for_target(t, labels.get(t)) for t in target_fields_all}
-        typer.echo("assist: ranking candidate target fields…", err=True)
-        bundle = provider.assist(normalized, target_desc, target_fields_all, defect_codes)
-        if "embedding" in bundle.stats["degraded"]:
-            typer.echo("assist: embeddings unavailable — no candidate ranking "
-                       "(run `rmu ai setup`)", err=True)
-        if "llm" in bundle.stats["degraded"]:
-            typer.echo("assist: local LLM unavailable — no value-map proposals "
-                       "(run `rmu ai setup`)", err=True)
-        else:
-            typer.echo("assist: proposing value maps…", err=True)
-        stats = {"mode": session_mode, "client": client,
-                 "generated_at": generated_at, **bundle.stats}
-        return bundle.proposals, stats
-
-    proposals = provider.propose(normalized, required_fields(template_row), defect_codes)
-    if session_mode == "manual":
-        return proposals, None
-    stats = {
-        "mode": session_mode, "client": client, "generated_at": generated_at,
-        "assets": {}, "degraded": [], "shown": len(proposals),
-        "dropped": {"schema": 0, "unknown_field": 0, "unknown_value": 0}, "rankings": {},
-    }
-    return proposals, stats
-
-
 def _load_session_state(s, session_id: int):
-    from rmu import store as blobstore
-    from rmu.models import MappingSession, SourceDocument
+    """CLI wrapper over the shared loader: not-found becomes echo + exit 1."""
+    from rmu.mapping.start import load_session_state
 
-    ms = s.get(MappingSession, session_id)
-    if ms is None:
-        typer.echo(f"error: no mapping session {session_id}")
-        raise typer.Exit(1)
-    draft_path = blobstore.drafts_dir() / f"session_{session_id}.transform.yaml"
-    doc_row = s.get(SourceDocument, ms.exemplar_document_id)
-    return ms, draft_path, doc_row
+    try:
+        return load_session_state(s, session_id)
+    except LookupError as err:
+        typer.echo(f"error: {err}")
+        raise typer.Exit(1) from err
 
 
 @map_app.command("start")
@@ -231,126 +192,30 @@ def map_start(
     stub_ai: bool = typer.Option(False, "--stub-ai", hidden=True, help="test-only canned provider"),
 ) -> None:
     """Start a HIL mapping session against one exemplar (US1, design §6)."""
-    import datetime
-    import importlib
-    import json
-    import os
     from pathlib import Path
 
-    import yaml
+    from rmu.mapping.start import StartRefused, start_session
 
-    from rmu import store as blobstore
-    from rmu.ai.config import AiConfigError, has_consent, load_ai_config, resolve_mode
-    from rmu.config import store_root
-    from rmu.detect import detect_profile
-    from rmu.mapping import session as sess
-    from rmu.mapping.providers import get_provider
-    from rmu.models import MappingSession, SourceDocument, SourceProfile
-    from rmu.registry import get_profile, get_template, required_fields
-    from rmu.seed import load_defect_codes, profile_config
-
-    exemplar_path = Path(exemplar)
     with session_factory()() as s:
-        profile_row = get_profile(s, profile)
-        template_row = get_template(s, template)
-
-        detected = detect_profile(exemplar_path, list(s.scalars(select(SourceProfile))))
-        if detected is None or detected.id != profile_row.id:
-            typer.echo("blocked: exemplar does not match the requested profile fingerprint")
-            raise typer.Exit(2)
-
-        cfg = profile_config(profile)
-        extractor = importlib.import_module(profile_row.extractor_ref)
-        normalized = extractor.extract(exemplar_path, cfg)
-        blocked, reason = extractor.is_blocked(normalized)
-        if blocked:
-            typer.echo(f"blocked: exemplar failed integrity: {reason}")
-            raise typer.Exit(2)
-
-        extraction_ref = blobstore.put_bytes(
-            json.dumps(normalized, sort_keys=True).encode("utf-8")
-        )
-        doc_row = s.scalar(
-            select(SourceDocument).where(
-                SourceDocument.sha256 == normalized["source_sha256"]
-            )
-        )
-        if doc_row is None:
-            doc_row = SourceDocument(
-                sha256=normalized["source_sha256"],
-                original_filename=exemplar_path.name,
-                profile_id=profile_row.id,
-                received_at=datetime.datetime.now(datetime.UTC),
-                extraction_ref=extraction_ref,
-            )
-            s.add(doc_row)
-            s.flush()
-
         try:
-            cfg = load_ai_config(store_root())
-            mode = "none" if no_ai else resolve_mode(
-                assist, os.environ.get("RMU_ASSIST_MODE"), cfg
+            result = start_session(
+                s, profile, template, Path(exemplar),
+                assist=assist, client=client, no_ai=no_ai, stub_ai=stub_ai,
+                notify=lambda m: typer.echo(m, err=True),
             )
-        except AiConfigError as err:
-            typer.echo(f"error: {err}")
-            raise typer.Exit(1) from err
+        except StartRefused as err:
+            typer.echo(err.message)
+            raise typer.Exit(err.exit_code) from err
 
-        # External mode is consent-gated (FR-004): refuse without a recorded
-        # per-client entry (exit 4). Client identity is explicit, never inferred.
-        if mode == "external":
-            if not client:
-                typer.echo("refused: --assist external requires --client <id> "
-                           "(consent is per-client, FR-004)")
-                raise typer.Exit(4)
-            if not has_consent(cfg, client):
-                typer.echo(f"refused: no external-API consent recorded for client "
-                           f"{client!r}; record it with `rmu ai consent grant "
-                           f"--client {client} --by <owner>`")
-                raise typer.Exit(4)
-
-        session_mode = "manual" if mode == "none" else ("stub" if stub_ai else mode)
-        provider = get_provider(mode, stub=stub_ai, client=client, config=cfg)
-        proposals, assist_stats = _generate_assist(
-            mode, session_mode, stub_ai=stub_ai, provider=provider, normalized=normalized,
-            template_row=template_row, defect_codes=load_defect_codes(), client=client,
-        )
-
-        ms = MappingSession(
-            source_profile_id=profile_row.id,
-            target_template_id=template_row.id,
-            exemplar_document_id=doc_row.id,
-            mode=session_mode,
-            proposals=sess.proposals_for_lineage(proposals),
-            decisions=[],
-            assist_stats=assist_stats,
-        )
-        s.add(ms)
-        s.commit()
-
-        draft = sess.build_draft(
-            normalized,
-            template_row.name,
-            template_row.version,
-            profile,
-            required_fields(template_row),
-            proposals,
-            rankings=(assist_stats or {}).get("rankings"),
-        )
-        draft_path = blobstore.drafts_dir() / f"session_{ms.id}.transform.yaml"
-        draft_path.write_text(draft, encoding="utf-8")
-        typer.echo(f"session: {ms.id} mode={ms.mode}")
-        typer.echo(f"draft:   {draft_path}")
-        if assist_stats is not None:
-            dropped_total = sum(assist_stats["dropped"].values())
-            typer.echo(f"assist:  {assist_stats['mode']} shown={assist_stats['shown']} "
-                       f"dropped={dropped_total}")
-        for name, entries in sess.starter_value_maps(proposals).items():
-            starter = blobstore.drafts_dir() / f"session_{ms.id}.valuemap.{name}.yaml"
-            starter.write_text(
-                yaml.safe_dump({"entries": entries}, sort_keys=True), encoding="utf-8"
-            )
-            typer.echo(f"valuemap starter (review, then `rmu valuemap create --name {name} "
-                       f"--file {starter}`): {starter}")
+    typer.echo(f"session: {result.session_id} mode={result.mode}")
+    typer.echo(f"draft:   {result.draft_path}")
+    if result.assist_stats is not None:
+        dropped_total = sum(result.assist_stats["dropped"].values())
+        typer.echo(f"assist:  {result.assist_stats['mode']} "
+                   f"shown={result.assist_stats['shown']} dropped={dropped_total}")
+    for name, starter in result.starter_paths.items():
+        typer.echo(f"valuemap starter (review, then `rmu valuemap create --name {name} "
+                   f"--file {starter}`): {starter}")
 
 
 @map_app.command("regenerate")
@@ -364,154 +229,49 @@ def map_regenerate(
     The prior generation is moved into `assist_stats.superseded[]` — nothing is
     silently changed; re-opening a session never mutates what is under review
     unless the analyst runs this. Refused on approved sessions."""
-    import json
-
-    import yaml
-
-    from rmu import store as blobstore
-    from rmu.ai.config import AiConfigError, has_consent, load_ai_config, resolve_mode
-    from rmu.config import store_root
-    from rmu.mapping import session as sess
-    from rmu.mapping.providers import get_provider
-    from rmu.models import SourceProfile
-    from rmu.registry import get_template_by_id, required_fields
-    from rmu.seed import load_defect_codes
-
-    _SESSION_TO_MODE = {"manual": "none", "stub": "local", "local": "local",
-                        "external": "external"}
+    from rmu.mapping.start import StartRefused, regenerate_session
 
     with session_factory()() as s:
-        ms, draft_path, doc_row = _load_session_state(s, session_id)
-        if ms.status == "approved":
-            typer.echo("refused: session already approved; regeneration would diverge "
-                       "from the approved transform (FR-016)")
-            raise typer.Exit(3)
-
-        template_row = get_template_by_id(s, ms.target_template_id)
-        profile_row = s.get(SourceProfile, ms.source_profile_id)
-        normalized = json.loads(blobstore.get_bytes(doc_row.extraction_ref))
-
         try:
-            cfg = load_ai_config(store_root())
-            mode = resolve_mode(assist, None, cfg) if assist else _SESSION_TO_MODE.get(
-                ms.mode, "local"
+            result = regenerate_session(
+                s, session_id, assist=assist, client=client,
+                notify=lambda m: typer.echo(m, err=True),
             )
-        except AiConfigError as err:
+        except LookupError as err:
             typer.echo(f"error: {err}")
             raise typer.Exit(1) from err
+        except StartRefused as err:
+            typer.echo(err.message)
+            raise typer.Exit(err.exit_code) from err
 
-        stub = ms.mode == "stub" and not assist
-        session_mode = ("manual" if mode == "none" else ("stub" if stub else mode))
-        client = client or (ms.assist_stats or {}).get("client")
-        if mode == "external" and (not client or not has_consent(cfg, client)):
-            typer.echo(f"refused: no external-API consent recorded for client {client!r} "
-                       f"(FR-004)")
-            raise typer.Exit(4)
-
-        provider = get_provider(mode, stub=stub, client=client, config=cfg)
-        proposals, new_stats = _generate_assist(
-            mode, session_mode, stub_ai=stub, provider=provider, normalized=normalized,
-            template_row=template_row, defect_codes=load_defect_codes(), client=client,
-        )
-
-        # Move the prior generation into superseded history (audit, FR-016).
-        prior_stats = {k: v for k, v in (ms.assist_stats or {}).items() if k != "superseded"}
-        superseded = list((ms.assist_stats or {}).get("superseded", []))
-        superseded.append({"proposals": ms.proposals, "stats": prior_stats})
-        if new_stats is None:
-            new_stats = {"mode": session_mode, "superseded": superseded}
-        else:
-            new_stats["superseded"] = superseded
-
-        ms.proposals = sess.proposals_for_lineage(proposals)
-        ms.assist_stats = new_stats
-        s.commit()
-
-        draft = sess.build_draft(
-            normalized, template_row.name, template_row.version,
-            f"{profile_row.key}@{profile_row.structural_version}",
-            required_fields(template_row), proposals,
-            rankings=(new_stats or {}).get("rankings"),
-        )
-        draft_path.write_text(draft, encoding="utf-8")
-        for name, entries in sess.starter_value_maps(proposals).items():
-            starter = blobstore.drafts_dir() / f"session_{session_id}.valuemap.{name}.yaml"
-            starter.write_text(
-                yaml.safe_dump({"entries": entries}, sort_keys=True), encoding="utf-8"
-            )
-
-        prior = superseded[-1]
-        dropped_total = sum(new_stats.get("dropped", {}).values())
-        typer.echo(f"regenerated session {session_id}: superseded "
-                   f"{len(prior['proposals'])} proposal(s) from "
-                   f"{prior['stats'].get('generated_at', '?')}")
-        typer.echo(f"assist:  {session_mode} shown={len(proposals)} dropped={dropped_total}")
+    new_stats = result.assist_stats
+    prior = new_stats["superseded"][-1]
+    dropped_total = sum(new_stats.get("dropped", {}).values())
+    typer.echo(f"regenerated session {session_id}: superseded "
+               f"{len(prior['proposals'])} proposal(s) from "
+               f"{prior['stats'].get('generated_at', '?')}")
+    typer.echo(f"assist:  {result.mode} shown={result.shown} dropped={dropped_total}")
 
 
 @map_app.command("preview")
 def map_preview(session_id: int = typer.Option(..., "--session")) -> None:
     """Render the exemplar through the current draft INTO ITS TARGET FORMAT for
     human verification (FR-008) — CSV templates preview as CSV, docx templates
-    as a rendered (canonicalized) pack (convergence T052)."""
-    import json
-
-    from rmu import store as blobstore
-    from rmu.apply.engine import resolve_record
-    from rmu.mapping.loader import parse_transform
-    from rmu.registry import get_template_by_id, load_value_maps, template_meta
-    from rmu.render.csv import render_csv
+    as a rendered (canonicalized) pack (convergence T052), PDF templates as the
+    real form-fill/overlay output (feature 004, FR-030)."""
+    from rmu.mapping.preview import build_preview
 
     with session_factory()() as s:
-        ms, draft_path, doc_row = _load_session_state(s, session_id)
-        doc = parse_transform(draft_path.read_text(encoding="utf-8"))
-        normalized = json.loads(blobstore.get_bytes(doc_row.extraction_ref))
-        template_row = get_template_by_id(s, ms.target_template_id)
-        meta = template_meta(template_row)
-        vmaps = load_value_maps(s, doc)
-
-        prompt_placeholders = {
-            p["key"]: f"<<{p['key']}>>" for p in doc.get("prompts", [])
-        }
-        problems_total = 0
-
-        if meta["kind"] == "docx":
-            from rmu.render.docx import render_pack
-
-            schema = template_row.required_schema
-            header_ctx = {"header": normalized["header"], "finding": {},
-                          "prompt": prompt_placeholders}
-            header_fields = list(schema.get("required", [])) + list(
-                schema.get("optional", [])
-            )
-            values, problems = resolve_record(
-                header_fields, doc, header_ctx, vmaps, strict=False
-            )
-            problems_total += len(problems)
-            rows = []
-            for finding in normalized["findings"]:
-                context = {"header": normalized["header"], "finding": finding,
-                           "prompt": prompt_placeholders}
-                row, problems = resolve_record(
-                    list(schema.get("finding_fields", [])), doc, context, vmaps,
-                    strict=False,
-                )
-                problems_total += len(problems)
-                rows.append(row)
-            template_bytes = blobstore.get_bytes(template_row.template_files[meta["file"]])
-            out = blobstore.drafts_dir() / f"session_{session_id}.preview.docx"
-            out.write_bytes(render_pack(template_bytes, {**values, "findings": rows}))
-        else:
-            columns = meta.get("columns") or list(template_row.required_schema["required"])
-            rows = []
-            for finding in normalized["findings"]:
-                context = {"header": normalized["header"], "finding": finding,
-                           "prompt": prompt_placeholders}
-                values, problems = resolve_record(columns, doc, context, vmaps, strict=False)
-                problems_total += len(problems)
-                rows.append(values)
-            out = blobstore.drafts_dir() / f"session_{session_id}.preview.csv"
-            out.write_bytes(render_csv(rows, columns))
-        typer.echo(f"preview: {out}  (rows={len(rows)}, unresolved cells={problems_total})")
+        try:
+            result = build_preview(s, session_id)
+        except LookupError as err:
+            typer.echo(f"error: {err}")
+            raise typer.Exit(1) from err
+    typer.echo(f"preview: {result.out_path}  (rows={len(result.rows)}, "
+               f"unresolved cells={result.unresolved})")
+    for problem in result.render_problems:
+        typer.echo(f"render problem: {problem['field']}: {problem['reason']} "
+                   f"[{problem['kind']}]")
 
 
 @map_app.command("review")
@@ -559,23 +319,16 @@ def map_approve(
     by: str = typer.Option(..., help="approver identity (FR-009)"),
 ) -> None:
     """Validate preconditions and store the Transform (versioned, append-only)."""
-    import datetime
-
-    from sqlalchemy import func
-
-    from rmu.mapping.approve import ApprovalRefused, check_approval
-    from rmu.mapping.loader import TransformValidationError, parse_transform
-    from rmu.mapping.session import compute_decisions
-    from rmu.models import Transform
-    from rmu.registry import get_template_by_id, required_fields
+    from rmu.mapping.approve import ApprovalRefused, approve_session
+    from rmu.mapping.loader import TransformValidationError
+    from rmu.mapping.start import StartRefused
 
     with session_factory()() as s:
-        ms, draft_path, _doc_row = _load_session_state(s, session_id)
-        template_row = get_template_by_id(s, ms.target_template_id)
-        text = draft_path.read_text(encoding="utf-8")
         try:
-            doc = parse_transform(text)
-            check_approval(doc, required_fields(template_row), s)
+            transform, ms = approve_session(s, session_id, by)
+        except LookupError as err:
+            typer.echo(f"error: {err}")
+            raise typer.Exit(1) from err
         except TransformValidationError as err:
             typer.echo("refused: draft is not schema-valid:")
             for e in err.errors:
@@ -586,32 +339,29 @@ def map_approve(
             for r in err.reasons:
                 typer.echo(f"  - {r}")
             raise typer.Exit(3) from err
+        except StartRefused as err:
+            typer.echo(err.message)
+            raise typer.Exit(err.exit_code) from err
+        typer.echo(f"approved: transform v{transform.version} (id={transform.id}) "
+                   f"by {by}; {len(ms.decisions)} decisions recorded")
 
-        current = s.scalar(
-            select(func.max(Transform.version)).where(
-                Transform.source_profile_id == ms.source_profile_id,
-                Transform.target_template_id == ms.target_template_id,
-            )
-        )
-        version = (current or 0) + 1
-        transform = Transform(
-            source_profile_id=ms.source_profile_id,
-            target_template_id=ms.target_template_id,
-            version=version,
-            effective_from=datetime.date.today(),
-            yaml_body=text,
-            approved_by=by,
-            approved_at=datetime.datetime.now(datetime.UTC),
-            parent_version=current,
-        )
-        s.add(transform)
-        s.flush()
-        ms.decisions = compute_decisions(ms.proposals, doc)
-        ms.status = "approved"
-        ms.resulting_transform_id = transform.id
-        s.commit()
-        typer.echo(f"approved: transform v{version} (id={transform.id}) by {by}; "
-                   f"{len(ms.decisions)} decisions recorded")
+
+@map_app.command("abandon")
+def map_abandon(session_id: int = typer.Option(..., "--session")) -> None:
+    """Mark a draft session abandoned (terminal). Abandoned drafts affect
+    nothing, ever — same transition the studio dashboard offers (FR-039)."""
+    from rmu.mapping.start import StartRefused, abandon_session
+
+    with session_factory()() as s:
+        try:
+            abandon_session(s, session_id)
+        except LookupError as err:
+            typer.echo(f"error: {err}")
+            raise typer.Exit(1) from err
+        except StartRefused as err:
+            typer.echo(err.message)
+            raise typer.Exit(err.exit_code) from err
+    typer.echo(f"session {session_id}: abandoned")
 
 
 def _parse_answers(answers: list[str]) -> dict[str, str]:

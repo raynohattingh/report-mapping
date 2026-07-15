@@ -2,8 +2,8 @@
   "workflow": "speckit",
   "specName": "Mapping Studio V1",
   "branch": "004-mapping-studio",
-  "currentStep": "specify",
-  "status": "specified",
+  "currentStep": "implement",
+  "status": "implemented",
   "history": [
     {
       "step": "specify",
@@ -25,6 +25,921 @@
       "kind": "complete",
       "by": "ai",
       "at": "2026-07-14T15:18:24.480Z"
+    },
+    {
+      "step": "plan",
+      "substep": "research",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-14T20:39:09.503Z"
+    },
+    {
+      "step": "plan",
+      "substep": "design",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-14T20:42:30.278Z"
+    },
+    {
+      "step": "plan",
+      "substep": null,
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-14T20:42:30.371Z"
+    },
+    {
+      "step": "tasks",
+      "substep": "generate",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-14T20:46:34.768Z"
+    },
+    {
+      "step": "tasks",
+      "substep": null,
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-14T20:46:34.861Z"
+    },
+    {
+      "step": "analyze",
+      "substep": null,
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-14T20:53:31.163Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "kind": "start",
+      "by": "extension",
+      "at": "2026-07-14T20:57:32.087Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T001",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-14T20:59:07.944Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T002",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-14T20:59:55.154Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T003",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-14T21:03:53.380Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T004",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-14T21:03:53.447Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T005",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-14T21:03:53.516Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T006",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-14T21:04:44.738Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T011",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-14T21:07:28.849Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T007",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-14T21:11:07.541Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T008",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-14T21:11:07.610Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T009",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-14T21:11:07.682Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T010",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-14T21:11:07.751Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T013",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-14T21:22:03.636Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T012",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-15T03:27:01.863Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T014",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-15T03:38:02.111Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T015",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-15T03:38:02.176Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T016",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-15T03:38:02.246Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T017",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-15T03:38:02.314Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T018",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-15T03:38:02.383Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T019",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-15T03:38:02.453Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T020",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-15T03:38:02.519Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T021",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-15T03:38:02.585Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T022",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-15T03:38:02.649Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T023",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-15T03:48:42.736Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T024",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-15T03:48:42.805Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T025",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-15T03:48:42.873Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T026",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-15T03:48:42.939Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T027",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-15T03:52:30.727Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T028",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-15T03:52:30.793Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T029",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-15T03:52:30.859Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T030",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-15T03:52:30.926Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T031",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-15T03:59:44.784Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T032",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-15T03:59:44.855Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T033",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-15T03:59:44.930Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T034",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-15T03:59:45.005Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T035",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-15T03:59:45.081Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T036",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-15T03:59:45.156Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T037",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-15T03:59:45.232Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T038",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-15T04:01:54.109Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T039",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-15T04:01:54.182Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T040",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-15T04:01:54.255Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T041",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-15T04:05:42.008Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T042",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-15T04:05:42.077Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T043",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-15T04:05:42.147Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T044",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-15T04:05:42.218Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T045",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-15T04:12:08.542Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T046",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-15T04:12:08.614Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T047",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-15T04:12:08.683Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T048",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-15T04:12:08.752Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T049",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-15T08:42:57.964Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T050",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-15T08:42:58.031Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T051",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-15T08:42:58.104Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T052",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-15T08:42:58.170Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T053",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-07-15T08:42:58.239Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "kind": "complete",
+      "by": "extension",
+      "at": "2026-07-15T08:42:58.333Z"
     }
-  ]
+  ],
+  "currentTask": "T053",
+  "task_summaries": {
+    "T001": {
+      "status": "DONE",
+      "did": "Logged D11 (studio dep group + vendored HTMX/PDF.js) and A13 (browser floor) in ASSUMPTIONS.md",
+      "files": [
+        "ASSUMPTIONS.md"
+      ]
+    },
+    "T002": {
+      "status": "DONE",
+      "did": "Added studio optional dependency group (fastapi/uvicorn/python-multipart/httpx); verified CLI works with and without it",
+      "files": [
+        "pyproject.toml",
+        "uv.lock"
+      ]
+    },
+    "T003": {
+      "status": "DONE",
+      "did": "Created rmu.studio package skeleton (doc-only __init__ files, directory tree)",
+      "files": [
+        "src/rmu/studio/__init__.py",
+        "src/rmu/studio/routes/__init__.py"
+      ]
+    },
+    "T004": {
+      "status": "DONE",
+      "did": "Vendored htmx 2.0.4 + PDF.js 4.10.38 with licenses and SHA-256 manifest in VENDOR.md",
+      "files": [
+        "src/rmu/studio/static/vendor/"
+      ]
+    },
+    "T005": {
+      "status": "DONE",
+      "did": "tests/studio scaffolding: module-wide fastapi importorskip, seeded-env/manual-session/authenticated-TestClient fixtures",
+      "files": [
+        "tests/studio/conftest.py",
+        "tests/studio/__init__.py"
+      ]
+    },
+    "T006": {
+      "status": "DONE",
+      "did": "Invariant tests: fresh-subprocess import scan + AST static scan proving core never imports rmu.studio; both green",
+      "files": [
+        "tests/invariants/test_no_studio_in_core.py"
+      ]
+    },
+    "T011": {
+      "status": "DONE",
+      "did": "DraftLease optimistic concurrency: hash lease, 409-with-diff conflict block, overwrite-applies-to-base semantics; 5 tests green",
+      "files": [
+        "src/rmu/studio/concurrency.py",
+        "tests/studio/test_concurrency.py"
+      ]
+    },
+    "T007": {
+      "status": "DONE",
+      "did": "Deletability tests green",
+      "files": [
+        "rmu studio help works",
+        "absent-group exits with uv sync hint",
+        "other CLI commands unaffected:tests/studio/test_deletability.py"
+      ]
+    },
+    "T008": {
+      "status": "DONE",
+      "did": "Auth middleware",
+      "files": [
+        "loopback peer",
+        "Host allowlist",
+        "Origin/Sec-Fetch-Site",
+        "URL-key-to-cookie exchange",
+        "X-Studio-Token on mutations; 11 refusal/pass tests green:src/rmu/studio/auth.py",
+        "tests/studio/test_auth.py"
+      ]
+    },
+    "T009": {
+      "status": "DONE",
+      "did": "rmu studio subcommand via lazy import; launch.py with hardcoded 127.0.0.1 bind, port pick, per-launch secret, --no-browser",
+      "files": [
+        "src/rmu/studio/launch.py",
+        "src/rmu/cli.py"
+      ]
+    },
+    "T010": {
+      "status": "DONE",
+      "did": "App factory",
+      "files": [
+        "Jinja env",
+        "static mount",
+        "auth wiring",
+        "409/422/503 error contract handlers",
+        "dark-graphite base layout + nav rail + tier-colour CSS:src/rmu/studio/app.py",
+        "src/rmu/studio/templates/base.html",
+        "src/rmu/studio/static/studio.css",
+        "src/rmu/studio/static/js/studio.js"
+      ]
+    },
+    "T013": {
+      "status": "DONE",
+      "did": "Extracted CLI bodies into shared functions: mapping/start.py (start/regenerate/abandon+StartRefused), mapping/preview.py (build_preview incl. new pdf-kind branch), approve_session+gate_state, registry.create_value_map, onboard/drafting.py; added rmu map abandon; full suite 222 passed, no behavior change",
+      "files": [
+        "src/rmu/mapping/start.py",
+        "src/rmu/mapping/preview.py",
+        "src/rmu/mapping/approve.py",
+        "src/rmu/registry.py",
+        "src/rmu/onboard/drafting.py",
+        "src/rmu/cli.py",
+        "src/rmu/onboard/cli.py"
+      ]
+    },
+    "T012": {
+      "status": "DONE",
+      "did": "Parity harness (library_edit/assert_studio_matches_library) + split_draft/render_draft canonical draft IO + 4 foundation tests incl. bidirectional cross-surface finishability (SC-005)",
+      "files": [
+        "tests/studio/parity.py",
+        "tests/studio/test_parity_foundation.py",
+        "src/rmu/mapping/session.py"
+      ]
+    },
+    "T014": {
+      "status": "DONE",
+      "did": "Geometry projection tests",
+      "files": [
+        "panel fallback",
+        "observed samples",
+        "visual dims incl. rotated holdout",
+        "stable tags",
+        "gate=check_approval:tests/studio/test_geometry.py"
+      ]
+    },
+    "T015": {
+      "status": "DONE",
+      "did": "Route-mutation parity",
+      "files": [
+        "create/accept/reject/reroute byte-equal to library edits; schema-invalid refused pre-write; stale hash 409; terminal read-only:tests/studio/test_canvas_parity.py"
+      ]
+    },
+    "T016": {
+      "status": "DONE",
+      "did": "Fragment tests",
+      "files": [
+        "readiness bar equals gate_state",
+        "link list red T3 rows + state filters:tests/studio/test_fragments.py"
+      ]
+    },
+    "T017": {
+      "status": "DONE",
+      "did": "geometry.py session projection",
+      "files": [
+        "source panel/boxes",
+        "target view per kind",
+        "link projection",
+        "gate:src/rmu/studio/geometry.py"
+      ]
+    },
+    "T018": {
+      "status": "DONE",
+      "did": "Content-addressed PDF streaming with no-store and sha validation",
+      "files": [
+        "src/rmu/studio/routes/documents.py"
+      ]
+    },
+    "T019": {
+      "status": "DONE",
+      "did": "Session canvas routes",
+      "files": [
+        "view/geometry/links/readiness/route mutations via draftedit under DraftLease:src/rmu/studio/routes/sessions.py",
+        "src/rmu/studio/draftedit.py"
+      ]
+    },
+    "T020": {
+      "status": "DONE",
+      "did": "Canvas templates",
+      "files": [
+        "session.html",
+        "links/readiness/canvas_update fragments",
+        "read-only terminal view:src/rmu/studio/templates/session.html",
+        "src/rmu/studio/templates/fragments/"
+      ]
+    },
+    "T021": {
+      "status": "DONE",
+      "did": "Client modules",
+      "files": [
+        "viewer.js lazy PDF.js pages",
+        "overlay.js bbox-times-scale",
+        "wires.js focus wire",
+        "canvas.js tri-directional selection:src/rmu/studio/static/js/"
+      ]
+    },
+    "T022": {
+      "status": "DONE",
+      "did": "Source/target structured panels with observed-value samples; no field-name-overlap indicator anywhere (FR-016)",
+      "files": [
+        "src/rmu/studio/templates/fragments/source_panel.html",
+        "src/rmu/studio/templates/fragments/target_panel.html"
+      ]
+    },
+    "T023": {
+      "status": "DONE",
+      "did": "Preview parity tests: CSV bytes match CLI + inline table with flagged unresolved cells; docx offers real downloadable file (never HTML lookalike); unresolved count equals CLI",
+      "files": [
+        "tests/studio/test_preview.py"
+      ]
+    },
+    "T024": {
+      "status": "DONE",
+      "did": "Approval parity tests: refusal reasons verbatim, studio-approved Transform byte-identical to CLI with same decisions/lineage, racing approval refused without double-registering",
+      "files": [
+        "tests/studio/test_approve.py"
+      ]
+    },
+    "T025": {
+      "status": "DONE",
+      "did": "Preview route delegating to build_preview; native display fragment per kind (PDF.js inline, CSV table, docx download link) with render problems verbatim",
+      "files": [
+        "src/rmu/studio/routes/preview.py",
+        "src/rmu/studio/templates/fragments/preview.html"
+      ]
+    },
+    "T026": {
+      "status": "DONE",
+      "did": "Approve route via approve_session (same gate + Transform store); approve dialog with identity capture; refusals surface DomainRefusal verbatim",
+      "files": [
+        "src/rmu/studio/routes/sessions.py",
+        "src/rmu/studio/templates/fragments/approve_dialog.html",
+        "src/rmu/studio/templates/fragments/approved.html"
+      ]
+    },
+    "T027": {
+      "status": "DONE",
+      "did": "Value-map parity tests: staging writes draft file with no registry row, Register & pin appends version with per-entry provenance and pins route, matches rmu valuemap create, bad provenance refused",
+      "files": [
+        "tests/studio/test_valuemap.py"
+      ]
+    },
+    "T028": {
+      "status": "DONE",
+      "did": "Mechanism parity tests: constant/formula/prompt land as schema constructs, invalid formula refused pre-write, pinning value map recomputes tier T0->T1 (FR-013a)",
+      "files": [
+        "tests/studio/test_mechanisms.py"
+      ]
+    },
+    "T029": {
+      "status": "DONE",
+      "did": "Link detail routes: observed/unmapped values, valuemap stage (draft file only), Register & pin (create_value_map + pin_value_map), constant/formula/prompt mechanisms",
+      "files": [
+        "src/rmu/studio/routes/links.py",
+        "src/rmu/studio/valuemaps.py",
+        "src/rmu/studio/draftedit.py"
+      ]
+    },
+    "T030": {
+      "status": "DONE",
+      "did": "Link detail template: value-map entry table with provenance badges + AI marking, unmapped-value warnings, mechanism editor, derived-tier display",
+      "files": [
+        "src/rmu/studio/templates/fragments/link_detail.html",
+        "src/rmu/studio/templates/fragments/valuemap_staged.html"
+      ]
+    },
+    "T031": {
+      "status": "DONE",
+      "did": "Onboard review parity tests: confirm/correct/remove write review_state+corrected_payload visible to CLI, bulk-confirm per element, approval blocked while unreviewed, terminal read-only",
+      "files": [
+        "tests/studio/test_onboard_review.py",
+        "src/rmu/onboard/proposal.py"
+      ]
+    },
+    "T032": {
+      "status": "DONE",
+      "did": "Spatial-edit + verify tests: geometry projects regions with bbox+page, drag/resize records corrected bbox, analyst-drawn region carries source=analyst, verify failure returns per-check report, success registers",
+      "files": [
+        "tests/studio/test_onboard_spatial.py"
+      ]
+    },
+    "T033": {
+      "status": "DONE",
+      "did": "proposal_geometry: spatial elements projected per exemplar with cross-exemplar agreement, non-spatial elements listed with evidence/confidence/flags, diagnosis + verify_report",
+      "files": [
+        "src/rmu/studio/geometry.py"
+      ]
+    },
+    "T034": {
+      "status": "DONE",
+      "did": "Proposal routes: view/geometry/element edits/add analyst element/bulk-confirm/abandon/approve via verify-on-approve with per-check failure report",
+      "files": [
+        "src/rmu/studio/routes/proposals.py"
+      ]
+    },
+    "T035": {
+      "status": "DONE",
+      "did": "Triage templates: proposal.html spotlight workspace + exemplar switcher, triage_rail with keyboard hints/filter/bulk-confirm, verify_report grouped, structureless diagnosis view",
+      "files": [
+        "src/rmu/studio/templates/proposal.html",
+        "src/rmu/studio/templates/fragments/triage_rail.html",
+        "src/rmu/studio/templates/fragments/verify_report.html"
+      ]
+    },
+    "T036": {
+      "status": "DONE",
+      "did": "Client modules triage.js (Y/E/X keyboard + auto-advance + exemplar switcher) and regions.js (drag-draw + rename with pixel-to-visual-space conversion)",
+      "files": [
+        "src/rmu/studio/static/js/triage.js",
+        "src/rmu/studio/static/js/regions.js"
+      ]
+    },
+    "T037": {
+      "status": "DONE",
+      "did": "Post-approval next-step: registered.html offers (never auto-starts) a mapping session with the newly registered artifact (FR-035a)",
+      "files": [
+        "src/rmu/studio/templates/fragments/registered.html"
+      ]
+    },
+    "T038": {
+      "status": "DONE",
+      "did": "Initiation parity tests: uploaded exemplar yields draft identical to CLI start, drift block message, consentless external explained, onboarding draft, unsupported PDF rejection with workaround",
+      "files": [
+        "tests/studio/test_initiation.py"
+      ]
+    },
+    "T039": {
+      "status": "DONE",
+      "did": "Start routes: multipart upload -> content-addressed -> start_session/draft_*_proposal; regenerate; verbatim refusals; kind-misuse proceed-anyway",
+      "files": [
+        "src/rmu/studio/routes/start.py"
+      ]
+    },
+    "T040": {
+      "status": "DONE",
+      "did": "Initiation templates: start.html with profile/template pickers + upload + assist mode, started/drafted/kind_misuse fragments",
+      "files": [
+        "src/rmu/studio/templates/start.html",
+        "src/rmu/studio/templates/fragments/started.html",
+        "src/rmu/studio/templates/fragments/drafted.html",
+        "src/rmu/studio/templates/fragments/kind_misuse.html"
+      ]
+    },
+    "T041": {
+      "status": "DONE",
+      "did": "Dashboard parity tests: registries/sessions/runs listed, run detail shows verdicts+coverage+exceptions, abandon matches CLI terminal state, no mutating action on registered artifacts, AI health+consent",
+      "files": [
+        "tests/studio/test_dashboard.py"
+      ]
+    },
+    "T042": {
+      "status": "DONE",
+      "did": "Dashboard + runs routes with read-model (dashboarddata.overview/run_detail); abandon session route; dashboard.html + run.html templates rendering SafeCard verdicts/coverage/exceptions",
+      "files": [
+        "src/rmu/studio/routes/dashboard.py",
+        "src/rmu/studio/dashboarddata.py",
+        "src/rmu/studio/templates/dashboard.html",
+        "src/rmu/studio/templates/run.html"
+      ]
+    },
+    "T043": {
+      "status": "DONE",
+      "did": "AI health + consent routes: ai.doctor.health report, per-client consent grant/revoke recording same fields as CLI; ai.html + consent_list fragment",
+      "files": [
+        "src/rmu/studio/routes/ai.py",
+        "src/rmu/studio/templates/ai.html",
+        "src/rmu/studio/templates/fragments/consent_list.html"
+      ]
+    },
+    "T044": {
+      "status": "DONE",
+      "did": "Drift-to-reonboard shortcut in run view: blocked documents offer seeded re-onboarding link prefilled with the drifted profile (FR-037a), delegating to the onboarding form",
+      "files": [
+        "src/rmu/studio/templates/run.html"
+      ]
+    },
+    "T045": {
+      "status": "DONE",
+      "did": "Deletion drill: full map->approve->apply cycle passes with rmu.studio unimportable, proving every CLI capability intact without the studio (SC-004)",
+      "files": [
+        "tests/studio/test_deletability.py"
+      ]
+    },
+    "T046": {
+      "status": "DONE",
+      "did": "Lifecycle audit: no studio-private tables, full session writes only to drafts/objects/runs/db, preview+approve work under non-loopback network block (no AI at preview/apply, FR-044/SC-006)",
+      "files": [
+        "tests/studio/test_lifecycle_audit.py"
+      ]
+    },
+    "T047": {
+      "status": "DONE",
+      "did": "Persistence sweep: no localStorage/sessionStorage/indexedDB in any JS module, document+preview responses no-store, token absent from JSON/data bodies (FR-043)",
+      "files": [
+        "tests/studio/test_persistence_sweep.py"
+      ]
+    },
+    "T048": {
+      "status": "DONE",
+      "did": "Full-route auth re-verification: every registered route refuses without token, every mutation refuses cross-origin, loopback-peer + stale-token + hardcoded 127.0.0.1 bind confirmed (SC-003/SC-011)",
+      "files": [
+        "tests/studio/test_auth_all_routes.py"
+      ]
+    },
+    "T049": {
+      "status": "DONE",
+      "did": "Documented the manual demo checklist (rotated overlays, SC-010 5s open, SC-008 30-min triage, SC-009 unaided journey) in quickstart.md + STATUS.md for the Gate-2 hardware run; automatable parts covered by tests",
+      "files": [
+        "specs/004-mapping-studio/quickstart.md",
+        "STATUS.md"
+      ]
+    },
+    "T050": {
+      "status": "DONE",
+      "did": "SC-001 acceptance journey test: full studio session (start, accept AI link, draw manual link, value map with human+ai-accepted entries, constant+formula+prompt, preview, approve) then CLI batch converts — zero YAML hand-edits",
+      "files": [
+        "tests/studio/test_acceptance_journey.py"
+      ]
+    },
+    "T051": {
+      "status": "DONE",
+      "did": "Docs: README Mapping Studio section + status line, STATUS.md session entry, ASSUMPTIONS.md D11/A13",
+      "files": [
+        "README.md",
+        "STATUS.md",
+        "ASSUMPTIONS.md"
+      ]
+    },
+    "T052": {
+      "status": "DONE",
+      "did": "Cleanup: ruff clean across src+tests, handlers thin (delegate-and-render), quarantine fixed (synthetic rotated PDF replaces holdout reference in geometry test)",
+      "files": [
+        "tests/studio/test_geometry.py"
+      ]
+    },
+    "T053": {
+      "status": "DONE",
+      "did": "Full suite both modes: 362 passed with studio group; 203 passed + studio tests cleanly skipped without it (SC-004); determinism/append-only/drift invariants untouched"
+    }
+  }
 }

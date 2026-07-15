@@ -21,40 +21,6 @@ def _session_factory():
     return make_session_factory(make_engine())
 
 
-def _reject(diag, pdf: Path) -> None:
-    _log_rejection(diag, pdf)  # FR-010: occurrences are logged for follow-up
-    typer.echo(f"rejected: {diag.rejection}")
-    typer.echo(f"workaround: {diag.workaround}")
-    raise typer.Exit(1)
-
-
-def _log_rejection(diag, pdf: Path) -> None:
-    """Append the rejection occurrence to store/onboard_rejections.jsonl so
-    unsupported formats become follow-up data, not lost terminal output."""
-    import datetime
-    import json
-
-    from rmu.config import store_root
-
-    entry = {
-        "file": str(pdf),
-        "condition": diag.rejection,
-        "workaround": diag.workaround,
-        "at": datetime.datetime.now(datetime.UTC).isoformat(timespec="seconds"),
-    }
-    with (store_root() / "onboard_rejections.jsonl").open("a") as fh:
-        fh.write(json.dumps(entry, sort_keys=True) + "\n")
-
-
-def _check_misuse(pdf: Path, command: str, force: bool) -> None:
-    from rmu.onboard.pdf_kind import misuse_warning
-
-    warning = misuse_warning(pdf, command=command)
-    if warning and not force:
-        typer.echo(f"warning: {warning}")
-        raise typer.Exit(1)
-
-
 @onboard_app.command("draft-profile")
 def draft_profile(
     exemplars: list[str] = typer.Argument(..., help="exemplar PDF(s) of the new source shape"),
@@ -66,96 +32,49 @@ def draft_profile(
                                help="proceed despite a document-kind warning (FR-023)"),
 ) -> None:
     """Analyse an unrecognised source PDF into a draft profile proposal."""
-    import pdfplumber
-
-    from rmu import store
-    from rmu.onboard.analyze_source import analyze
-    from rmu.onboard.enrich import enrich_document
-    from rmu.onboard.pdf_kind import diagnose
-    from rmu.onboard.proposal import Proposal
-    from rmu.onboard.review_sheet import write_sheet
-    from rmu.onboard.skeleton import attach_diagnosis, is_structureless
-
-    paths = [Path(p) for p in exemplars]
-    for p in paths:
-        if not p.exists():
-            typer.echo(f"error: no such file {p}")
-            raise typer.Exit(1)
-    diag = diagnose(paths[0])
-    if diag.kind is None:
-        _reject(diag, paths[0])
-    _check_misuse(paths[0], "draft-profile", force)
+    from rmu.onboard.drafting import KindMisuse, OnboardRejected, draft_profile_proposal
 
     with _session_factory()() as s:
-        seed_row = None
-        seed_profile = None
-        if seed_from:
-            from rmu.registry import get_profile
-            from rmu.seed import profile_config
-
-            try:
-                seed_row = get_profile(s, seed_from)
-            except LookupError as err:
-                typer.echo(f"error: {err}")
-                raise typer.Exit(1) from err
-            # FR-021: pass the seeding recipe so the proposal is annotated as
-            # a delta (seed_match evidence / seed_divergent flags)
-            seed_profile = {"ref": seed_from, "recipe": profile_config(seed_from)}
-
-        for p in paths:
-            store.put_file(p)  # exemplars retrievable at verify-on-approve
-        document = analyze(paths, seed_profile=seed_profile)
-
-        if not no_ai:
-            llm = _local_llm()
-            if llm is not None:
-                with pdfplumber.open(paths[0]) as pdf:
-                    page_texts = [pg.extract_text() or "" for pg in pdf.pages]
-                document = enrich_document(document, page_texts, llm=llm)
-
-        skeleton = is_structureless(document)
-        if skeleton:
-            attach_diagnosis(document)  # FR-001b: never a dead end
-
-        proposal = Proposal.create(
-            s, document,
-            seeded_from_profile_id=seed_row.id if seed_row else None,
-        )
-        sheet = write_sheet(document, proposal.id)
-
-        low = sum(1 for e in document["elements"] if e["confidence"] < 0.5)
-        flagged = sum(1 for e in document["elements"] if e.get("flags"))
-        typer.echo(f"proposal: {proposal.id}")
-        typer.echo(f"draft: {proposal.draft_path()}")
-        typer.echo(f"review sheet: {sheet}")
-        typer.echo(
-            f"elements: {len(document['elements'])} "
-            f"(low-confidence: {low}, flagged: {flagged})"
-        )
-        if document.get("ai_assist"):
-            typer.echo(
-                f"ai hints: {len(document['ai_assist']['enrichments'])} "
-                f"(local, pages {document['ai_assist']['sampled_pages']})"
+        try:
+            outcome = draft_profile_proposal(
+                s, [Path(p) for p in exemplars],
+                no_ai=no_ai, seed_from=seed_from, force=force,
             )
-        if skeleton:
-            typer.echo(f"diagnosis: {document['diagnosis']['notes']}")
+        except FileNotFoundError as err:
+            typer.echo(str(err))
+            raise typer.Exit(1) from err
+        except OnboardRejected as err:
+            typer.echo(f"rejected: {err.rejection}")
+            typer.echo(f"workaround: {err.workaround}")
+            raise typer.Exit(1) from err
+        except KindMisuse as err:
+            typer.echo(f"warning: {err.warning}")
+            raise typer.Exit(1) from err
+        except LookupError as err:
+            typer.echo(f"error: {err}")
+            raise typer.Exit(1) from err
+
+    document = outcome.document
+    low = sum(1 for e in document["elements"] if e["confidence"] < 0.5)
+    flagged = sum(1 for e in document["elements"] if e.get("flags"))
+    typer.echo(f"proposal: {outcome.proposal_id}")
+    typer.echo(f"draft: {outcome.draft_path}")
+    typer.echo(f"review sheet: {outcome.sheet_path}")
+    typer.echo(
+        f"elements: {len(document['elements'])} "
+        f"(low-confidence: {low}, flagged: {flagged})"
+    )
+    if document.get("ai_assist"):
         typer.echo(
-            "next: review each element against the PDF, edit the draft YAML, "
-            "then 'rmu onboard approve'"
+            f"ai hints: {len(document['ai_assist']['enrichments'])} "
+            f"(local, pages {document['ai_assist']['sampled_pages']})"
         )
-
-
-def _local_llm():
-    """Best-effort 002-layer local model; None => enrichment silently skipped."""
-    try:
-        from rmu.ai.config import load_ai_config
-        from rmu.ai.llm_local import LocalLLM
-        from rmu.config import store_root
-
-        cfg = load_ai_config(store_root())
-        return LocalLLM(cfg.ollama_host, cfg.llm_model, cfg.timeout_seconds)
-    except Exception:
-        return None
+    if document.get("diagnosis"):
+        typer.echo(f"diagnosis: {document['diagnosis']['notes']}")
+    typer.echo(
+        "next: review each element against the PDF, edit the draft YAML, "
+        "then 'rmu onboard approve'"
+    )
 
 
 @onboard_app.command("draft-template")
@@ -165,37 +84,33 @@ def draft_template(
     force: bool = typer.Option(False, "--force"),
 ) -> None:
     """Analyse a target-format PDF into a draft template proposal."""
-    from rmu.onboard.pdf_kind import diagnose
-
-    pdf = Path(target)
-    if not pdf.exists():
-        typer.echo(f"error: no such file {pdf}")
-        raise typer.Exit(1)
-    diag = diagnose(pdf)
-    if diag.kind is None:
-        _reject(diag, pdf)
-    _check_misuse(pdf, "draft-template", force)
-
-    from rmu import store
-    from rmu.onboard.analyze_target import analyze
-    from rmu.onboard.proposal import Proposal
-    from rmu.onboard.review_sheet import write_sheet
+    from rmu.onboard.drafting import KindMisuse, OnboardRejected, draft_template_proposal
 
     with _session_factory()() as s:
-        store.put_file(pdf)  # the template PDF itself becomes the pdf_object
-        document = analyze(pdf, kind=diag.kind)
-        proposal = Proposal.create(s, document)
-        sheet = write_sheet(document, proposal.id)
-        flagged = sum(1 for e in document["elements"] if e.get("flags"))
-        typer.echo(f"proposal: {proposal.id}")
-        typer.echo(f"kind: {'pdf_form' if diag.kind == 'form' else 'pdf_overlay'}")
-        typer.echo(f"draft: {proposal.draft_path()}")
-        typer.echo(f"review sheet: {sheet}")
-        typer.echo(f"elements: {len(document['elements'])} (flagged: {flagged})")
-        typer.echo(
-            "next: review fields/regions + cardinality, edit the draft YAML, "
-            "then 'rmu onboard approve --name <name>@<version>'"
-        )
+        try:
+            outcome = draft_template_proposal(s, Path(target), no_ai=no_ai, force=force)
+        except FileNotFoundError as err:
+            typer.echo(str(err))
+            raise typer.Exit(1) from err
+        except OnboardRejected as err:
+            typer.echo(f"rejected: {err.rejection}")
+            typer.echo(f"workaround: {err.workaround}")
+            raise typer.Exit(1) from err
+        except KindMisuse as err:
+            typer.echo(f"warning: {err.warning}")
+            raise typer.Exit(1) from err
+
+    document = outcome.document
+    flagged = sum(1 for e in document["elements"] if e.get("flags"))
+    typer.echo(f"proposal: {outcome.proposal_id}")
+    typer.echo(f"kind: {'pdf_form' if outcome.pdf_kind == 'form' else 'pdf_overlay'}")
+    typer.echo(f"draft: {outcome.draft_path}")
+    typer.echo(f"review sheet: {outcome.sheet_path}")
+    typer.echo(f"elements: {len(document['elements'])} (flagged: {flagged})")
+    typer.echo(
+        "next: review fields/regions + cardinality, edit the draft YAML, "
+        "then 'rmu onboard approve --name <name>@<version>'"
+    )
 
 
 @onboard_app.command("review")

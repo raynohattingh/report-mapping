@@ -1,0 +1,4 @@
+{% include "fragments/links.html" %}
+{% set oob = True %}
+{% include "fragments/readiness.html" %}
+<div id="draft-hash" data-hash="{{ draft_hash }}" hidden hx-swap-oob="true"></div>

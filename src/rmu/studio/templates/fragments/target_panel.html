@@ -1,0 +1,10 @@
+<div class="panel target-panel">
+  <div class="pane-head">TARGET FIELDS <span class="muted">({{ kind }})</span></div>
+  {% for f in panel %}
+  <div class="link-row target-el" data-target-field="{{ f.field }}">
+    <span class="field">{{ f.field }}</span>
+    {% if f.label and f.label != f.field %}<span class="muted">{{ f.label }}</span>{% endif %}
+    {% if f.required %}<span class="chip tier-T3" title="required">required</span>{% endif %}
+  </div>
+  {% endfor %}
+</div>

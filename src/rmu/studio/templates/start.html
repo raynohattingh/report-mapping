@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Start {{ mode }}{% endblock %}
+{% block content %}
+{% if mode == 'session' %}
+<h1>Start a mapping session</h1>
+<div class="panel">
+  <form hx-post="/start/session" hx-encoding="multipart/form-data"
+        hx-target="#workspace-flash" hx-swap="innerHTML">
+    <label>source profile
+      <select name="profile" required>
+        {% for p in profiles %}
+        <option value="{{ p }}" {% if p == prefill_profile %}selected{% endif %}>{{ p }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>target template
+      <select name="template" required>
+        {% for t in templates %}
+        <option value="{{ t }}" {% if t == prefill_template %}selected{% endif %}>{{ t }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>exemplar report (PDF) <input type="file" name="exemplar" accept="application/pdf" required></label>
+    <label>assist mode
+      <select name="assist">
+        <option value="">default (local if available)</option>
+        <option value="local">local AI</option>
+        <option value="none">manual (--no-ai)</option>
+        <option value="external">external (consent-gated)</option>
+      </select>
+    </label>
+    <label>client (external only) <input name="client" placeholder="client id"></label>
+    <button type="submit">Start session</button>
+  </form>
+  <p class="muted">Local AI is the default; manual always works; external is
+  offered only where client consent exists — otherwise the requirement is
+  explained, not bypassed.</p>
+</div>
+{% else %}
+<h1>Onboard a new format</h1>
+<div class="panel">
+  <form hx-post="/start/onboarding" hx-encoding="multipart/form-data"
+        hx-target="#workspace-flash" hx-swap="innerHTML">
+    <label>kind
+      <select name="kind">
+        <option value="template">target template (PDF)</option>
+        <option value="profile">source profile (exemplar PDF)</option>
+      </select>
+    </label>
+    <label>document (PDF) <input type="file" name="document" accept="application/pdf" required></label>
+    <label>seed from (drift re-onboarding, profile only)
+      <select name="seed_from">
+        <option value="">— none —</option>
+        {% for p in profiles %}<option value="{{ p }}">{{ p }}</option>{% endfor %}
+      </select>
+    </label>
+    <button type="submit">Analyse &amp; draft</button>
+  </form>
+</div>
+{% endif %}
+{% endblock %}

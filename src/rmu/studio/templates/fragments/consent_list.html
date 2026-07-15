@@ -1,0 +1,12 @@
+<div id="consent-list">
+  {% if consent %}
+  <table><tr><th>client</th><th>granted by</th><th>at</th><th>note</th></tr>
+    {% for e in consent %}
+    <tr><td>{{ e.client }}</td><td>{{ e.granted_by }}</td><td>{{ e.granted_at }}</td>
+        <td>{{ e.note or '' }}</td></tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">no external-API consent recorded</p>
+  {% endif %}
+</div>

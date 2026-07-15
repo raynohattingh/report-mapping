@@ -1,0 +1,68 @@
+<div class="panel link-detail" data-field="{{ field }}" data-observed="{{ observed | join(',') }}">
+  <h2>{{ source_from }} <span class="arrow">→</span> {{ field }}</h2>
+
+  <div class="observed">
+    <span class="muted">observed source values:</span>
+    {% for v in observed %}
+    <span class="chip {{ 'tier-T3' if v in unmapped else 'tier-T0' }}">{{ v }}</span>
+    {% endfor %}
+    {% if not observed %}<span class="muted">none (non-enumerable source)</span>{% endif %}
+  </div>
+  {% if unmapped %}
+  <p class="tier-missing">unmapped observed values: {{ unmapped | join(', ') }}</p>
+  {% endif %}
+
+  {% if not read_only %}
+  <h2>value map — {{ vm_name }}</h2>
+  <form hx-post="/sessions/{{ session_id }}/links/{{ field }}/valuemap"
+        hx-target="#workspace-flash" hx-swap="innerHTML">
+    <input type="hidden" name="name" value="{{ vm_name }}">
+    <table id="vm-entries">
+      <tr><th>source</th><th>target</th><th>provenance</th></tr>
+      {% for e in entries %}
+      <tr>
+        <td><input name="source_value" value="{{ e.source_value }}"></td>
+        <td><input name="target_value" value="{{ e.target_value }}"></td>
+        <td>
+          <select name="provenance">
+            <option value="human" {% if e.provenance == 'human' %}selected{% endif %}>human</option>
+            <option value="ai-accepted" {% if e.provenance == 'ai-accepted' %}selected{% endif %}>ai-accepted</option>
+          </select>
+          {% if e.provenance == 'ai-accepted' %}<span class="chip tier-T2">AI</span>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+      {% for v in unmapped %}
+      <tr>
+        <td><input name="source_value" value="{{ v }}"></td>
+        <td><input name="target_value" placeholder="map {{ v }}…"></td>
+        <td><select name="provenance"><option value="human">human</option>
+            <option value="ai-accepted">ai-accepted</option></select></td>
+      </tr>
+      {% endfor %}
+    </table>
+    <button type="submit">Stage entries (no registry write)</button>
+  </form>
+  <form hx-post="/sessions/{{ session_id }}/links/{{ field }}/valuemap/register"
+        hx-target="#link-list" hx-swap="outerHTML">
+    <input type="hidden" name="name" value="{{ vm_name }}">
+    <input type="hidden" name="base_hash" value="{{ draft_hash }}">
+    <button type="submit">Register &amp; pin new version</button>
+  </form>
+
+  <h2>other mechanisms</h2>
+  <form hx-post="/sessions/{{ session_id }}/links/{{ field }}/mechanism"
+        hx-target="#link-list" hx-swap="outerHTML">
+    <input type="hidden" name="base_hash" value="{{ draft_hash }}">
+    <select name="mechanism">
+      <option value="constant">constant</option>
+      <option value="formula">formula (YAML spec)</option>
+      <option value="prompt">per-batch prompt</option>
+    </select>
+    <input name="value" placeholder="constant value">
+    <input name="spec" placeholder="formula spec (yaml)">
+    <input name="key" placeholder="prompt key"><input name="label" placeholder="prompt label">
+    <button type="submit">Apply mechanism</button>
+  </form>
+  {% endif %}
+</div>

@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<h1>Dashboard</h1>
+<div style="display:flex; gap:10px; margin-bottom:12px">
+  <a class="btn" href="/start/session">Start mapping session</a>
+  <a class="btn" href="/start/onboarding">Onboard a format</a>
+</div>
+
+<div class="panel" id="registries">
+  <h2>Source profiles</h2>
+  <table><tr><th>ref</th><th>status</th><th>effective</th></tr>
+    {% for p in profiles %}<tr><td>{{ p.ref }}</td><td>{{ p.status }}</td><td>{{ p.effective }}</td></tr>{% endfor %}
+  </table>
+  <h2>Target templates</h2>
+  <table><tr><th>ref</th><th>kind</th><th>effective</th></tr>
+    {% for t in templates %}<tr><td>{{ t.ref }}</td><td>{{ 'INTERIM' if t.interim else 'REAL' }}</td><td>{{ t.effective }}</td></tr>{% endfor %}
+  </table>
+  <h2>Transforms</h2>
+  <table><tr><th>id</th><th>version</th><th>approved by</th></tr>
+    {% for t in transforms %}<tr><td>{{ t.id }}</td><td>v{{ t.version }}</td><td>{{ t.approved_by }}</td></tr>{% endfor %}
+  </table>
+  <h2>Value maps</h2>
+  <table><tr><th>ref</th><th>entries</th></tr>
+    {% for v in value_maps %}<tr><td>{{ v.ref }}</td><td>{{ v.entries }}</td></tr>{% endfor %}
+  </table>
+</div>
+
+<div class="panel" id="sessions">
+  <h2>Mapping sessions</h2>
+  <table><tr><th>id</th><th>mode</th><th>status</th><th></th></tr>
+    {% for ms in sessions %}
+    <tr><td>{{ ms.id }}</td><td>{{ ms.mode }}</td><td>{{ ms.status }}</td>
+      <td>
+        <a href="/sessions/{{ ms.id }}">open</a>
+        {% if ms.status == 'draft' %}
+        · <a href="#" hx-post="/sessions/{{ ms.id }}/abandon" hx-target="#workspace-flash">abandon</a>
+        {% endif %}
+      </td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+<div class="panel" id="proposals">
+  <h2>Onboarding proposals</h2>
+  <table><tr><th>id</th><th>kind</th><th>status</th><th></th></tr>
+    {% for p in proposals %}
+    <tr><td>{{ p.id }}</td><td>{{ p.kind }}</td><td>{{ p.status }}</td>
+      <td><a href="/proposals/{{ p.id }}">review</a>
+        {% if p.status == 'draft' %}
+        · <a href="#" hx-post="/proposals/{{ p.id }}/abandon" hx-target="#workspace-flash">abandon</a>
+        {% endif %}
+      </td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+<div class="panel" id="runs">
+  <h2>Apply runs</h2>
+  <table><tr><th>run</th><th>label</th><th>docs</th><th>verdicts</th><th></th></tr>
+    {% for r in runs %}
+    <tr><td>run {{ r.id }}</td><td>{{ r.label }}</td><td>{{ r.batch.total }}</td>
+      <td>
+        {% for v, c in r.batch.verdicts.items() %}{% if c %}<span class="chip {{ 'tier-T0' if v=='pass' else ('tier-T2' if v=='warn' else 'tier-T3') }}">{{ v }} {{ c }}</span> {% endif %}{% endfor %}
+      </td>
+      <td><a href="/runs/{{ r.id }}">detail</a></td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}
