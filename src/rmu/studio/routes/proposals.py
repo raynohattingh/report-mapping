@@ -154,10 +154,11 @@ def approve(request: Request, proposal_id: int,
                 next_kind = "profile"
                 next_ref = f"{row.key}@{row.structural_version}"
             else:
-                if "@" not in name:
+                tname, sep, tver = name.partition("@")
+                if not sep or not tname or not tver.isdigit():
                     raise DomainRefusal("approval needs identity",
-                                        ["template approval needs name@version"])
-                tname, _, tver = name.partition("@")
+                                        ["template approval needs name@version "
+                                         "(version must be an integer)"])
                 row = approve_template(s, p, tname, int(tver), operator)
                 registered = f"TargetTemplate {row.name}@{row.version}"
                 next_kind = "template"

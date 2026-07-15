@@ -27,7 +27,7 @@
   <h2>External-API consent (per client)</h2>
   {% include "fragments/consent_list.html" %}
   <h2>grant / revoke</h2>
-  <form hx-post="/ai/consent" hx-target="#consent-list" hx-swap="outerHTML">
+  <form class="stack-form" hx-post="/ai/consent" hx-target="#consent-list" hx-swap="outerHTML">
     <select name="action"><option value="grant">grant</option><option value="revoke">revoke</option></select>
     <input name="client" placeholder="client id" required>
     <input name="by" placeholder="owner" required>

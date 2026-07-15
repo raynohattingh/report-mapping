@@ -4,7 +4,7 @@
 {% if mode == 'session' %}
 <h1>Start a mapping session</h1>
 <div class="panel">
-  <form hx-post="/start/session" hx-encoding="multipart/form-data"
+  <form class="stack-form" hx-post="/start/session" hx-encoding="multipart/form-data"
         hx-target="#workspace-flash" hx-swap="innerHTML">
     <label>source profile
       <select name="profile" required>
@@ -39,7 +39,7 @@
 {% else %}
 <h1>Onboard a new format</h1>
 <div class="panel">
-  <form hx-post="/start/onboarding" hx-encoding="multipart/form-data"
+  <form class="stack-form" hx-post="/start/onboarding" hx-encoding="multipart/form-data"
         hx-target="#workspace-flash" hx-swap="innerHTML">
     <label>kind
       <select name="kind">

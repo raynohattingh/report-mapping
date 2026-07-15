@@ -9,6 +9,7 @@ formulas and per-batch prompts are written as the schema already defines them.
 from __future__ import annotations
 
 import json
+import re
 
 from fastapi import APIRouter, Form, Request
 
@@ -34,6 +35,20 @@ def _parse_yaml(text: str, what: str):
     except yaml.YAMLError as err:
         raise DomainRefusal(f"invalid {what}",
                             [f"not valid YAML: {err}"]) from err
+
+
+# A value-map name becomes a draft filename (session_{id}.valuemap.{name}.yaml),
+# so it must stay a bare slug — reject path separators / traversal at the boundary
+# (CLAUDE.md: validate input at system boundaries). suggest_name only ever emits
+# this shape; a hand-built POST cannot escape the drafts dir.
+_SAFE_VM_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]*")
+
+
+def _require_safe_vm_name(name: str) -> None:
+    if ".." in name or not _SAFE_VM_NAME.fullmatch(name):
+        raise DomainRefusal("invalid value-map name",
+                            [f"unsafe value-map name {name!r} — use letters, "
+                             "digits, '_', '-' or '.'"])
 
 
 def _load(s, session_id: int):
@@ -98,10 +113,16 @@ def stage_valuemap(request: Request, session_id: int, field: str,
                    target_value: list[str] = Form(default=[]),
                    provenance: list[str] = Form(default=[])):
     """Stage entries in the draft value-map file — NO registry write (FR-021)."""
+    _require_safe_vm_name(name)
     with db_session() as s:
         ms, _, _ = _load(s, session_id)
         _require_draft(ms)
-    entries = valuemaps.entries_from_parallel(source_value, target_value, provenance)
+    try:
+        entries = valuemaps.entries_from_parallel(source_value, target_value, provenance)
+    except ValueError as err:
+        raise DomainRefusal("value-map edit refused",
+                            ["mismatched value-map columns — each row needs a "
+                             "source value, target value and provenance"]) from err
     valuemaps.stage_entries(session_id, name, entries)
     return render(request, "fragments/valuemap_staged.html", session_id=session_id,
                   field=field, vm_name=name, entries=entries)
@@ -118,6 +139,7 @@ def register_valuemap(request: Request, session_id: int, field: str,
     FR-005 conflict path (and its retry) can never orphan or duplicate registry
     versions — one create per successful register, matching the CLI (FR-003).
     """
+    _require_safe_vm_name(name)
     entries = valuemaps.load_staged(session_id, name)
     if not entries:
         raise DomainRefusal("nothing to register",

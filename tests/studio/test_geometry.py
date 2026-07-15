@@ -107,6 +107,17 @@ def test_gate_matches_check_approval(manual_session):
     assert geo["gate"]["t3_unmapped"], "fresh manual draft must show T3 blockers"
 
 
+def test_source_boxes_tolerate_missing_profile_recipe():
+    """An onboarded profile whose recipe YAML was removed (a real dev-DB state)
+    must not crash the canvas: the CLI review/preview succeed from the stored
+    extraction, so the studio must too (FR-002). Spatial boxes simply fall away
+    — nothing is invented, nothing 500s."""
+    from rmu.studio.geometry import _source_boxes
+
+    dims = [{"page": 1, "width": 595.0, "height": 842.0}]
+    assert _source_boxes("no.such.profile@1", dims) == []
+
+
 def test_registered_bboxes_project_unchanged_in_visual_space(tmp_path):
     """A registered bbox is emitted verbatim; a page displayed landscape via
     /Rotate 90 on a portrait mediabox reports VISUAL (rotated) dims — the same

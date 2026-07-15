@@ -55,7 +55,12 @@ def apply_doc_edit(
 #     accept→accepted, reject→rejected, reroute→edited, create→manual) -------
 
 def create_route(doc: dict, field: str, from_path: str) -> None:
-    if field in doc.get("routes", {}):
+    # `map start` seeds every required field as a T3 stub (from='?'); the draw
+    # gesture must FILL such a stub in (FR-013), refusing only a real route
+    # (T0/T1 confirmed or a T2 proposal — those are re-routed/accepted, never
+    # silently clobbered).
+    existing = doc.get("routes", {}).get(field)
+    if existing is not None and existing.get("tier") != "T3":
         raise RouteEditError(f"field '{field}' already has a route — re-route it instead")
     route = {"from": from_path, "tier": "T0"}
     route["tier"] = derived_tier(route)

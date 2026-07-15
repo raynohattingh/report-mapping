@@ -46,6 +46,34 @@ def test_create_manual_route_matches_library_edit(studio_client, stub_session):
     assert _doc(draft_path)["routes"][field]["tier"] == "T0"  # FR-013a
 
 
+def test_draw_link_fills_a_seeded_t3_stub(manual_session):
+    """`map start` seeds every required field as a T3 stub (from='?'). The
+    primary draw gesture (source→target, FR-013) MUST fill that stub in, not
+    refuse it — otherwise no required field can be mapped on the canvas (the
+    everyday flow). Regression: create_route used to refuse any field already
+    present in routes, which is every required field."""
+    _, draft_path = manual_session
+    doc = _doc(draft_path)
+    field = "source_severity"
+    assert doc["routes"][field]["tier"] == "T3", "precondition: seeded stub"
+    draftedit.create_route(doc, field, "finding.severity")
+    assert doc["routes"][field]["from"] == "finding.severity"
+    assert doc["routes"][field]["tier"] in ("T0", "T1")
+
+
+def test_draw_link_still_refuses_over_a_confirmed_route(manual_session):
+    """Drawing over a real (non-T3) route is still refused — the analyst is
+    directed to re-route/accept, so a confirmed mapping is never clobbered."""
+    import pytest
+
+    _, draft_path = manual_session
+    doc = _doc(draft_path)
+    field = "source_severity"
+    draftedit.create_route(doc, field, "finding.severity")  # now confirmed
+    with pytest.raises(draftedit.RouteEditError):
+        draftedit.create_route(doc, field, "finding.comments")
+
+
 def test_accept_promotes_to_derived_tier(studio_client, stub_session):
     session_id, draft_path = stub_session
     field = _t2_fields(draft_path)[0]

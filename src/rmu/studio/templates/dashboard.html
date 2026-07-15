@@ -10,19 +10,23 @@
 <div class="panel" id="registries">
   <h2>Source profiles</h2>
   <table><tr><th>ref</th><th>status</th><th>effective</th></tr>
-    {% for p in profiles %}<tr><td>{{ p.ref }}</td><td>{{ p.status }}</td><td>{{ p.effective }}</td></tr>{% endfor %}
+    {% for p in profiles %}<tr><td>{{ p.ref }}</td><td>{{ p.status }}</td><td>{{ p.effective }}</td></tr>
+    {% else %}<tr><td colspan="3" class="muted">No source profiles registered yet — onboard a source format to add one.</td></tr>{% endfor %}
   </table>
   <h2>Target templates</h2>
   <table><tr><th>ref</th><th>kind</th><th>effective</th></tr>
-    {% for t in templates %}<tr><td>{{ t.ref }}</td><td>{{ 'INTERIM' if t.interim else 'REAL' }}</td><td>{{ t.effective }}</td></tr>{% endfor %}
+    {% for t in templates %}<tr><td>{{ t.ref }}</td><td>{{ 'INTERIM' if t.interim else 'REAL' }}</td><td>{{ t.effective }}</td></tr>
+    {% else %}<tr><td colspan="3" class="muted">No target templates registered yet — onboard a target format to add one.</td></tr>{% endfor %}
   </table>
   <h2>Transforms</h2>
   <table><tr><th>id</th><th>version</th><th>approved by</th></tr>
-    {% for t in transforms %}<tr><td>{{ t.id }}</td><td>v{{ t.version }}</td><td>{{ t.approved_by }}</td></tr>{% endfor %}
+    {% for t in transforms %}<tr><td>{{ t.id }}</td><td>v{{ t.version }}</td><td>{{ t.approved_by }}</td></tr>
+    {% else %}<tr><td colspan="3" class="muted">No approved transforms yet — approve a mapping session to create one.</td></tr>{% endfor %}
   </table>
   <h2>Value maps</h2>
   <table><tr><th>ref</th><th>entries</th></tr>
-    {% for v in value_maps %}<tr><td>{{ v.ref }}</td><td>{{ v.entries }}</td></tr>{% endfor %}
+    {% for v in value_maps %}<tr><td>{{ v.ref }}</td><td>{{ v.entries }}</td></tr>
+    {% else %}<tr><td colspan="2" class="muted">No value maps registered yet — register one from a link's value mapping.</td></tr>{% endfor %}
   </table>
 </div>
 
@@ -37,6 +41,7 @@
         · <a href="#" hx-post="/sessions/{{ ms.id }}/abandon" hx-target="#workspace-flash">abandon</a>
         {% endif %}
       </td></tr>
+    {% else %}<tr><td colspan="4" class="muted">No mapping sessions yet — <a href="/start/session">start one</a>.</td></tr>
     {% endfor %}
   </table>
 </div>
@@ -51,6 +56,7 @@
         · <a href="#" hx-post="/proposals/{{ p.id }}/abandon" hx-target="#workspace-flash">abandon</a>
         {% endif %}
       </td></tr>
+    {% else %}<tr><td colspan="4" class="muted">No onboarding proposals yet — <a href="/start/onboarding">onboard a format</a>.</td></tr>
     {% endfor %}
   </table>
 </div>
@@ -64,6 +70,7 @@
         {% for v, c in r.batch.verdicts.items() %}{% if c %}<span class="chip {{ 'tier-T0' if v=='pass' else ('tier-T2' if v=='warn' else 'tier-T3') }}">{{ v }} {{ c }}</span> {% endif %}{% endfor %}
       </td>
       <td><a href="/runs/{{ r.id }}">detail</a></td></tr>
+    {% else %}<tr><td colspan="5" class="muted">No apply runs yet — batch runs are executed from the CLI (<code>rmu apply run</code>) and appear here.</td></tr>
     {% endfor %}
   </table>
 </div>

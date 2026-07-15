@@ -70,8 +70,17 @@ def _source_panel(normalized: dict) -> list[dict]:
 def _source_boxes(profile_ref: str, dims: list[dict]) -> list[dict]:
     """Spatial anchors from the profile recipe, where the recipe has any
     (onboarded recipes carry record-table x-ranges/pages; the seed v2020
-    profile is label-anchored — no coordinates, so no boxes)."""
-    recipe = profile_config(profile_ref)
+    profile is label-anchored — no coordinates, so no boxes).
+
+    A missing recipe file must NOT break the canvas: the CLI review/preview
+    read only the stored extraction and succeed even when the profile's recipe
+    YAML is absent (e.g. an onboarded profile whose file was removed), so the
+    studio must stay interchangeable (FR-002) and simply drop spatial boxes
+    rather than 500. Boxes are a projection aid, never source-of-truth."""
+    try:
+        recipe = profile_config(profile_ref)
+    except (FileNotFoundError, OSError):
+        return []
     boxes: list[dict] = []
     table = recipe.get("record_table") or {}
     x_ranges = table.get("x_ranges")
