@@ -39,6 +39,26 @@ eligibility). **Next:** validate on the real Eskom holdout (expect ~20 criteria
 × ~5 towers from the interpret stage vs 373 renames), then Phase 2 — the
 axis-first studio review surface (separate plan).
 
+**Final review (3-lens parallel: invariants / contracts / tests) + fix wave:**
+no blockers; all five findings closed and re-review approved — the interpret
+stage is now WIRED into `onboard draft-template` (local tier, real page images
+via pdfplumber+Pillow, `--no-ai` bypasses, ConsentRequired contained, dropped
+counts recorded on the proposal like enrich's stats); axis element IDs
+table-suffixed (two-grids-per-page collision fixed + tested); unmatched axis
+suggestions now counted (`dropped.unmatched_axis_entry`); interpret module
+fully type-hinted; provider tests hermetic. Suite 404 green + the pre-existing
+seed failure; ruff clean.
+
+**Deferred, tracked (from final review):**
+- ⚠️ MUST before onboarding the real Eskom target: a `/Rotate 90` matrix
+  fixture + test — every matrix fixture is unrotated; the real pack is
+  portrait-displayed-landscape and 003 had rotation bugs here before.
+- Multi-page matrix targets: interpret collapses to one axis element per kind
+  (last page wins) — suggestion-tier only, guard when multi-page matrices appear.
+- Consolidate `_flat_cell_elements` vs `_grid_region_elements` duplication;
+  LocalVisionInterpreter/LocalLLM probe overlap; uid()/cross-path field-name
+  dedup tests; golden matrix-rendered apply test.
+
 **Open/pre-existing:** `test_seed.py::test_db_init_and_seed_load_idempotent`
 fails on this branch's base (predates 005; separate fix). `ollama pull
 qwen2.5vl:7b` before first local-vision use; doctor reports its health.
