@@ -1,5 +1,6 @@
 from pathlib import Path
-from rmu.onboard.matrix import reconstruct_matrix, derive_field
+
+from rmu.onboard.matrix import derive_field, reconstruct_matrix
 
 FIXTURE = Path("tests/fixtures/onboarding/matrix_target.pdf")
 
@@ -23,8 +24,42 @@ def test_reconstruct_builds_two_axes_and_cells():
     assert sample["target_field"] == derive_field(sample["row_id"], sample["col_id"])
     assert sample["bbox"] and sample["page"] == 1
 
+def test_non_qualifying_table_still_emits_flat_cells():
+    """target_grid.pdf page 1 has a qualifying 4x4 grid AND a blank 2x2 grid
+    (too small for axis reconstruction). The 2x2's cells must survive as flat
+    positional overlay_regions — no table's cells may silently vanish."""
+    elements = reconstruct_matrix(Path("tests/fixtures/onboarding/target_grid.pdf"))
+    assert elements is not None
+    cells = _by_kind(elements, "overlay_region")
+    fields = {e["payload"]["target_field"] for e in cells}
+    # matrix cells from the qualifying grid
+    assert {"corrosion__result", "paint__notes"} <= fields
+    # flat cells from the non-qualifying 2x2 grid, positional names
+    assert {"cell_p1_r0_c0", "cell_p1_r0_c1",
+            "cell_p1_r1_c0", "cell_p1_r1_c1"} <= fields
+    flat = [e for e in cells if "row_id" not in e["payload"]]
+    assert len(flat) == 4
+    for e in flat:
+        assert e["evidence"]["association"] == "positional"
+        assert e["payload"]["label"] and len(e["payload"]["bbox"]) == 4
+
+
+def test_matrix_cells_carry_human_readable_labels():
+    """Cell payloads include a 'row x col' label (approve/verify's regions
+    contract requires one; review sheets show it)."""
+    elements = reconstruct_matrix(FIXTURE)
+    cells = _by_kind(elements, "overlay_region")
+    assert all(" × " in e["payload"]["label"] for e in cells)
+    sample = next(e["payload"] for e in cells
+                  if e["payload"]["target_field"] == "corrosion__t2")
+    assert sample["label"] == "Corrosion × T2"
+
+
 def test_reconstruct_returns_none_without_a_grid(tmp_path):
     from reportlab.pdfgen import canvas
     p = tmp_path / "blank.pdf"
-    c = canvas.Canvas(str(p)); c.drawString(72, 720, "no grid here"); c.showPage(); c.save()
+    c = canvas.Canvas(str(p))
+    c.drawString(72, 720, "no grid here")
+    c.showPage()
+    c.save()
     assert reconstruct_matrix(p) is None

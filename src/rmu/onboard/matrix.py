@@ -43,7 +43,8 @@ def _detect_bands(grid) -> tuple[list[int], int | None, int]:
     for j in range(min(ncols, 3)):
         vals = [_text(grid, i, j) for i in range(1, len(grid))]
         nonempty = [v for v in vals if v]
-        if nonempty and sum(bool(_NUMBERISH.match(v)) for v in nonempty) >= max(1, len(nonempty) // 2):
+        numeric = sum(bool(_NUMBERISH.match(v)) for v in nonempty)
+        if nonempty and numeric >= max(1, len(nonempty) // 2):
             number_column = j
             text_column = j + 1
             break
@@ -51,10 +52,62 @@ def _detect_bands(grid) -> tuple[list[int], int | None, int]:
     return header_rows, number_column, text_column
 
 
+def _flat_cell_elements(table, grid, page_no: int, height: float,
+                        used_fields: dict[str, int], start: int) -> list[dict]:
+    """Flat per-cell regions for a table too small to reconstruct as a matrix
+    (<2 rows or <3 cols): every blank, size-valid cell still becomes a
+    reviewable overlay_region, named nearest-left row label, else column
+    header above, else position — mirroring the pre-matrix grid path. Tables
+    must never silently lose fillable cells (hard rule: exceptions reported,
+    never absorbed)."""
+    elements: list[dict] = []
+    counter = start
+    for i, row in enumerate(table.rows):
+        for j, cell in enumerate(row.cells):
+            if cell is None:  # merged/absent cell
+                continue
+            x0, top, x1, bottom = cell
+            if x1 - x0 < GRID_MIN_CELL_W or bottom - top < GRID_MIN_CELL_H:
+                continue
+            if _text(grid, i, j):
+                continue  # pre-printed, not fillable
+            label, association = "", "positional"
+            for jj in range(j - 1, -1, -1):  # nearest left in row
+                if _text(grid, i, jj):
+                    label, association = _text(grid, i, jj), "row_label"
+                    break
+            if not label:
+                for ii in range(i - 1, -1, -1):  # nearest above in col
+                    if _text(grid, ii, j):
+                        label, association = _text(grid, ii, j), "col_header"
+                        break
+            label = label[:60]
+            slug = _slug(label)
+            if not slug:  # no context anywhere (or non-text glyphs)
+                slug = f"cell_p{page_no}_r{i}_c{j}"
+                label, association = slug, "positional"
+            used_fields[slug] = used_fields.get(slug, 0) + 1
+            if used_fields[slug] > 1:
+                slug = f"{slug}_{used_fields[slug]}"
+            elements.append(_element(
+                f"cell-p{page_no}-{counter}", "overlay_region", 0.6,
+                {"pages": [page_no], "source": "heuristic",
+                 "association": association, "row": i, "col": j},
+                {"label": label,
+                 "target_field": slug,
+                 "kind": "text",
+                 "page": page_no,
+                 "bbox": [round(x0, 1), round(height - bottom, 1),
+                          round(x1, 1), round(height - top, 1)]}))
+            counter += 1
+    return elements
+
+
 def reconstruct_matrix(pdf_path: Path) -> list[dict] | None:
     elements: list[dict] = []
     found_grid = False
     used: dict[str, int] = {}
+    used_fields: dict[str, int] = {}
 
     def uid(base: str) -> str:
         base = base or "x"
@@ -64,11 +117,20 @@ def reconstruct_matrix(pdf_path: Path) -> list[dict] | None:
     with pdfplumber.open(pdf_path) as pdf:
         for page_no, page in enumerate(pdf.pages, start=1):
             height = float(page.height)
+            cell_counter = 0  # per-page, continuous across tables (unique ids)
             for table in page.find_tables():
                 grid = table.extract()
-                if not grid or len(grid) < 2 or max(len(r) for r in grid) < 3:
+                if not grid:
                     continue
                 found_grid = True
+                if len(grid) < 2 or max(len(r) for r in grid) < 3:
+                    # too small for axis reconstruction: keep its cells flat
+                    # rather than dropping them (never silently absorbed)
+                    flat = _flat_cell_elements(
+                        table, grid, page_no, height, used_fields, cell_counter)
+                    elements.extend(flat)
+                    cell_counter += len(flat)
+                    continue
                 header_rows, number_col, text_col = _detect_bands(grid)
                 label_cols = {c for c in (number_col, text_col) if c is not None}
 
@@ -106,7 +168,8 @@ def reconstruct_matrix(pdf_path: Path) -> list[dict] | None:
                     {"entries": col_entries}))
 
                 # cells (blank answer slots at criterion x tower intersections)
-                counter = 0
+                row_label_by_i = {e["row"]: e["label"] for e in row_entries}
+                col_label_by_j = {e["col"]: e["label"] for e in col_entries}
                 for i, row in enumerate(table.rows):
                     for j, cell in enumerate(row.cells):
                         if cell is None or i not in row_id_by_i or j not in col_id_by_j:
@@ -118,13 +181,16 @@ def reconstruct_matrix(pdf_path: Path) -> list[dict] | None:
                             continue  # pre-printed, not fillable
                         rid, cid = row_id_by_i[i], col_id_by_j[j]
                         elements.append(_element(
-                            f"cell-p{page_no}-{counter}", "overlay_region", 0.6,
+                            f"cell-p{page_no}-{cell_counter}", "overlay_region", 0.6,
                             {"pages": [page_no], "source": "heuristic",
                              "row": i, "col": j},
                             {"row_id": rid, "col_id": cid,
+                             # human-readable name for review sheets and the
+                             # pdf_template regions contract (approve/verify)
+                             "label": f"{row_label_by_i[i]} × {col_label_by_j[j]}",
                              "target_field": derive_field(rid, cid), "kind": "text",
                              "page": page_no,
                              "bbox": [round(x0, 1), round(height - bottom, 1),
                                       round(x1, 1), round(height - top, 1)]}))
-                        counter += 1
+                        cell_counter += 1
     return elements if found_grid else None
