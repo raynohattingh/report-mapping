@@ -311,6 +311,21 @@ def approve_template(
     else:  # every registered overlay region must receive a value
         required = [r["target_field"] for r in config["regions"]]
 
+    schema: dict = {"required": required}
+    row_axis = next((_active_payload(e) for e in _elements(document, "row_axis")), None)
+    col_axis = next((_active_payload(e) for e in _elements(document, "col_axis")), None)
+    if row_axis and col_axis:
+        schema["matrix"] = {
+            "criteria": [
+                {"id": e["id"], "number": e.get("number"), "label": e["label"]}
+                for e in row_axis["entries"]
+            ],
+            "towers": [
+                {"id": e["id"], "label": e["label"]} for e in col_axis["entries"]
+            ],
+            "cell_field": "{criterion}__{tower}",
+        }
+
     row = TargetTemplate(
         institution="ONBOARDED",
         name=name,
@@ -321,7 +336,7 @@ def approve_template(
                 json.dumps(config, sort_keys=True).encode()
             )
         },
-        required_schema={"required": required},
+        required_schema=schema,
         validation_rules={},
         interim=False,  # a real client format, not an interim stand-in
     )
