@@ -35,10 +35,12 @@ def health(config) -> dict:
     llm = LocalLLM(config.ollama_host, config.llm_model, config.timeout_seconds)
     llm_ok = llm.available()
 
-    # Matrix interpret (feature 005) reuses the configured local LLM slot as
-    # its vision model — probed separately since a text-only model pulled for
-    # value-map proposals won't necessarily serve vision (FR-011 per-tier).
-    vision = LocalVisionInterpreter(config.ollama_host, config.llm_model, config.timeout_seconds)
+    # Matrix interpret (feature 005) uses its own vision_model slot, distinct
+    # from the text llm_model (FR-011 per-tier degradation; "Model substrate",
+    # docs/superpowers/specs/2026-07-15-matrix-target-onboarding-design.md) —
+    # a text-only model pulled for value-map proposals won't necessarily serve
+    # vision, and the two slots must be able to point at different models.
+    vision = LocalVisionInterpreter(config.ollama_host, config.vision_model, config.timeout_seconds)
     vision_ok = vision.available()
 
     return {
@@ -56,7 +58,7 @@ def health(config) -> dict:
             "reason": None if llm_ok else llm.reason,
         },
         "vision": {
-            "model": config.llm_model,
+            "model": config.vision_model,
             "host": config.ollama_host,
             "loopback_bound": vision.loopback,
             "ok": vision_ok,

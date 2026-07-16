@@ -29,6 +29,10 @@ _DEFAULTS = {
     "default_mode": "local",
     "embedding_model": "BAAI/bge-small-en-v1.5",  # A12a
     "llm_model": "qwen3:4b",  # A12b
+    "vision_model": "qwen2.5vl:7b",  # feature 005: dedicated vision slot, distinct
+    # from llm_model (docs/superpowers/specs/2026-07-15-matrix-target-onboarding-
+    # design.md "Model substrate" — both must coexist so matrix interpret never
+    # silently sends images to a text-only model).
     "ollama_host": "http://127.0.0.1:11434",
     "timeout_seconds": 120,
     "external_provider": "anthropic",
@@ -47,6 +51,7 @@ class AiConfig:
     default_mode: str
     embedding_model: str
     llm_model: str
+    vision_model: str
     ollama_host: str
     timeout_seconds: int
     external_provider: str
@@ -100,6 +105,7 @@ def load_ai_config(store_root: Path) -> AiConfig:
         default_mode=raw.get("default_mode", _DEFAULTS["default_mode"]),
         embedding_model=local.get("embedding_model", _DEFAULTS["embedding_model"]),
         llm_model=local.get("llm_model", _DEFAULTS["llm_model"]),
+        vision_model=local.get("vision_model", _DEFAULTS["vision_model"]),
         ollama_host=ollama_host,
         timeout_seconds=int(local.get("timeout_seconds", _DEFAULTS["timeout_seconds"])),
         external_provider=external.get("provider", _DEFAULTS["external_provider"]),

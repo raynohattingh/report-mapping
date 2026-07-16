@@ -2,8 +2,10 @@
 
 Mirrors the 002 assist-mode precedence (`rmu.mapping.start._resolve_assist_mode`
 / `_check_external_consent`): `none`/`--no-ai` -> no interpreter; `local` ->
-loopback Ollama vision model (default configured via `ai.yaml`'s `local.llm_model`,
-A12b); `external` -> consent-gated, template-only for now. The local guarantee
+loopback Ollama vision model (configured via `ai.yaml`'s `local.vision_model`,
+a dedicated slot distinct from the 002 text `llm_model`, default `qwen2.5vl:7b`
+per docs/superpowers/specs/2026-07-15-matrix-target-onboarding-design.md
+"Model substrate"); `external` -> consent-gated, template-only for now. The local guarantee
 (FR-002) is inherited from `rmu.ai.llm_local`'s loopback pinning — reused here,
 not re-implemented. `resolve_axis_interpreter` never raises for `none`/`local`
 (local unavailability degrades to `None`, per-tier degradation FR-011);
@@ -177,7 +179,7 @@ def resolve_axis_interpreter(
         return None
     if mode == "local":
         interpreter = LocalVisionInterpreter(
-            config.ollama_host, config.llm_model, config.timeout_seconds
+            config.ollama_host, config.vision_model, config.timeout_seconds
         )
         return interpreter if interpreter.available() else None
     if mode == "external":
