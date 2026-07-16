@@ -74,7 +74,13 @@ def test_grid_template_onboards_end_to_end(session):
     assert row.name == "synthetic_grid" and row.interim is False
     config = json.loads(store.get_bytes(row.template_files["template.json"]))
     assert config["kind"] == "pdf_overlay"
-    assert len(config["regions"]) == 11  # every blank grid cell registered
+    # every blank fillable cell registered: 6 matrix cells (criterion x column,
+    # feature 005) + 4 flat cells from the non-qualifying 2x2 grid. The old
+    # flat path counted 11 because it also proposed the row-3 criterion-LABEL
+    # cell ('paint_3') as fillable; the matrix path correctly excludes it.
+    assert len(config["regions"]) == 10
+    fields = {r["target_field"] for r in config["regions"]}
+    assert {"corrosion__result", "paint__notes", "cell_p1_r0_c0"} <= fields
 
 
 def test_broken_region_fails_the_test_render_and_stays_draft(session):

@@ -76,7 +76,9 @@
               "form_field",
               "overlay_region",
               "validation_rule",
-              "cardinality"
+              "cardinality",
+              "row_axis",
+              "col_axis"
             ]
           },
           "confidence": {

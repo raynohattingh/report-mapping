@@ -55,24 +55,32 @@ def test_cardinality_is_a_reviewable_element():
 
 def test_grid_form_proposes_blank_cells_as_regions():
     """A line-drawn grid (no area rects) must yield one region per blank,
-    size-valid cell — not an empty skeleton (Eskom-checklist regression)."""
+    size-valid cell — not an empty skeleton (Eskom-checklist regression).
+    Feature 005: qualifying grids reconstruct as a matrix (axis-derived
+    `row__col` names); the non-qualifying 2x2 grid B must STILL emit its
+    cells flat — no table's cells may silently vanish."""
     doc = analyze(FIX / "target_grid.pdf", kind="fixed_layout")
     regions = _by_kind(doc, "overlay_region")
     fields = {r["payload"]["target_field"] for r in regions}
-    # Grid A: rows 1-2 answer cells named by row label; row 3 by column header
-    assert {"corrosion", "corrosion_2", "paint", "paint_2"} <= fields
-    assert {"result", "notes"} <= fields          # row 3, cols 1-2 (col_header)
-    assert "paint_3" in fields                    # row 3, col 0 (above = 'Paint')
-    # Grid B: fully blank 2x2 -> positional names
+    # Grid A reconstructs as a matrix: one axis pair + criterion x column cells
+    assert len(_by_kind(doc, "row_axis")) == 1
+    assert len(_by_kind(doc, "col_axis")) == 1
+    assert {"corrosion__result", "corrosion__notes",
+            "paint__result", "paint__notes"} <= fields
+    assert {"row_3__result", "row_3__notes"} <= fields  # blank criterion row
+    # Grid B (2x2, too small for axes): fully blank -> flat positional names
     assert {"cell_p1_r0_c0", "cell_p1_r0_c1", "cell_p1_r1_c0", "cell_p1_r1_c1"} <= fields
-    assert len(regions) == 11                     # sliver column filtered out
+    assert len(regions) == 10  # 6 matrix cells + 4 flat; sliver column filtered
     for r in regions:
         assert r["payload"]["kind"] == "text"
         assert r["payload"]["page"] == 1
+        assert r["payload"]["label"]  # human-readable name for review/approve
         assert len(r["payload"]["bbox"]) == 4
-        assert r["evidence"]["association"] in ("row_label", "col_header", "positional")
         assert r["confidence"] == 0.6
         assert r["review_state"] == "proposed"
+    # flat cells keep the association provenance of the old grid path
+    flat = [r for r in regions if "row_id" not in r["payload"]]
+    assert all(r["evidence"]["association"] == "positional" for r in flat)
 
 
 def test_grid_form_filled_and_degenerate_cells_skipped():
