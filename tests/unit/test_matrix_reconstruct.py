@@ -55,6 +55,45 @@ def test_matrix_cells_carry_human_readable_labels():
     assert sample["label"] == "Corrosion × T2"
 
 
+def test_two_qualifying_grids_on_one_page_get_unique_axis_ids(tmp_path):
+    """Fix (005 final review): rowaxis-p{page}/colaxis-p{page} were emitted
+    inside the per-table loop, so two qualifying grids on one page collided.
+    IDs now carry a table index (rowaxis-p{page}-t{k})."""
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.pdfgen import canvas
+
+    p = tmp_path / "two_grids.pdf"
+    c = canvas.Canvas(str(p), pagesize=landscape(A4))
+    # two vertically stacked qualifying grids (>=2 rows, >=3 cols each),
+    # same shape as the matrix_target fixture
+    for row_y in ([540, 500, 460, 420], [340, 300, 260, 220]):
+        col_x = [40, 90, 300, 380, 460, 540]
+        for x in col_x:
+            c.line(x, row_y[-1], x, row_y[0])
+        for y in row_y:
+            c.line(col_x[0], y, col_x[-1], y)
+        for j, label in enumerate(["No", "Criterion", "T1", "T2", "T3"]):
+            c.drawString(col_x[j] + 3, row_y[0] - 14, label)
+        for i, (num, crit) in enumerate([("4.1", "Corrosion"), ("4.2", "Paint")]):
+            y = row_y[i + 1] - 14
+            c.drawString(col_x[0] + 3, y, num)
+            c.drawString(col_x[1] + 3, y, crit)
+    c.showPage()
+    c.save()
+
+    elements = reconstruct_matrix(p)
+    assert elements is not None
+    ids = [e["id"] for e in elements]
+    assert len(ids) == len(set(ids)), f"duplicate element ids: {ids}"
+    # both grids' axes present, table-suffixed
+    assert len(_by_kind(elements, "row_axis")) == 2
+    assert len(_by_kind(elements, "col_axis")) == 2
+    axis_ids = {e["id"] for e in elements
+                if e["element_kind"] in ("row_axis", "col_axis")}
+    assert axis_ids == {"rowaxis-p1-t0", "colaxis-p1-t0",
+                        "rowaxis-p1-t1", "colaxis-p1-t1"}
+
+
 def test_reconstruct_returns_none_without_a_grid(tmp_path):
     from reportlab.pdfgen import canvas
     p = tmp_path / "blank.pdf"

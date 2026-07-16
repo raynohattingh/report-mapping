@@ -1,8 +1,13 @@
 """Resolver/schema/consent tests for feature 005's axis interpreter (Task 5).
 
-Zero network: only the resolver's mode precedence, the AXIS_SCHEMA shape, and
-the external-mode consent refusal are exercised — never a live (or fake)
-Ollama transport.
+Zero network: `LocalVisionInterpreter.available` is monkeypatched in every
+test that would otherwise probe a real (loopback) socket, so no test in this
+module opens a live connection — not even a loopback one. What IS exercised:
+the resolver's mode precedence (`none`/`local`/`external`), the AXIS_SCHEMA
+shape, and the external-mode consent refusal. What is NOT exercised: any real
+Ollama transport, request/response parsing, or the vision-prompt path — those
+live in `LocalVisionInterpreter.interpret` and are covered (if at all)
+elsewhere, never here.
 """
 from __future__ import annotations
 
@@ -30,9 +35,15 @@ def test_none_mode_returns_no_interpreter():
     assert resolve_axis_interpreter("none", _cfg(), client=None) is None
 
 
-def test_local_mode_degrades_to_none_when_unavailable():
-    # No Ollama is running on this port during tests, so this must degrade,
-    # never raise (FR-011 per-tier degradation).
+def test_local_mode_degrades_to_none_when_unavailable(monkeypatch):
+    # Force unavailability deterministically (mirrors the True-monkeypatch
+    # test below) rather than relying on no real Ollama listening on this
+    # port — a live loopback probe is not zero-network and is flaky under
+    # sandboxes/CI where the port could be bound. This must degrade, never
+    # raise (FR-011 per-tier degradation).
+    from rmu.onboard import axis_providers as ap
+
+    monkeypatch.setattr(ap.LocalVisionInterpreter, "available", lambda self: False)
     cfg = _cfg()
     assert resolve_axis_interpreter("local", cfg, client=None) is None
 

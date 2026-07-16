@@ -32,8 +32,23 @@ def _grid_index(grid: list[list[str]]) -> tuple[set[int], set[int]]:
     return rows, cols
 
 
-def apply_interpretation(document, grids, interpreter, images=None):
-    dropped = {"unknown_index": 0}
+def apply_interpretation(
+    document: dict,
+    grids: dict[int, list[list[str]]],
+    interpreter: AxisInterpreter | None,
+    images: dict[int, bytes] | None = None,
+) -> tuple[dict, dict[str, int]]:
+    """Annotate `document`'s row_axis/col_axis entries with `suggested_*` hints.
+
+    Mutates `document` IN PLACE (annotates existing axis-entry dicts nested
+    inside it) and also returns it — callers may use either the return value
+    or the object they passed in; both refer to the same document. Every
+    dropped candidate is counted in the returned dict, never silently
+    absorbed: `unknown_index` for a `(row, col)` referent outside the
+    extracted grid's bounds, `unmatched_axis_entry` for an in-bounds referent
+    that names no existing axis entry (a valid index, wrong/stale binding).
+    """
+    dropped = {"unknown_index": 0, "unmatched_axis_entry": 0}
     if interpreter is None:
         return document, dropped
 
@@ -50,19 +65,29 @@ def apply_interpretation(document, grids, interpreter, images=None):
             if entry.get("row") not in valid_rows:
                 dropped["unknown_index"] += 1
                 continue
-            _annotate(axes.get("row_axis"), "row", entry.get("row"), entry)
+            if not _annotate(axes.get("row_axis"), "row", entry.get("row"), entry):
+                dropped["unmatched_axis_entry"] += 1
 
         for entry in proposal.get("col_axis", {}).get("entries", []):
             if entry.get("col") not in valid_cols:
                 dropped["unknown_index"] += 1
                 continue
-            _annotate(axes.get("col_axis"), "col", entry.get("col"), entry)
+            if not _annotate(axes.get("col_axis"), "col", entry.get("col"), entry):
+                dropped["unmatched_axis_entry"] += 1
     return document, dropped
 
 
-def _annotate(axis_element, key, index, proposed) -> None:
+def _annotate(
+    axis_element: dict | None, key: str, index: int | None, proposed: dict
+) -> bool:
+    """Annotate the axis entry at `index` with `proposed`'s suggestion fields.
+
+    Returns True if a matching entry was found and annotated, False otherwise
+    (no axis element of this kind, or no entry with `key == index`) — the
+    caller counts False as a dropped `unmatched_axis_entry`.
+    """
     if axis_element is None:
-        return
+        return False
     for target in axis_element["payload"]["entries"]:
         if target.get(key) == index:
             if proposed.get("label"):
@@ -72,4 +97,5 @@ def _annotate(axis_element, key, index, proposed) -> None:
             if proposed.get("confidence") is not None:
                 target["suggested_confidence"] = proposed["confidence"]
             axis_element.setdefault("evidence", {})["ai_assist"] = True
-            return
+            return True
+    return False

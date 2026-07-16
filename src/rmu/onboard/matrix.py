@@ -118,7 +118,7 @@ def reconstruct_matrix(pdf_path: Path) -> list[dict] | None:
         for page_no, page in enumerate(pdf.pages, start=1):
             height = float(page.height)
             cell_counter = 0  # per-page, continuous across tables (unique ids)
-            for table in page.find_tables():
+            for table_idx, table in enumerate(page.find_tables()):
                 grid = table.extract()
                 if not grid:
                     continue
@@ -158,12 +158,12 @@ def reconstruct_matrix(pdf_path: Path) -> list[dict] | None:
                     col_entries.append({"col": j, "id": cid, "label": label[:60]})
 
                 elements.append(_element(
-                    f"rowaxis-p{page_no}", "row_axis", 0.6,
+                    f"rowaxis-p{page_no}-t{table_idx}", "row_axis", 0.6,
                     {"pages": [page_no], "source": "heuristic"},
                     {"number_column": number_col, "text_column": text_col,
                      "header_rows": header_rows, "entries": row_entries}))
                 elements.append(_element(
-                    f"colaxis-p{page_no}", "col_axis", 0.6,
+                    f"colaxis-p{page_no}-t{table_idx}", "col_axis", 0.6,
                     {"pages": [page_no], "source": "heuristic"},
                     {"entries": col_entries}))
 
@@ -194,3 +194,47 @@ def reconstruct_matrix(pdf_path: Path) -> list[dict] | None:
                                       round(x1, 1), round(height - top, 1)]}))
                         cell_counter += 1
     return elements if found_grid else None
+
+
+def extract_grids(pdf_path: Path) -> dict[int, list[list[str]]]:
+    """Per-page 2-D cell-text grids for the interpret stage (feature 005).
+
+    Reuses the exact `find_tables().extract()` call `reconstruct_matrix` uses,
+    and the same qualifying-size threshold (>=2 rows, >=3 cols), so the
+    interpret stage's `(row, col)` indices line up with the deterministic axis
+    reconstruction. Only the first qualifying table per page is kept — matrix
+    targets are one criteria x tower grid per page (design "Core idea").
+    """
+    grids: dict[int, list[list[str]]] = {}
+    with pdfplumber.open(pdf_path) as pdf:
+        for page_no, page in enumerate(pdf.pages, start=1):
+            for table in page.find_tables():
+                grid = table.extract()
+                if not grid or len(grid) < 2 or max(len(r) for r in grid) < 3:
+                    continue
+                grids[page_no] = grid
+                break
+    return grids
+
+
+def render_page_images(pdf_path: Path, pages: set[int]) -> dict[int, bytes]:
+    """Best-effort PNG render of the given 1-based page numbers, for the
+    interpret stage's vision tier (design "Model substrate"). Uses
+    pdfplumber's own Pillow-backed renderer (already an installed dependency
+    via pdfplumber itself — nothing new added). Any rendering failure simply
+    omits that page's image; the interpreter then falls back to its
+    text-grid-only prompt path for that page, never raises here."""
+    import io
+
+    images: dict[int, bytes] = {}
+    with pdfplumber.open(pdf_path) as pdf:
+        for page_no, page in enumerate(pdf.pages, start=1):
+            if page_no not in pages:
+                continue
+            try:
+                buf = io.BytesIO()
+                page.to_image(resolution=100).save(buf, format="PNG")
+                images[page_no] = buf.getvalue()
+            except Exception:  # noqa: BLE001 - best-effort, never blocks interpret
+                continue
+    return images

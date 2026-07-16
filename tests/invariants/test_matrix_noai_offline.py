@@ -31,4 +31,4 @@ def test_interpret_noop_without_interpreter_leaves_axes_untouched():
     # Verify no-op: doc should be unchanged
     assert same is doc
     assert doc == doc_before
-    assert dropped == {"unknown_index": 0}
+    assert dropped == {"unknown_index": 0, "unmatched_axis_entry": 0}
