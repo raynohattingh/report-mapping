@@ -27,12 +27,19 @@ def health(config) -> dict:
     """Per-tier health report. Constructs the backends offline; never downloads."""
     from rmu.ai.embeddings import EmbeddingBackend
     from rmu.ai.llm_local import LocalLLM
+    from rmu.onboard.axis_providers import LocalVisionInterpreter
 
     eb = EmbeddingBackend(config.embedding_model)
     emb_ok = eb.available()
 
     llm = LocalLLM(config.ollama_host, config.llm_model, config.timeout_seconds)
     llm_ok = llm.available()
+
+    # Matrix interpret (feature 005) reuses the configured local LLM slot as
+    # its vision model — probed separately since a text-only model pulled for
+    # value-map proposals won't necessarily serve vision (FR-011 per-tier).
+    vision = LocalVisionInterpreter(config.ollama_host, config.llm_model, config.timeout_seconds)
+    vision_ok = vision.available()
 
     return {
         "default_mode": config.default_mode,
@@ -47,6 +54,14 @@ def health(config) -> dict:
             "loopback_bound": llm.loopback,
             "ok": llm_ok,
             "reason": None if llm_ok else llm.reason,
+        },
+        "vision": {
+            "model": config.llm_model,
+            "host": config.ollama_host,
+            "loopback_bound": vision.loopback,
+            "ok": vision_ok,
+            "reason": None if vision_ok else vision.reason,
+            "label": "vision (matrix interpret)",
         },
         "consent_clients": [e.get("client") for e in config.consent],
     }
