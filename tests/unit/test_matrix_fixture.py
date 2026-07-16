@@ -1,5 +1,6 @@
-import pdfplumber
 from pathlib import Path
+
+import pdfplumber
 
 FIXTURE = Path("tests/fixtures/onboarding/matrix_target.pdf")
 
