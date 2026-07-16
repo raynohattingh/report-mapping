@@ -2,6 +2,47 @@
 
 Terse build state for the business side. Newest session first.
 
+## Session 2026-07-16 — feat(005): matrix-aware target onboarding, Phase 1 built
+
+Feature 005 Phase 1 (branch `005-matrix-target-onboarding`, design + plan in
+docs/superpowers/): grid targets like the Eskom checklist now onboard as a
+**criteria × tower matrix** instead of 373 flat regions named `10_10`.
+
+Built (subagent-driven TDD, every task independently reviewed; suite green
+except one PRE-EXISTING unrelated `test_seed.py` idempotency failure — predates
+the branch, tracked below; ruff clean):
+- `onboard/matrix.py` — deterministic axis reconstruction: row axis (criterion
+  number+text columns paired), column axis (tower headers), every blank cell
+  referencing `(row_id, col_id)` with derived names (`corrosion__t2`) + a human
+  label ("Corrosion × T2"). **Per-table**: non-qualifying grids still emit flat
+  cells — nothing silently dropped (found + fixed mid-build when the old
+  fixture's second grid vanished; now pinned by test).
+- `analyze_target` prefers the matrix path for grid forms; old flat path kept
+  as the no-tables fallback; `row_axis`/`col_axis` added to the proposal schema.
+- `onboard/interpret_matrix.py` — optional AI structural interpretation:
+  annotates axis entries with `suggested_*` by grid INDEX only (never
+  coordinates), referent-resolution gate drops+counts unknown indices,
+  suggestion-only (never overwrites, human confirms). No-op under `--no-ai`.
+- `onboard/axis_providers.py` — tiered resolution mirroring 002: local vision
+  via loopback Ollama (**new `vision_model` config slot, default
+  `qwen2.5vl:7b`**; `qwen3:4b` stays for text tiers — D12), external
+  consent-gated and explicitly not-yet-enabled, `none` → deterministic floor.
+  `rmu ai doctor` gains a vision line.
+- `approve_template` attaches a `matrix` block to `required_schema`
+  ({criteria, towers, cell_field}) when axes exist; flat templates unchanged;
+  verify-on-approve round-trips cells exactly as before; apply untouched
+  (Constitution II intact, invariant-tested incl. strict interpret no-op).
+
+**Decisions/assumptions logged:** D12 (matrix representation + vision model
+slot), A14 (blank Eskom template = form spec, template-only external assist
+eligibility). **Next:** validate on the real Eskom holdout (expect ~20 criteria
+× ~5 towers from the interpret stage vs 373 renames), then Phase 2 — the
+axis-first studio review surface (separate plan).
+
+**Open/pre-existing:** `test_seed.py::test_db_init_and_seed_load_idempotent`
+fails on this branch's base (predates 005; separate fix). `ollama pull
+qwen2.5vl:7b` before first local-vision use; doctor reports its health.
+
 ## Session 2026-07-15 (2) — fix: Studio "nothing works" — two headline bugs + dashboard polish
 
 Dogfooded the studio against the real dev DB after the owner reported "loads of
