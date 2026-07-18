@@ -115,6 +115,79 @@ def test_terminal_matrix_proposal_has_no_hx_post_affordances(
     assert "hx-post" not in body
 
 
+def test_projected_axis_pair_not_duplicated_in_generic_rail(
+        studio_client, matrix_proposal):
+    """The axis rail OWNS the projected row/col pair: the generic rail must not
+    also list them (no /elements/{id} controls for the pair), while it still
+    covers cells + cardinality and the axis rail keeps its confirm URLs."""
+    proposal_id, draft_path = matrix_proposal
+    row_eid = _row_axis_id(draft_path)
+    col_eid = _col_axis_id(draft_path)
+
+    response = studio_client.get(f"/proposals/{proposal_id}")
+    assert response.status_code == 200, response.text
+    body = response.text
+
+    assert f"/proposals/{proposal_id}/elements/{row_eid}" not in body
+    assert f"/proposals/{proposal_id}/elements/{col_eid}" not in body
+    assert f'data-element-id="{row_eid}"' not in body
+    assert f'data-element-id="{col_eid}"' not in body
+    # the pair's review affordances live in the axis rail alone
+    assert f"/proposals/{proposal_id}/axis/{row_eid}/confirm" in body
+    assert f"/proposals/{proposal_id}/axis/{col_eid}/confirm" in body
+    # generic rail still present for cells + cardinality
+    assert 'id="triage-rail"' in body
+    assert "cardinality" in body
+
+
+def test_additional_axis_elements_still_listed_generically():
+    """Non-projected (additional) axis elements MUST stay in the generic rail —
+    unit-style render with a hand-built geo (a two-grid PDF fixture would be
+    heavier than the condition under test warrants)."""
+    from rmu.studio.app import make_env
+
+    def axis(eid: str, kind: str) -> dict:
+        return {"id": eid, "element_kind": kind, "review_state": "proposed",
+                "confidence": None, "evidence": {}, "flags": [],
+                "payload": {"entries": [
+                    {"id": f"{eid}-e0", "label": "L", "number": "1.1"}]}}
+
+    geo = {
+        "proposal_id": 1, "kind": "template", "status": "draft",
+        "exemplars": [], "spatial": [],
+        "non_spatial": [axis("rowaxis-p1", "row_axis"),
+                        axis("colaxis-p1", "col_axis"),
+                        axis("rowaxis-p2", "row_axis"),
+                        axis("colaxis-p2", "col_axis")],
+        "matrix": {
+            "row_element_id": "rowaxis-p1", "col_element_id": "colaxis-p1",
+            "row_state": "proposed", "col_state": "proposed",
+            "criteria": [{"index": 0, "id": "rowaxis-p1-e0", "number": "1.1",
+                          "label": "L", "suggested_label": None,
+                          "suggested_number": None, "confidence": None,
+                          "page": 1, "y_band": None}],
+            "towers": [{"index": 0, "id": "colaxis-p1-e0", "label": "T1",
+                        "suggested_label": None, "confidence": None,
+                        "page": 1, "x_range": None}],
+            "cell_count": 0, "additional_axes": 1,
+        },
+        "pending": [], "diagnosis": None, "verify_report": None,
+    }
+    body = make_env().get_template("proposal.html").render(
+        studio_token="t", nav="proposals", geo=geo, proposal_id=1,
+        read_only=False)
+
+    # projected pair filtered from the generic rail…
+    assert 'data-element-id="rowaxis-p1"' not in body
+    assert 'data-element-id="colaxis-p1"' not in body
+    # …while the ADDITIONAL pair stays generically reviewable
+    assert 'data-element-id="rowaxis-p2"' in body
+    assert 'data-element-id="colaxis-p2"' in body
+    assert "/proposals/1/elements/rowaxis-p2" in body
+    # and the honest additional-axes note renders
+    assert "additional axis pair" in body
+
+
 def test_non_matrix_proposal_still_renders_generic_rail(studio_client, no_grid_proposal):
     proposal_id, _ = no_grid_proposal
     response = studio_client.get(f"/proposals/{proposal_id}")

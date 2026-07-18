@@ -41,9 +41,15 @@
   {% if geo.matrix %}
   <div class="rail-stack">
     {% include "fragments/axis_rail.html" %}
-    {% if geo.matrix.additional_axes > 0 or geo.spatial
-          or geo.non_spatial | rejectattr("element_kind", "in", ["row_axis", "col_axis"]) | list %}
+    {# the axis rail owns the projected pair — the generic rail covers ONLY
+       cells, cardinality and any additional (non-projected) axis elements,
+       so the pair is filtered out rather than reviewed twice #}
+    {% set projected_pair = [geo.matrix.row_element_id, geo.matrix.col_element_id] %}
+    {% set generic_non_spatial = geo.non_spatial | rejectattr("id", "in", projected_pair) | list %}
+    {% if geo.matrix.additional_axes > 0 or geo.spatial or generic_non_spatial %}
+    {% with geo = dict(geo, non_spatial=generic_non_spatial) %}
     {% include "fragments/triage_rail.html" %}
+    {% endwith %}
     {% endif %}
   </div>
   {% else %}
