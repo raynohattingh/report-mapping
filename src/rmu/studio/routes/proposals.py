@@ -94,6 +94,83 @@ def edit_element(request: Request, proposal_id: int, element_id: str,
     return _update_fragment(request, proposal_id)
 
 
+_SUGGESTED_KEYS = ("suggested_label", "suggested_number", "suggested_confidence")
+
+
+def _find_element(p: Proposal, element_id: str) -> dict:
+    for e in p.elements:
+        if e["id"] == element_id:
+            return e
+    raise DomainRefusal("unknown element", [f"no element {element_id!r} in proposal #{p.id}"])
+
+
+def _active_entries(element: dict) -> tuple[dict, list[dict]]:
+    """The element's ACTIVE payload (corrected_payload if present else payload)
+    and its `entries` list (axis elements only)."""
+    payload = element.get("corrected_payload") or element.get("payload") or {}
+    return payload, [dict(e) for e in payload.get("entries", [])]
+
+
+@router.post("/proposals/{proposal_id}/axis/{element_id}/entries/{index}")
+def axis_entry_action(request: Request, proposal_id: int, element_id: str, index: int,
+                      action: str = Form(...), label: str = Form(""),
+                      number: str = Form("")):
+    with db_session() as s:
+        p = _load(s, proposal_id)
+        _require_draft(p)
+        element = _find_element(p, element_id)
+        payload, entries = _active_entries(element)
+        if index < 0 or index >= len(entries):
+            raise DomainRefusal("unknown entry",
+                                [f"no entry at index {index} for element {element_id!r}"])
+        entry = dict(entries[index])
+        if action == "rename":
+            entry["label"] = label
+            if number:
+                entry["number"] = number
+            for key in _SUGGESTED_KEYS:
+                entry.pop(key, None)
+        elif action == "accept_suggestion":
+            if not entry.get("suggested_label"):
+                raise DomainRefusal("no suggestion",
+                                    [f"entry at index {index} has no suggested_label"])
+            entry["label"] = entry["suggested_label"]
+            if entry.get("suggested_number") is not None:
+                entry["number"] = entry["suggested_number"]
+            for key in _SUGGESTED_KEYS:
+                entry.pop(key, None)
+        elif action == "reject_suggestion":
+            for key in _SUGGESTED_KEYS:
+                entry.pop(key, None)
+        else:
+            raise DomainRefusal("edit refused", [f"unknown action '{action}'"])
+        entries[index] = entry
+        corrected_payload = {**payload, "entries": entries}
+        try:
+            p.set_review_state(element_id, "corrected", corrected_payload=corrected_payload)
+        except ProposalStateError as err:
+            raise DomainRefusal("edit refused", [str(err)]) from err
+    return _update_fragment(request, proposal_id)
+
+
+@router.post("/proposals/{proposal_id}/axis/{element_id}/confirm")
+def axis_confirm(request: Request, proposal_id: int, element_id: str):
+    with db_session() as s:
+        p = _load(s, proposal_id)
+        _require_draft(p)
+        element = _find_element(p, element_id)
+        try:
+            # An axis already carrying entry-level corrections is already
+            # resolved (review_state 'corrected' survives approval same as
+            # 'confirmed' — see approve._elements); confirming it must not
+            # discard those corrections by reverting to the original payload.
+            if element.get("review_state") != "corrected":
+                p.set_review_state(element_id, "confirmed")
+        except ProposalStateError as err:
+            raise DomainRefusal("edit refused", [str(err)]) from err
+    return _update_fragment(request, proposal_id)
+
+
 @router.post("/proposals/{proposal_id}/elements")
 def add_element(request: Request, proposal_id: int,
                 element_kind: str = Form(...), payload: str = Form(...)):

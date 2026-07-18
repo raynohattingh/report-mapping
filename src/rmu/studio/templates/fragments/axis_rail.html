@@ -1,0 +1,91 @@
+{% set matrix = geo.matrix %}
+<div class="triage-rail" id="axis-rail">
+  <div class="panel">
+    <div class="pane-head">
+      REVIEW — axes
+      <span class="muted">{{ matrix.cell_count }} cells derive from these axes</span>
+    </div>
+    {% if matrix.additional_axes > 0 %}
+    <p class="muted">{{ matrix.additional_axes }} additional axis pair(s) exist on
+      this proposal — the generic list below covers those.</p>
+    {% endif %}
+  </div>
+
+  <div class="panel">
+    <h2>criteria ({{ matrix.criteria | length }})</h2>
+    {% for c in matrix.criteria %}
+    <div class="link-row triage-el" data-axis-entry="{{ matrix.row_element_id }}:{{ c.index }}"
+         data-kind="criteria" data-state="{{ matrix.row_state }}">
+      <span class="chip {{ 'tier-T0' if matrix.row_state in ('confirmed','corrected') else 'tier-T2' }}">{{ matrix.row_state[0] | upper }}</span>
+      <span class="field">{{ c.number }}</span>
+      <span class="field">{{ c.label }}</span>
+      <code class="field">{{ c.id }}</code>
+      {% if c.suggested_label %}
+      <span class="chip tier-T2" title="suggested">
+        {{ c.suggested_label }}{% if c.confidence is not none %} ({{ '%.2f'|format(c.confidence) }}){% endif %}
+      </span>
+      {% if not read_only %}
+      <button class="btn" title="accept suggestion"
+              hx-post="/proposals/{{ proposal_id }}/axis/{{ matrix.row_element_id }}/entries/{{ c.index }}"
+              hx-vals='{"action": "accept_suggestion"}' hx-target="#triage-root" hx-swap="none">✓</button>
+      <button class="btn danger" title="reject suggestion"
+              hx-post="/proposals/{{ proposal_id }}/axis/{{ matrix.row_element_id }}/entries/{{ c.index }}"
+              hx-vals='{"action": "reject_suggestion"}' hx-target="#triage-root" hx-swap="none">✗</button>
+      {% endif %}
+      {% endif %}
+      {% if not read_only %}
+      <form class="rename-form" hx-post="/proposals/{{ proposal_id }}/axis/{{ matrix.row_element_id }}/entries/{{ c.index }}"
+            hx-target="#triage-root" hx-swap="none">
+        <input type="hidden" name="action" value="rename">
+        <input type="text" name="number" value="{{ c.number or '' }}" size="4">
+        <input type="text" name="label" value="{{ c.label or '' }}" size="14">
+        <button class="btn" type="submit">rename</button>
+      </form>
+      {% endif %}
+    </div>
+    {% endfor %}
+    {% if not read_only %}
+    <button class="btn" title="confirm criteria axis"
+            hx-post="/proposals/{{ proposal_id }}/axis/{{ matrix.row_element_id }}/confirm"
+            hx-target="#triage-root" hx-swap="none">Confirm criteria</button>
+    {% endif %}
+  </div>
+
+  <div class="panel">
+    <h2>towers ({{ matrix.towers | length }})</h2>
+    {% for t in matrix.towers %}
+    <div class="link-row triage-el" data-axis-entry="{{ matrix.col_element_id }}:{{ t.index }}"
+         data-kind="towers" data-state="{{ matrix.col_state }}">
+      <span class="chip {{ 'tier-T0' if matrix.col_state in ('confirmed','corrected') else 'tier-T2' }}">{{ (matrix.col_state or 'missing')[0] | upper }}</span>
+      <span class="field">{{ t.label }}</span>
+      <code class="field">{{ t.id }}</code>
+      {% if t.suggested_label %}
+      <span class="chip tier-T2" title="suggested">
+        {{ t.suggested_label }}{% if t.confidence is not none %} ({{ '%.2f'|format(t.confidence) }}){% endif %}
+      </span>
+      {% if not read_only %}
+      <button class="btn" title="accept suggestion"
+              hx-post="/proposals/{{ proposal_id }}/axis/{{ matrix.col_element_id }}/entries/{{ t.index }}"
+              hx-vals='{"action": "accept_suggestion"}' hx-target="#triage-root" hx-swap="none">✓</button>
+      <button class="btn danger" title="reject suggestion"
+              hx-post="/proposals/{{ proposal_id }}/axis/{{ matrix.col_element_id }}/entries/{{ t.index }}"
+              hx-vals='{"action": "reject_suggestion"}' hx-target="#triage-root" hx-swap="none">✗</button>
+      {% endif %}
+      {% endif %}
+      {% if not read_only %}
+      <form class="rename-form" hx-post="/proposals/{{ proposal_id }}/axis/{{ matrix.col_element_id }}/entries/{{ t.index }}"
+            hx-target="#triage-root" hx-swap="none">
+        <input type="hidden" name="action" value="rename">
+        <input type="text" name="label" value="{{ t.label or '' }}" size="14">
+        <button class="btn" type="submit">rename</button>
+      </form>
+      {% endif %}
+    </div>
+    {% endfor %}
+    {% if not read_only and matrix.col_element_id %}
+    <button class="btn" title="confirm towers axis"
+            hx-post="/proposals/{{ proposal_id }}/axis/{{ matrix.col_element_id }}/confirm"
+            hx-target="#triage-root" hx-swap="none">Confirm towers</button>
+    {% endif %}
+  </div>
+</div>

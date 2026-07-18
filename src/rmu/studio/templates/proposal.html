@@ -38,12 +38,35 @@
     <div data-pdf-pane="proposal"></div>
   </div>
 
+  {% if geo.matrix %}
+  <div class="rail-stack">
+    {% include "fragments/axis_rail.html" %}
+    {# the axis rail owns the projected pair — the generic rail covers ONLY
+       cells, cardinality and any additional (non-projected) axis elements,
+       so the pair is filtered out rather than reviewed twice #}
+    {% set projected_pair = [geo.matrix.row_element_id, geo.matrix.col_element_id] %}
+    {% set generic_non_spatial = geo.non_spatial | rejectattr("id", "in", projected_pair) | list %}
+    {% if geo.matrix.additional_axes > 0 or geo.spatial or generic_non_spatial %}
+    {% with geo = dict(geo, non_spatial=generic_non_spatial) %}
+    {% include "fragments/triage_rail.html" %}
+    {% endwith %}
+    {% endif %}
+  </div>
+  {% else %}
   {% include "fragments/triage_rail.html" %}
+  {% endif %}
 </div>
 
 <div id="proposal-status" hidden
      data-pending="{{ geo.pending | length }}"></div>
 <script type="module" src="/static/js/triage.js"></script>
 <script type="module" src="/static/js/regions.js"></script>
+{# matrix proposals ALSO load axistriage.js (Task 4 script-loading contract,
+   pinned in tests/studio/test_matrix_rail_template.py): triage.js keeps the
+   PDF mount + cell boxes + generic rail, but hands the document keyboard to
+   axistriage.js, which owns axis-row triage and row/column band highlights #}
+{% if geo.matrix %}
+<script type="module" src="/static/js/axistriage.js"></script>
+{% endif %}
 {% endif %}
 {% endblock %}

@@ -83,6 +83,38 @@ def template_proposal(studio_env, runner):
     return proposal_id, draft_path
 
 
+@pytest.fixture
+def matrix_proposal(studio_env, runner):
+    """A draft template proposal on the criteria x tower grid fixture (3
+    criteria 4.1/4.2/4.3, 3 towers T1/T2/T3, 9 cells) — feature 006's matrix
+    projection input. Mirrors `template_proposal` exactly, pointed at
+    matrix_target.pdf, --no-ai (no interpret-stage suggestions)."""
+    from rmu.cli import app
+
+    drafted = runner.invoke(app, ["onboard", "draft-template",
+                                  "tests/fixtures/onboarding/matrix_target.pdf",
+                                  "--no-ai"])
+    assert drafted.exit_code == 0, drafted.output
+    proposal_id = int(re.search(r"proposal: (\d+)", drafted.output).group(1))
+    draft_path = Path(re.search(r"draft: (\S+)", drafted.output).group(1))
+    return proposal_id, draft_path
+
+
+@pytest.fixture
+def no_grid_proposal(studio_env, runner):
+    """A draft template proposal with NO grid (pdf_form) — no row_axis/col_axis
+    elements at all, so the studio's `matrix` projection must be None."""
+    from rmu.cli import app
+
+    drafted = runner.invoke(app, ["onboard", "draft-template",
+                                  "tests/fixtures/onboarding/target_form.pdf",
+                                  "--no-ai"])
+    assert drafted.exit_code == 0, drafted.output
+    proposal_id = int(re.search(r"proposal: (\d+)", drafted.output).group(1))
+    draft_path = Path(re.search(r"draft: (\S+)", drafted.output).group(1))
+    return proposal_id, draft_path
+
+
 def make_client(*, token: str = TOKEN, port: int = PORT,
                 client_addr: tuple[str, int] = LOOPBACK, authenticate: bool = True):
     """TestClient against a fresh app with a known launch secret.

@@ -75,7 +75,11 @@ async function initTriage(root) {
     });
   }
 
-  if (!readOnly) {
+  // Matrix proposals (#axis-rail present) hand the document keyboard to
+  // axistriage.js — Y/E here would race the axis-entry meaning of the same
+  // keys. Contract pinned in tests/studio/test_matrix_rail_template.py:
+  // cells keep their hx-post buttons; axis rows get keyboard triage.
+  if (!readOnly && !document.getElementById("axis-rail")) {
     document.addEventListener("keydown", (evt) => {
       if (evt.target.matches("input, select, textarea")) return;
       if (evt.key === "y" || evt.key === "Y") { act("confirm"); advance(); }

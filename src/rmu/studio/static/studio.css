@@ -170,6 +170,14 @@ input::placeholder { color: var(--text-faint); }
 .el-box.focused { outline: 2px solid var(--accent); outline-offset: 1px; }
 .el-tag { position: absolute; top: -9px; right: -9px; }
 
+/* axis band highlight (006 Task 4): translucent full-width (criteria row,
+   amber = pending-review language) / full-height (tower column, accent so the
+   two axes stay tellable-apart when a cell click lights both) SVG rects drawn
+   by axistriage.js into the per-page overlay layer — quiet enough to leave
+   the page and the cell boxes readable underneath */
+.axis-band { fill: var(--tier-pending); fill-opacity: .12; stroke: var(--tier-pending); stroke-opacity: .5; stroke-width: 1.5; pointer-events: none; }
+.axis-band.col { fill: var(--accent); fill-opacity: .10; stroke: var(--accent); stroke-opacity: .5; }
+
 /* link list: dense, single-line rows; a tier stripe on the left edge makes
    amber-pending / red-missing / green-confirmed scannable down hundreds of rows */
 .link-rail { overflow: auto; display: flex; flex-direction: column; gap: 3px; padding-right: 2px; }
@@ -225,6 +233,11 @@ input::placeholder { color: var(--text-faint); }
 
 /* --- triage rail (FR-034) --- */
 .triage { display: grid; grid-template-columns: 1fr 340px; gap: 14px; height: calc(100vh - 116px); }
+/* stacks the axis rail above the generic rail in the single rail column
+   (feature 006 matrix proposals, when cells/cardinality/additional axes
+   still need the generic review affordances) */
+.rail-stack { overflow: auto; display: flex; flex-direction: column; gap: 12px; }
+.rail-stack .triage-rail { overflow: visible; }
 .triage-rail { overflow: auto; display: flex; flex-direction: column; gap: 12px; }
 .triage-rail .panel { margin-bottom: 0; }
 .triage-rail .pane-head { display: flex; align-items: center; gap: 8px; font-size: 10.5px; letter-spacing: .05em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px; }
