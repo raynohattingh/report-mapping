@@ -143,6 +143,7 @@ Semantics (the only logic, and it is payload composition, not domain rules):
 - [ ] Keyboard triage (arrows / A / R / E / Y) over the axis panels, auto-advance on pending suggestions.
 - [ ] Pending chips show confidence; accepting updates the label in place without a full page reload.
 - [ ] Read-only (approved) matrix proposal shows panels with zero action affordances.
+- [ ] (T4 hook change) `window.__regionsHook` is now CHAINED by axistriage.js — on a matrix proposal, drag-drawing a new region on empty page space (regions.js) still works alongside band highlights; on a matrix proposal triage.js's Y/X/E document keys are disabled (axistriage.js owns them); on a NON-matrix proposal the generic Y/E/X keyboard still works unchanged.
 
 ## Self-Review
 

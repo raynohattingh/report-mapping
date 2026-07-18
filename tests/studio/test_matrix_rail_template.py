@@ -200,3 +200,54 @@ def test_non_matrix_proposal_still_renders_generic_rail(studio_client, no_grid_p
     assert re.search(r"spatial elements \(\d+\)", body)
     assert 'id="triage-rail"' in body
     assert "data-axis-entry" not in body
+
+
+def test_non_matrix_proposal_does_not_load_axistriage_js(studio_client, no_grid_proposal):
+    """Script-loading contract (T-006 Phase 2 Task 4): axistriage.js is a
+    matrix-only module — generic (non-matrix) proposals load only triage.js,
+    same as before this task."""
+    proposal_id, _ = no_grid_proposal
+    response = studio_client.get(f"/proposals/{proposal_id}")
+    assert response.status_code == 200, response.text
+    body = response.text
+
+    assert '/static/js/triage.js' in body
+    assert '/static/js/axistriage.js' not in body
+
+
+def test_matrix_proposal_loads_axistriage_js_alongside_triage(
+        studio_client, matrix_proposal):
+    """Script-loading contract: matrix proposals load BOTH triage.js (still
+    owns PDF-pane mounting, cell box drawing and the generic rail's filter/
+    bulk-confirm affordances for cells) and axistriage.js (owns axis-row
+    keyboard triage + row/column band highlighting). Cells stay
+    keyboard-triage-free on matrix proposals — triage.js's document keydown
+    handler is guarded off by the presence of #axis-rail (see triage.js) so
+    'Y'/'X'/'E' never race between the two modules; cells remain reachable
+    via their existing hx-post buttons and via cell-overlay click, which
+    focuses the criterion+tower rows instead."""
+    proposal_id, _ = matrix_proposal
+    response = studio_client.get(f"/proposals/{proposal_id}")
+    assert response.status_code == 200, response.text
+    body = response.text
+
+    assert '/static/js/triage.js' in body
+    assert '/static/js/axistriage.js' in body
+    # axistriage.js loads after triage.js so its hook registration precedes
+    # triage.js's page-mount loop that invokes it
+    assert body.index('/static/js/triage.js') < body.index('/static/js/axistriage.js')
+
+
+def test_terminal_matrix_proposal_still_loads_axistriage_js(
+        studio_client, matrix_proposal, runner):
+    """Read-only (terminal) matrix proposals still load axistriage.js — the
+    band highlight stays display-only (no keyboard handlers attach) but the
+    module still draws bands for a reviewer scanning a decided proposal."""
+    proposal_id, draft_path = matrix_proposal
+    assert runner.invoke(app, ["onboard", "abandon", str(proposal_id)]).exit_code == 0
+
+    response = studio_client.get(f"/proposals/{proposal_id}")
+    assert response.status_code == 200, response.text
+    body = response.text
+
+    assert '/static/js/axistriage.js' in body

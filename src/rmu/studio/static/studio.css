@@ -170,6 +170,14 @@ input::placeholder { color: var(--text-faint); }
 .el-box.focused { outline: 2px solid var(--accent); outline-offset: 1px; }
 .el-tag { position: absolute; top: -9px; right: -9px; }
 
+/* axis band highlight (006 Task 4): translucent full-width (criteria row,
+   amber = pending-review language) / full-height (tower column, accent so the
+   two axes stay tellable-apart when a cell click lights both) SVG rects drawn
+   by axistriage.js into the per-page overlay layer — quiet enough to leave
+   the page and the cell boxes readable underneath */
+.axis-band { fill: var(--tier-pending); fill-opacity: .12; stroke: var(--tier-pending); stroke-opacity: .5; stroke-width: 1.5; pointer-events: none; }
+.axis-band.col { fill: var(--accent); fill-opacity: .10; stroke: var(--accent); stroke-opacity: .5; }
+
 /* link list: dense, single-line rows; a tier stripe on the left edge makes
    amber-pending / red-missing / green-confirmed scannable down hundreds of rows */
 .link-rail { overflow: auto; display: flex; flex-direction: column; gap: 3px; padding-right: 2px; }

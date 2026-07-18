@@ -61,5 +61,12 @@
      data-pending="{{ geo.pending | length }}"></div>
 <script type="module" src="/static/js/triage.js"></script>
 <script type="module" src="/static/js/regions.js"></script>
+{# matrix proposals ALSO load axistriage.js (Task 4 script-loading contract,
+   pinned in tests/studio/test_matrix_rail_template.py): triage.js keeps the
+   PDF mount + cell boxes + generic rail, but hands the document keyboard to
+   axistriage.js, which owns axis-row triage and row/column band highlights #}
+{% if geo.matrix %}
+<script type="module" src="/static/js/axistriage.js"></script>
+{% endif %}
 {% endif %}
 {% endblock %}
