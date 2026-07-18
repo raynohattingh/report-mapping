@@ -120,7 +120,7 @@ class Proposal:
 
     def save_draft(self) -> str:
         path = self.draft_path()
-        path.write_text(yaml.safe_dump(self.row.document, sort_keys=True))
+        path.write_text(yaml.safe_dump(self.row.document, sort_keys=True, allow_unicode=True))
         return path.name
 
     def unresolved(self) -> list[str]:

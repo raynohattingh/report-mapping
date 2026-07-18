@@ -41,7 +41,8 @@ def _concrete(path: str) -> str:
     """Fill path params with harmless concrete values."""
     return (path.replace("{session_id}", "1").replace("{proposal_id}", "1")
             .replace("{run_id}", "1").replace("{field}", "priority")
-            .replace("{element_id}", "e1").replace("{sha}", "0" * 64))
+            .replace("{element_id}", "e1").replace("{sha}", "0" * 64)
+            .replace("{index}", "0"))
 
 
 @pytest.mark.parametrize("method,path", ROUTES)
