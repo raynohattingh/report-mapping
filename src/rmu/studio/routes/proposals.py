@@ -158,9 +158,14 @@ def axis_confirm(request: Request, proposal_id: int, element_id: str):
     with db_session() as s:
         p = _load(s, proposal_id)
         _require_draft(p)
-        _find_element(p, element_id)
+        element = _find_element(p, element_id)
         try:
-            p.set_review_state(element_id, "confirmed")
+            # An axis already carrying entry-level corrections is already
+            # resolved (review_state 'corrected' survives approval same as
+            # 'confirmed' — see approve._elements); confirming it must not
+            # discard those corrections by reverting to the original payload.
+            if element.get("review_state") != "corrected":
+                p.set_review_state(element_id, "confirmed")
         except ProposalStateError as err:
             raise DomainRefusal("edit refused", [str(err)]) from err
     return _update_fragment(request, proposal_id)
