@@ -71,11 +71,22 @@ interchangeable mid-draft. It is a **deletable optional package** — the CLI st
 canonical for batch and the full product works without it. See
 [Mapping Studio](#mapping-studio) below.
 
+**Matrix-aware target onboarding** (feature `005-matrix-target-onboarding`,
+2026-07-16): grid-form targets — inspection checklists whose rows are
+**criteria** (numbered, e.g. `4.2 Corrosion`) and whose columns are **towers /
+assets** — now onboard as a real two-axis matrix instead of hundreds of flat
+regions with positional names. The analyst reviews ~25 axis entries, not ~373
+cells; every cell derives its identity (`corrosion__t2`) from the two axes. An
+optional AI **interpret** stage (local vision model by default) reads the page
+and proposes axis structure/labels **by grid index only** — it can never emit a
+coordinate, and every suggestion is human-confirmed. See
+[Matrix targets](#matrix-targets-grid-checklists) below.
+
 ⚠️ **The shipped target formats are interim stand-ins.** The real
 client-mandated formats (Eskom Annexure H pro forma, SAP defect-record fields)
 are not in hand and are **never invented here** — they arrive later as new
 `TargetTemplate` versions, as pure data, with no pipeline changes. See
-`ASSUMPTIONS.md` (A1–A13, D1–D11) for the working assumptions and `STATUS.md` for
+`ASSUMPTIONS.md` (A1–A14, D1–D12) for the working assumptions and `STATUS.md` for
 current build state.
 
 ## Mapping Studio
@@ -145,7 +156,7 @@ uv run rmu apply run tests/fixtures/batch_20 \
 
 # 3) Trust drills
 uv run rmu apply regen 1   # byte-exact regeneration, hash-verified
-uv run pytest              # 188 tests incl. determinism / append-only /
+uv run pytest              # 400+ tests incl. determinism / append-only /
                            # drift-block / exceptions / offline-AI / draft-block
                            # / render round-trip invariants
 ```
@@ -372,6 +383,41 @@ uv run rmu apply run ./batch \
 #    (values read back from the produced PDF must equal the records)
 ```
 
+### Matrix targets (grid checklists)
+
+Many client checklists are really a **two-dimensional map**: criteria down the
+left (a number column paired with a text column), assets/towers across the top,
+and every answer cell addressed by *both*. Onboarding such a PDF used to
+produce hundreds of flat regions with positional names; now `draft-template`
+reconstructs the **axes**:
+
+```bash
+uv run rmu onboard draft-template path/to/inspection_checklist.pdf
+# grid detected -> the proposal contains:
+#   row_axis   criteria entries  {id, number, label}   (~20 to review)
+#   col_axis   tower entries     {id, label}           (~5 to review)
+#   cells      one overlay region per blank answer slot, its name DERIVED
+#              from the axes: corrosion__t2  ("Corrosion × T2")
+```
+
+- **Structure is deterministic** (pdfplumber grid geometry — the `--no-ai`
+  floor is fully functional); the optional **interpret** stage adds AI
+  suggestions for axis labels/structure. The model reasons over the extracted
+  grid **plus the page image** but may only reference cells **by index** — a
+  cited index that doesn't exist in the grid is dropped *and counted*, and a
+  suggestion never overwrites a heuristic value. Suggestions surface as
+  pending `suggested_*` hints the analyst confirms in review; nothing enters a
+  registered template unconfirmed.
+- **Local vision by default** — a dedicated `vision_model`
+  (default `qwen2.5vl:7b`, loopback Ollama; `qwen3:4b` stays for the text
+  tiers). `rmu ai doctor` reports its health. External vision remains
+  consent-gated and is not yet enabled (D12, A14).
+- The registered template's schema gains a `matrix` block (criteria, towers,
+  cell-naming rule) as pure data; apply/verify/render are unchanged —
+  approval still test-renders every cell round-trip.
+- Tables that don't qualify as a matrix (too few rows/columns) still emit
+  their fillable cells the old flat way — nothing is silently dropped.
+
 **C. When SafeCard blocks a drifted document**, the exceptions report tells you
 the recovery path — re-onboard as a delta:
 
@@ -399,7 +445,7 @@ stored config, never generated code.
 | `rmu map regenerate --session N` | Explicitly replace a session's proposals (prior set kept in history) |
 | `rmu profile suggest <pdf>` | Suggest which registered profiles a document resembles |
 | `rmu onboard draft-profile <pdf>... [--seed-from REF]` | Analyse an unrecognised source PDF into a draft extraction recipe (local-AI hints by default; `--no-ai` fallback) |
-| `rmu onboard draft-template <pdf>` | Analyse a target PDF (form or fixed-layout) into a draft template schema |
+| `rmu onboard draft-template <pdf>` | Analyse a target PDF (form, fixed-layout, or grid checklist → criteria×tower matrix with optional local-vision interpret) into a draft template schema |
 | `rmu onboard review\|approve\|abandon` | Per-element review; verify-on-approve registers the versioned artifact |
 | `rmu ai doctor \| ai setup` | Local-AI health report / manual setup instructions |
 | `rmu ai consent grant\|revoke\|list --client ID --by OWNER` | Record per-client external-API consent |
@@ -450,7 +496,11 @@ Three modes, chosen in config or with `--assist` (default `local`):
     A12a) rank candidate target fields per source field and power
     `rmu profile suggest`;
   - *tier 2* an optional loopback-only local LLM via Ollama (`qwen3:4b`, A12b,
-    temperature 0, JSON-constrained) proposes value-map entries with rationales.
+    temperature 0, JSON-constrained) proposes value-map entries with rationales;
+  - *vision (onboarding only)* an optional loopback-only local **vision** model
+    (`vision_model`, default `qwen2.5vl:7b`, D12) powers the matrix-target
+    interpret stage — axis structure/label suggestions by grid index, never
+    coordinates.
   Tiers degrade independently — embeddings-only still gives ranking; with no
   assets installed the session behaves like `none`.
 - **`external`** — third-party API, **refused unless** a per-client consent flag
@@ -470,8 +520,10 @@ pulled. Local assistance is sized for a personal CPU-only Apple-silicon machine
 (A9); GPU-only models are out of scope.
 
 ```bash
-uv run rmu ai setup                    # instructions (warm embeddings; optional: ollama pull qwen3:4b)
-uv run rmu ai doctor                   # per-tier health; --json for scripts
+uv run rmu ai setup                    # instructions (warm embeddings; optional:
+                                       #   ollama pull qwen3:4b       - text proposals
+                                       #   ollama pull qwen2.5vl:7b   - matrix-target vision interpret
+uv run rmu ai doctor                   # per-tier health incl. the vision line; --json for scripts
 
 # On-device proposals in a mapping session (local is the default mode):
 uv run rmu map start --assist local \
@@ -530,7 +582,7 @@ value-map references are closed by construction.
 ## Development
 
 ```bash
-uv run pytest                 # full suite (188 tests; slow perf smoke: -m slow)
+uv run pytest                 # full suite (400+ tests; slow perf smoke: -m slow)
 uv run pytest tests/invariants/   # the never-cut guarantees only
 uv run ruff check src tests  # lint
 ```
@@ -576,11 +628,13 @@ time, never on whole batches.
 | Document | What it is |
 |---|---|
 | `docs/solution_design_mapping_v1.md` | The authoritative build spec (pipeline, HIL session, SafeCard, data model; §13 covers the v1.1 feature set) |
-| `ASSUMPTIONS.md` | Numbered working assumptions (A1–A12) + decision log (D1–D9) |
+| `ASSUMPTIONS.md` | Numbered working assumptions (A1–A14) + decision log (D1–D12) |
 | `STATUS.md` | Terse per-session build state, decisions, and DoD evidence |
 | `specs/001-report-mapping-v1/` | Spec-kit artifacts for the v1 pipeline: spec, plan, research, data model, contracts, tasks |
 | `specs/002-local-ai-assist/` | Spec-kit artifacts for the local AI assistance layer |
 | `specs/003-pdf-format-onboarding/` | Spec-kit artifacts for assisted format onboarding (incl. recipe/template/proposal contracts) |
+| `specs/004-mapping-studio/` | Spec-kit artifacts for the Mapping Studio (visual HIL surface) |
+| `docs/superpowers/specs/2026-07-15-matrix-target-onboarding-design.md` | Approved design for matrix-aware target onboarding (feature 005; plan under `docs/superpowers/plans/`) |
 | `scripts/acceptance_003.md` | The human-run SC-001 acceptance protocol for onboarding |
 | `docs/eskom_dst34-1441_extraction.md` | Interim defect taxonomy source for the stand-in vocabulary |
 | `.specify/memory/constitution.md` | The nine non-negotiable engineering principles this repo is governed by |

@@ -49,6 +49,16 @@ Rule: every assumption here was made deliberately because the real answer was un
 |---|---|---|---|
 | **A13** | A modern desktop browser (Chrome/Edge/Firefox/Safari current at build time; ES-module + canvas support sufficient for PDF.js) is available on the analyst machine (extends A5/A9). No minimum version is pinned; the vendored PDF.js build's own floor governs. | Studio unusable in that browser — CLI path (canonical, always functional) is the fallback; vendored PDF.js/HTMX can be swapped for older builds as a data/asset change. | First session on the actual pilot machine (Gate-2 demo prep). |
 
+## v1.1 additions — 005 build (2026-07-16)
+
+| ID | Assumption | Blast radius if wrong | How to clear |
+|---|---|---|---|
+| **A14** | The blank Eskom target checklist (seed/holdout) is a **form specification, not client report data** — it contains form furniture (criteria text, grid) and zero inspection findings — so it is eligible for *template-only* external vision assist once a client consent entry exists (rule 7 / Constitution VII still gate the call; real inspection reports remain strictly local). | External assist on templates would also have to be withheld until consent covers them explicitly — interpret degrades to local/`--no-ai` (which always works), no data exposure occurs either way. | Confirm the template-vs-report distinction with IAS when consent is negotiated (Gate-2 prep). |
+
+## Decision log — 005 build (2026-07-16)
+
+- **D12** Matrix-aware target onboarding (feature 005, design docs/superpowers/specs/2026-07-15-matrix-target-onboarding-design.md): grid targets reconstruct as **two axes** (criteria rows, tower columns) with cells deriving `(row_id, col_id)` names; an optional AI **interpret** stage proposes structure/labels by grid **index only** (never coordinates), gated by referent resolution, suggestion-only (human confirms). Local vision default `qwen2.5vl:7b` via a NEW dedicated `vision_model` config slot (`qwen3:4b` stays for text tiers); external remains consent-gated and is not yet enabled. Deterministic axis reconstruction is the `--no-ai` floor. Cite D12 in code/commits that rely on the matrix representation.
+
 ## Decision log — 004 build (2026-07-14)
 
 - **D11** Stack extension for 004 (constitution "fixed stack" carve-out, justified in specs/004-mapping-studio/plan.md Complexity Tracking): `fastapi` + `uvicorn` + `python-multipart` added as an **optional `studio` dependency group** (`uv sync --group studio`) so the core install is unchanged and "suite green without the studio" (FR-042) is a real installation state; `htmx` and `pdf.js` are **vendored as pinned static assets inside `src/rmu/studio/static/vendor/`** (no CDN — the studio must work with zero network access; assets ship inside the deletable package). Rejected: stdlib `http.server` (hand-rolled routing/multipart/middleware = more security-sensitive code), Flask (no typed contract benefit; D6 names FastAPI), SPA framework + build toolchain (client-side state violates the zero-business-logic rule; FR-004). Cite D11 in code/commits that rely on these deps.

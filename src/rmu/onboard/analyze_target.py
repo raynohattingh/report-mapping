@@ -159,8 +159,14 @@ def _fixed_layout_elements(pdf_path: Path) -> list[dict]:
                 counter += 1
                 rects.remove(box)
     if not elements:
-        # No label+box pairs found: try line-grid reconstruction (grid forms
-        # draw their fillable cells as line strokes, not area rects).
+        # No label+box pairs found: grid form. Prefer 2-D axis reconstruction
+        # (feature 005); fall back to the flat per-cell path only if no
+        # reconstructable grid is present.
+        from rmu.onboard.matrix import reconstruct_matrix
+
+        matrix = reconstruct_matrix(pdf_path)
+        if matrix is not None:
+            return matrix
         return _grid_region_elements(pdf_path)
     return elements
 

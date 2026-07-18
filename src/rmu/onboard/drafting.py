@@ -85,6 +85,31 @@ def _local_llm():
         return None
 
 
+def _axis_interpreter(no_ai: bool):
+    """Best-effort feature-005 AxisInterpreter for the matrix interpret stage.
+
+    Mirrors `_local_llm`'s degrade-not-raise contract: `--no-ai` -> None
+    (interpret silently skipped, deterministic axes stand); otherwise resolve
+    the `local` tier via `resolve_axis_interpreter` (loopback Ollama vision
+    model, `ai.yaml`'s dedicated `vision_model` slot) — unavailable local
+    runtime/model degrades to None, never raises. `external` is not offered
+    here (matrix onboarding has no `--client`/`--assist` surface yet; the
+    template-only external tier stays a later wiring), so a `ConsentRequired`
+    can only arise if that changes — caught defensively and degraded to None
+    rather than aborting the whole draft.
+    """
+    if no_ai:
+        return None
+    from rmu.ai.config import load_ai_config
+    from rmu.onboard.axis_providers import ConsentRequired, resolve_axis_interpreter
+
+    try:
+        cfg = load_ai_config(store_root())
+        return resolve_axis_interpreter("local", cfg, client=None)
+    except ConsentRequired:
+        return None
+
+
 def draft_profile_proposal(
     s: Session,
     paths: list[Path],
@@ -164,6 +189,29 @@ def draft_template_proposal(
 
     store.put_file(pdf)  # the template PDF itself becomes the pdf_object
     document = analyze(pdf, kind=diag.kind)
+
+    matrix_pages = sorted({
+        e["evidence"]["pages"][0]
+        for e in document["elements"]
+        if e["element_kind"] in ("row_axis", "col_axis")
+    })
+    if matrix_pages:
+        interpreter = _axis_interpreter(no_ai)
+        if interpreter is not None:
+            from rmu.onboard.interpret_matrix import apply_interpretation
+            from rmu.onboard.matrix import extract_grids, render_page_images
+
+            grids = extract_grids(pdf)
+            # page image (vision tier): pdfplumber's own Pillow-backed
+            # renderer works with already-installed deps (design "Model
+            # substrate" vision tier), so pass the real render rather than
+            # None; any per-page render failure just omits that page's
+            # image (see render_page_images), degrading that page to the
+            # text-grid-only prompt path.
+            images = render_page_images(pdf, set(matrix_pages))
+            document, dropped = apply_interpretation(document, grids, interpreter, images)
+            document["ai_assist"] = {"mode": "local", "dropped": dropped}
+
     proposal = Proposal.create(s, document)
     sheet = write_sheet(document, proposal.id)
     return DraftOutcome(

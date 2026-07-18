@@ -12,6 +12,7 @@ def test_defaults_when_no_file(tmp_path):
     assert cfg.ollama_host.startswith("http://127.0.0.1")
     assert cfg.embedding_model == "BAAI/bge-small-en-v1.5"
     assert cfg.llm_model == "qwen3:4b"
+    assert cfg.vision_model == "qwen2.5vl:7b"
     assert cfg.timeout_seconds == 120
     assert cfg.consent == []
 

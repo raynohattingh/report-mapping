@@ -534,6 +534,11 @@ def ai_doctor(
     typer.echo(f"tier 2 local LLM  : {'OK' if llm['ok'] else 'MISSING'}  "
                f"({llm['model']} on {llm['host']}, {bound})"
                f"{'' if llm['ok'] else '  ' + str(llm['reason'])}")
+    vision = report["vision"]
+    vbound = "loopback" if vision["loopback_bound"] else "NON-LOOPBACK (refused)"
+    typer.echo(f"{vision['label']:18}: {'OK' if vision['ok'] else 'MISSING'}  "
+               f"({vision['model']} on {vision['host']}, {vbound})"
+               f"{'' if vision['ok'] else '  ' + str(vision['reason'])}")
     clients = report["consent_clients"]
     typer.echo(f"external consent  : {', '.join(clients) if clients else 'none recorded'}")
 
