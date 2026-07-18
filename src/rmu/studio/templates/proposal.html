@@ -38,7 +38,17 @@
     <div data-pdf-pane="proposal"></div>
   </div>
 
+  {% if geo.matrix %}
+  <div class="rail-stack">
+    {% include "fragments/axis_rail.html" %}
+    {% if geo.matrix.additional_axes > 0 or geo.spatial
+          or geo.non_spatial | rejectattr("element_kind", "in", ["row_axis", "col_axis"]) | list %}
+    {% include "fragments/triage_rail.html" %}
+    {% endif %}
+  </div>
+  {% else %}
   {% include "fragments/triage_rail.html" %}
+  {% endif %}
 </div>
 
 <div id="proposal-status" hidden

@@ -225,6 +225,11 @@ input::placeholder { color: var(--text-faint); }
 
 /* --- triage rail (FR-034) --- */
 .triage { display: grid; grid-template-columns: 1fr 340px; gap: 14px; height: calc(100vh - 116px); }
+/* stacks the axis rail above the generic rail in the single rail column
+   (feature 006 matrix proposals, when cells/cardinality/additional axes
+   still need the generic review affordances) */
+.rail-stack { overflow: auto; display: flex; flex-direction: column; gap: 12px; }
+.rail-stack .triage-rail { overflow: visible; }
 .triage-rail { overflow: auto; display: flex; flex-direction: column; gap: 12px; }
 .triage-rail .panel { margin-bottom: 0; }
 .triage-rail .pane-head { display: flex; align-items: center; gap: 8px; font-size: 10.5px; letter-spacing: .05em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px; }
