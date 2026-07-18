@@ -9,7 +9,10 @@ the interpret stage (interpret_matrix.py) and human review improve them.
 """
 from __future__ import annotations
 
+import contextlib
 import re
+import tempfile
+from collections.abc import Iterator
 from pathlib import Path
 
 import pdfplumber
@@ -19,6 +22,69 @@ from rmu.onboard.analyze_target import _element, _slug
 GRID_MIN_CELL_W = 12.0
 GRID_MIN_CELL_H = 8.0
 _NUMBERISH = re.compile(r"^\s*\d+(\.\d+)*\s*$")
+
+
+@contextlib.contextmanager
+def _derotated(pdf_path: Path) -> Iterator[tuple[Path, dict[int, int]]]:
+    """Yield (working_path, per-page /Rotate values).
+
+    pdfplumber's table extraction does NOT normalize /Rotate: a 90-degree page
+    extracts TRANSPOSED (criteria become columns) and a 180-degree page extracts
+    with reversed text — garbage axes on landscape-via-rotation packs like the
+    real Eskom target. Detection therefore runs on an unrotated copy (clean
+    logical grid); cell bboxes are then mapped back into the VISUAL rotated
+    space via _to_visual, the same space overlays and render_overlay_pdf use.
+    """
+    with pdfplumber.open(pdf_path) as pdf:
+        rotations = {i: (p.rotation or 0) % 360
+                     for i, p in enumerate(pdf.pages, start=1)}
+    if not any(rotations.values()):
+        yield pdf_path, rotations
+        return
+    from pypdf import PdfWriter
+    from pypdf.generic import NameObject, NumberObject
+
+    writer = PdfWriter(clone_from=str(pdf_path))
+    for page in writer.pages:
+        page[NameObject("/Rotate")] = NumberObject(0)
+    with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as fh:
+        writer.write(fh)
+        tmp = Path(fh.name)
+    try:
+        yield tmp, rotations
+    finally:
+        tmp.unlink(missing_ok=True)
+
+
+def _to_visual(bbox: list[float], rotation: int, w: float, h: float) -> list[float]:
+    """Map a bottom-left-origin bbox on the UNROTATED page (w x h) into the
+    visual space of the /Rotate'd page. 90 => (x,y)->(y, w-x); 180 =>
+    (w-x, h-y); 270 => (h-y, x). Corners re-sorted so the bbox stays
+    min/max-normalised."""
+    x0, y0, x1, y1 = bbox
+
+    def pt(x: float, y: float) -> tuple[float, float]:
+        if rotation == 90:
+            return (y, w - x)
+        if rotation == 180:
+            return (w - x, h - y)
+        if rotation == 270:
+            return (h - y, x)
+        return (x, y)
+
+    (ax, ay), (bx, by) = pt(x0, y0), pt(x1, y1)
+    return [round(min(ax, bx), 1), round(min(ay, by), 1),
+            round(max(ax, bx), 1), round(max(ay, by), 1)]
+
+
+def _cell_bbox(cell: tuple[float, float, float, float], rotation: int,
+               w: float, h: float) -> list[float]:
+    """pdfplumber top-down cell -> bottom-up bbox, then into visual space."""
+    x0, top, x1, bottom = cell
+    upright = [x0, h - bottom, x1, h - top]
+    if rotation:
+        return _to_visual(upright, rotation, w, h)
+    return [round(v, 1) for v in upright]
 
 
 def derive_field(row_id: str, col_id: str) -> str:
@@ -52,8 +118,9 @@ def _detect_bands(grid) -> tuple[list[int], int | None, int]:
     return header_rows, number_column, text_column
 
 
-def _flat_cell_elements(table, grid, page_no: int, height: float,
-                        used_fields: dict[str, int], start: int) -> list[dict]:
+def _flat_cell_elements(table, grid, page_no: int, width: float, height: float,
+                        rotation: int, used_fields: dict[str, int],
+                        start: int) -> list[dict]:
     """Flat per-cell regions for a table too small to reconstruct as a matrix
     (<2 rows or <3 cols): every blank, size-valid cell still becomes a
     reviewable overlay_region, named nearest-left row label, else column
@@ -97,8 +164,7 @@ def _flat_cell_elements(table, grid, page_no: int, height: float,
                  "target_field": slug,
                  "kind": "text",
                  "page": page_no,
-                 "bbox": [round(x0, 1), round(height - bottom, 1),
-                          round(x1, 1), round(height - top, 1)]}))
+                 "bbox": _cell_bbox(cell, rotation, width, height)}))
             counter += 1
     return elements
 
@@ -114,9 +180,13 @@ def reconstruct_matrix(pdf_path: Path) -> list[dict] | None:
         used[base] = used.get(base, 0) + 1
         return base if used[base] == 1 else f"{base}_{used[base]}"
 
-    with pdfplumber.open(pdf_path) as pdf:
+    with _derotated(pdf_path) as (work_path, rotations), \
+            pdfplumber.open(work_path) as pdf:
         for page_no, page in enumerate(pdf.pages, start=1):
-            height = float(page.height)
+            # UNROTATED page dims (the working copy) — _cell_bbox maps back
+            # into the visual rotated space using the original /Rotate value.
+            width, height = float(page.width), float(page.height)
+            rotation = rotations.get(page_no, 0)
             cell_counter = 0  # per-page, continuous across tables (unique ids)
             for table_idx, table in enumerate(page.find_tables()):
                 grid = table.extract()
@@ -127,7 +197,8 @@ def reconstruct_matrix(pdf_path: Path) -> list[dict] | None:
                     # too small for axis reconstruction: keep its cells flat
                     # rather than dropping them (never silently absorbed)
                     flat = _flat_cell_elements(
-                        table, grid, page_no, height, used_fields, cell_counter)
+                        table, grid, page_no, width, height, rotation,
+                        used_fields, cell_counter)
                     elements.extend(flat)
                     cell_counter += len(flat)
                     continue
@@ -190,8 +261,7 @@ def reconstruct_matrix(pdf_path: Path) -> list[dict] | None:
                              "label": f"{row_label_by_i[i]} × {col_label_by_j[j]}",
                              "target_field": derive_field(rid, cid), "kind": "text",
                              "page": page_no,
-                             "bbox": [round(x0, 1), round(height - bottom, 1),
-                                      round(x1, 1), round(height - top, 1)]}))
+                             "bbox": _cell_bbox(cell, rotation, width, height)}))
                         cell_counter += 1
     return elements if found_grid else None
 
@@ -199,14 +269,17 @@ def reconstruct_matrix(pdf_path: Path) -> list[dict] | None:
 def extract_grids(pdf_path: Path) -> dict[int, list[list[str]]]:
     """Per-page 2-D cell-text grids for the interpret stage (feature 005).
 
-    Reuses the exact `find_tables().extract()` call `reconstruct_matrix` uses,
-    and the same qualifying-size threshold (>=2 rows, >=3 cols), so the
-    interpret stage's `(row, col)` indices line up with the deterministic axis
-    reconstruction. Only the first qualifying table per page is kept — matrix
-    targets are one criteria x tower grid per page (design "Core idea").
+    Reuses the exact `find_tables().extract()` call `reconstruct_matrix` uses
+    — including the same derotation (rotated pages extract transposed/reversed
+    otherwise, which would hand the AI a garbage grid) — and the same
+    qualifying-size threshold (>=2 rows, >=3 cols), so the interpret stage's
+    `(row, col)` indices line up with the deterministic axis reconstruction.
+    Only the first qualifying table per page is kept — matrix targets are one
+    criteria x tower grid per page (design "Core idea").
     """
     grids: dict[int, list[list[str]]] = {}
-    with pdfplumber.open(pdf_path) as pdf:
+    with _derotated(pdf_path) as (work_path, _rotations), \
+            pdfplumber.open(work_path) as pdf:
         for page_no, page in enumerate(pdf.pages, start=1):
             for table in page.find_tables():
                 grid = table.extract()
