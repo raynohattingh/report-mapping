@@ -174,6 +174,83 @@ def _active_payload(element: dict) -> dict:
 
 
 _SPATIAL_KINDS = {"overlay_region", "image_region"}
+_AXIS_KINDS = {"row_axis", "col_axis"}
+
+
+def _axis_page(element: dict) -> int | None:
+    pages = (element.get("evidence") or {}).get("pages") or []
+    return pages[0] if pages else None
+
+
+def _band(cells: list[dict], lo_idx: int, hi_idx: int) -> list[float] | None:
+    """min/max over the given bbox axis across `cells` — None when there are
+    no matching cells (a fully pre-printed row/column), never invented."""
+    if not cells:
+        return None
+    values = [c["bbox"][lo_idx] for c in cells] + [c["bbox"][hi_idx] for c in cells]
+    return [min(values), max(values)]
+
+
+def _matrix_projection(spatial: list[dict], non_spatial: list[dict]) -> dict | None:
+    """Derived criteria x tower review surface (feature 006, D6): a pure
+    projection over the row_axis/col_axis elements and the cells that
+    reference them by row_id/col_id — nothing here is stored.
+
+    Multiple axis-element pairs (multi-page/multi-grid targets) are out of
+    scope for per-pair projection; only the FIRST pair is projected, with the
+    rest surfaced honestly as `additional_axes` so the UI can say the generic
+    review covers them rather than silently dropping them."""
+    row_axes = [e for e in non_spatial if e["element_kind"] == "row_axis"]
+    col_axes = [e for e in non_spatial if e["element_kind"] == "col_axis"]
+    if not row_axes:
+        return None
+
+    row_el = row_axes[0]
+    col_el = col_axes[0] if col_axes else None
+    row_payload = row_el.get("payload") or {}
+    col_payload = col_el.get("payload") or {} if col_el else {}
+    row_page = _axis_page(row_el)
+    col_page = _axis_page(col_el) if col_el else None
+
+    cells_by_row: dict[str, list[dict]] = {}
+    cells_by_col: dict[str, list[dict]] = {}
+    for cell in spatial:
+        row_id, col_id = cell.get("row_id"), cell.get("col_id")
+        if row_id:
+            cells_by_row.setdefault(row_id, []).append(cell)
+        if col_id:
+            cells_by_col.setdefault(col_id, []).append(cell)
+
+    criteria = [{
+        "index": i, "row": entry.get("row"), "id": entry["id"],
+        "number": entry.get("number"), "label": entry.get("label"),
+        "suggested_label": entry.get("suggested_label"),
+        "suggested_number": entry.get("suggested_number"),
+        "confidence": entry.get("suggested_confidence"),
+        "page": row_page,
+        "y_band": _band(cells_by_row.get(entry["id"], []), 1, 3),
+    } for i, entry in enumerate(row_payload.get("entries", []))]
+
+    towers = [{
+        "index": j, "col": entry.get("col"), "id": entry["id"],
+        "label": entry.get("label"),
+        "suggested_label": entry.get("suggested_label"),
+        "confidence": entry.get("suggested_confidence"),
+        "page": col_page,
+        "x_range": _band(cells_by_col.get(entry["id"], []), 0, 2),
+    } for j, entry in enumerate(col_payload.get("entries", []))]
+
+    cell_count = sum(1 for c in spatial if c.get("row_id") and c.get("col_id"))
+    return {
+        "row_element_id": row_el["id"],
+        "col_element_id": col_el["id"] if col_el else None,
+        "row_state": row_el["review_state"],
+        "col_state": col_el["review_state"] if col_el else None,
+        "criteria": criteria,
+        "towers": towers,
+        "cell_count": cell_count,
+        "additional_axes": max(0, len(row_axes) - 1),
+    }
 
 
 def proposal_geometry(s: Session, proposal_id: int) -> dict:
@@ -204,6 +281,10 @@ def proposal_geometry(s: Session, proposal_id: int) -> dict:
                 "source": e.get("evidence", {}).get("source", "heuristic"),
                 "agreement": e.get("evidence", {}).get("cross_exemplar_agreement"),
                 "flags": e.get("flags", []),
+                # matrix cells only (005): row_id/col_id let the derived
+                # `matrix` projection band cells back to their axis entries
+                "row_id": payload.get("row_id"),
+                "col_id": payload.get("col_id"),
             })
         else:
             non_spatial.append({
@@ -234,6 +315,7 @@ def proposal_geometry(s: Session, proposal_id: int) -> dict:
         "exemplars": exemplars,
         "spatial": spatial,
         "non_spatial": non_spatial,
+        "matrix": _matrix_projection(spatial, non_spatial),
         "pending": pending,
         "diagnosis": document.get("diagnosis"),
         "verify_report": proposal.row.verify_report,
