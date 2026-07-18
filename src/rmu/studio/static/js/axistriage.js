@@ -22,27 +22,38 @@ const root = document.getElementById("triage-root");
 const rail = document.getElementById("axis-rail");
 if (root && rail) initAxisTriage(root);
 
-async function initAxisTriage(root) {
+function initAxisTriage(root) {
   const proposalId = root.dataset.proposalId;
   const readOnly = Boolean(root.dataset.readOnly);
-  let geo = await (await fetch(`/proposals/${proposalId}/geometry`)).json();
-  if (!geo.matrix) return;
+  let geo = null; // set once the geometry fetch resolves; guards all handlers
 
   const layers = new Map(); // pageNo -> { layer, scale } (current mount only)
   // selection: primary cursor + optional companion (cell click focuses BOTH
   // its criterion and tower rows); companion clears on any cursor move.
-  let sel = firstPending(geo.matrix) || { kind: "criteria", index: 0 };
+  let sel = null;
   let companion = null;
   let wantAdvance = false;
 
-  // ---- lazy-page hook: chain, never replace (regions.js registered first) --
+  // ---- lazy-page hook: chain, never replace (regions.js registered first).
+  // Installed SYNCHRONOUSLY, before the geometry fetch: triage.js mounts the
+  // PDF independently and pages mount exactly once, so a wrapper installed
+  // after an await could miss early pages (fast/cached PDFs) — losing their
+  // band-layer registration and cell-click listener. Geometry-dependent work
+  // (cellClick, redraw) is deferred via the `geo` guard instead. ------------
   const prior = window.__regionsHook;
   window.__regionsHook = (pageNo, holder, layer, scale, exemplar) => {
     if (prior) prior(pageNo, holder, layer, scale, exemplar);
     layers.set(pageNo, { layer, scale });
     layer.addEventListener("click", (evt) => cellClick(evt, pageNo, layer, scale));
-    redraw();
+    if (geo && geo.matrix) redraw();
   };
+
+  fetch(`/proposals/${proposalId}/geometry`).then((r) => r.json()).then((g) => {
+    if (!g.matrix) return; // geo stays null — every handler stays inert
+    geo = g;
+    sel = firstPending(geo.matrix) || { kind: "criteria", index: 0 };
+    redraw(); // pages that mounted before the fetch resolved get their band now
+  });
 
   // ---- panel helpers -----------------------------------------------------
   function entriesOf(kind) {
@@ -103,6 +114,7 @@ async function initAxisTriage(root) {
     document.querySelectorAll(".axis-band").forEach((r) => r.remove());
     document.querySelectorAll("#axis-rail .triage-el.focused")
       .forEach((r) => r.classList.remove("focused"));
+    if (!sel) return; // geometry not loaded yet
     drawBand(sel);
     focusRow(sel);
     if (companion) { drawBand(companion); focusRow(companion); }
@@ -116,6 +128,7 @@ async function initAxisTriage(root) {
   // ---- cell overlay → focus BOTH axis rows (display-only, hit-test in the
   //      registered visual space: rendered px ÷ scale, inverse of drawing) --
   function cellClick(evt, pageNo, layer, scale) {
+    if (!geo || !geo.matrix) return; // listener attaches pre-fetch; inert until then
     const box = layer.getBoundingClientRect();
     const x = (evt.clientX - box.left) / scale;
     const y = (evt.clientY - box.top) / scale;
@@ -132,6 +145,7 @@ async function initAxisTriage(root) {
 
   // ---- axis-row clicks (delegated: the rail is re-rendered by htmx OOB) ---
   document.addEventListener("click", (evt) => {
+    if (!geo || !geo.matrix) return;
     const row = evt.target.closest("[data-axis-entry]");
     if (!row || evt.target.closest("button, input, form")) return;
     const index = Number(row.dataset.axisEntry.split(":").pop());
@@ -167,6 +181,7 @@ async function initAxisTriage(root) {
   // ---- keyboard (write path — absent entirely in read-only mode) ----------
   if (!readOnly) {
     document.addEventListener("keydown", (evt) => {
+      if (!geo || !geo.matrix || !sel) return;
       if (evt.target.matches("input, select, textarea") ||
           evt.metaKey || evt.ctrlKey || evt.altKey) return;
       const key = evt.key.toLowerCase();
@@ -204,6 +219,7 @@ async function initAxisTriage(root) {
       fetch(`/proposals/${proposalId}/geometry`).then((r) => r.json()).then((g) => {
         geo = g;
         if (!geo.matrix) return;
+        if (!sel) sel = firstPending(geo.matrix) || { kind: "criteria", index: 0 };
         if (wantAdvance) {
           wantAdvance = false;
           // next entry still carrying a suggestion: forward in this panel,
@@ -220,6 +236,4 @@ async function initAxisTriage(root) {
       });
     }
   });
-
-  redraw();
 }
