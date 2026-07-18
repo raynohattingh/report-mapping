@@ -11,9 +11,14 @@
    Y confirm the focused axis element once no entry still carries a suggestion.
    Read-only proposals attach no key handlers — highlight only.
 
-   Band geometry: y_band/x_range are min/max over the member cells' registered
-   visual-space bboxes ([x0, top, x1, bottom], same space overlay.js draws in),
-   so the client multiplies by the page's zoom scale and nothing else (SC-007).
+   Band geometry: each criterion/tower's `band` is the union bbox
+   ([x0, y0, x1, y1], same registered visual-space coords overlay.js draws
+   in) of ONLY that entry's own cells — never a full-width/full-height band.
+   On /Rotate 90|270 pages (the real Eskom case) a logical row renders as a
+   narrow VERTICAL strip and a logical column as a narrow HORIZONTAL strip,
+   so a full-axis band would smear across unrelated rows/columns; the client
+   just multiplies the union bbox by the page's zoom scale and draws that
+   rect (SC-007) — no orientation assumption anywhere in this file.
    Pages render lazily: we chain onto window.__regionsHook (called by triage.js
    for every page it mounts) WITHOUT clobbering regions.js's editor. */
 
@@ -75,11 +80,9 @@ function initAxisTriage(root) {
   // ---- band + row focus --------------------------------------------------
   function bandFor(pick) {
     const entry = entriesOf(pick.kind)[pick.index];
-    if (!entry || !entry.page) return null;
-    if (pick.kind === "criteria") {
-      return entry.y_band ? { page: entry.page, axis: "row", band: entry.y_band } : null;
-    }
-    return entry.x_range ? { page: entry.page, axis: "col", band: entry.x_range } : null;
+    if (!entry || !entry.page || !entry.band) return null;
+    const axis = pick.kind === "criteria" ? "row" : "col";
+    return { page: entry.page, axis, band: entry.band };
   }
   function drawBand(pick) {
     const b = bandFor(pick);
@@ -88,20 +91,12 @@ function initAxisTriage(root) {
     if (!mounted) return; // page not rendered yet — hook will redraw on mount
     const { layer, scale } = mounted;
     const rect = document.createElementNS(SVG, "rect");
-    const [lo, hi] = b.band;
-    if (b.axis === "row") {
-      rect.setAttribute("x", 0);
-      rect.setAttribute("y", lo * scale);
-      rect.setAttribute("width", "100%");
-      rect.setAttribute("height", (hi - lo) * scale);
-      rect.setAttribute("class", "axis-band");
-    } else {
-      rect.setAttribute("x", lo * scale);
-      rect.setAttribute("y", 0);
-      rect.setAttribute("width", (hi - lo) * scale);
-      rect.setAttribute("height", "100%");
-      rect.setAttribute("class", "axis-band col");
-    }
+    const [x0, y0, x1, y1] = b.band;
+    rect.setAttribute("x", x0 * scale);
+    rect.setAttribute("y", y0 * scale);
+    rect.setAttribute("width", (x1 - x0) * scale);
+    rect.setAttribute("height", (y1 - y0) * scale);
+    rect.setAttribute("class", b.axis === "row" ? "axis-band" : "axis-band col");
     layer.appendChild(rect);
   }
   function focusRow(pick) {

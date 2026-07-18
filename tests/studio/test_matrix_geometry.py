@@ -2,9 +2,12 @@
 
 `proposal_geometry` gains a derived `matrix` block for grid targets (feature
 005 row_axis/col_axis + cell overlay_regions): axis entries enriched with
-review state and suggestion fields, plus per-criterion y_band / per-tower
-x_range computed as the min/max extent of the matching cells' bboxes. Pure
-projection — nothing new is stored (Constitution/D6)."""
+review state and suggestion fields, plus a per-entry `band` — the union bbox
+of ONLY that entry's own cells (row_id for criteria, col_id for towers).
+Deliberately not a single-axis (full-width/full-height) band: on rotated
+pages a logical row/column is a strip, not a full-page band (see
+tests/studio/test_matrix_geometry_rotated.py). Pure projection — nothing new
+is stored (Constitution/D6)."""
 
 from __future__ import annotations
 
@@ -39,18 +42,20 @@ def test_bands_lie_within_page_dims(matrix_proposal):
     pages = {p["page"]: p for p in geo["exemplars"][0]["pages"]}
 
     for criterion in matrix["criteria"]:
-        if criterion["y_band"] is None:
+        if criterion["band"] is None:
             continue
         page = pages[criterion["page"]]
-        y0, y1 = criterion["y_band"]
+        x0, y0, x1, y1 = criterion["band"]
+        assert 0.0 <= x0 <= x1 <= page["width"]
         assert 0.0 <= y0 <= y1 <= page["height"]
 
     for tower in matrix["towers"]:
-        if tower["x_range"] is None:
+        if tower["band"] is None:
             continue
         page = pages[tower["page"]]
-        x0, x1 = tower["x_range"]
+        x0, y0, x1, y1 = tower["band"]
         assert 0.0 <= x0 <= x1 <= page["width"]
+        assert 0.0 <= y0 <= y1 <= page["height"]
 
 
 def test_axis_entries_carry_review_state_and_suggestion_fields(matrix_proposal):

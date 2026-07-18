@@ -182,19 +182,40 @@ def _axis_page(element: dict) -> int | None:
     return pages[0] if pages else None
 
 
-def _band(cells: list[dict], lo_idx: int, hi_idx: int) -> list[float] | None:
-    """min/max over the given bbox axis across `cells` — None when there are
-    no matching cells (a fully pre-printed row/column), never invented."""
+def _union_bbox(cells: list[dict]) -> list[float] | None:
+    """Union bbox [x0, y0, x1, y1] over `cells`' registered visual-space
+    bboxes — None when there are no matching cells (a fully pre-printed
+    row/column), never invented.
+
+    Deliberately NOT a single-axis band: on /Rotate 90|270 pages (the real
+    Eskom case) a logical row is a narrow VERTICAL strip in visual space and
+    a logical column a narrow HORIZONTAL strip — a full-width/full-height
+    band would smear across unrelated rows/columns or swap row/col highlights
+    entirely. The union of the OWN cells' bboxes is orientation-agnostic: it
+    is always the true extent of that entry's cells, in whatever direction
+    the page's rotation put them."""
     if not cells:
         return None
-    values = [c["bbox"][lo_idx] for c in cells] + [c["bbox"][hi_idx] for c in cells]
-    return [min(values), max(values)]
+    x0 = min(c["bbox"][0] for c in cells)
+    y0 = min(c["bbox"][1] for c in cells)
+    x1 = max(c["bbox"][2] for c in cells)
+    y1 = max(c["bbox"][3] for c in cells)
+    return [x0, y0, x1, y1]
 
 
 def _matrix_projection(spatial: list[dict], non_spatial: list[dict]) -> dict | None:
     """Derived criteria x tower review surface (feature 006, D6): a pure
     projection over the row_axis/col_axis elements and the cells that
     reference them by row_id/col_id — nothing here is stored.
+
+    Each criterion/tower entry carries a `band`: [x0, y0, x1, y1], the union
+    bbox (registered visual-space coords) of ONLY that entry's own cells, or
+    None when it has none. This is deliberately NOT a single-axis (full-width
+    row / full-height column) band — on /Rotate 90|270 pages (the real Eskom
+    case) a logical row renders as a narrow VERTICAL strip and a logical
+    column as a narrow HORIZONTAL strip, so a full-width/full-height band
+    would smear across unrelated entries or swap row/col highlights. The
+    union-of-own-cells rect is correct regardless of page rotation.
 
     Multiple axis-element pairs (multi-page/multi-grid targets) are out of
     scope for per-pair projection; only the FIRST pair is projected, with the
@@ -228,7 +249,7 @@ def _matrix_projection(spatial: list[dict], non_spatial: list[dict]) -> dict | N
         "suggested_number": entry.get("suggested_number"),
         "confidence": entry.get("suggested_confidence"),
         "page": row_page,
-        "y_band": _band(cells_by_row.get(entry["id"], []), 1, 3),
+        "band": _union_bbox(cells_by_row.get(entry["id"], [])),
     } for i, entry in enumerate(row_payload.get("entries", []))]
 
     towers = [{
@@ -237,7 +258,7 @@ def _matrix_projection(spatial: list[dict], non_spatial: list[dict]) -> dict | N
         "suggested_label": entry.get("suggested_label"),
         "confidence": entry.get("suggested_confidence"),
         "page": col_page,
-        "x_range": _band(cells_by_col.get(entry["id"], []), 0, 2),
+        "band": _union_bbox(cells_by_col.get(entry["id"], [])),
     } for j, entry in enumerate(col_payload.get("entries", []))]
 
     cell_count = sum(1 for c in spatial if c.get("row_id") and c.get("col_id"))
