@@ -50,9 +50,13 @@ fully type-hinted; provider tests hermetic. Suite 404 green + the pre-existing
 seed failure; ruff clean.
 
 **Deferred, tracked (from final review):**
-- ⚠️ MUST before onboarding the real Eskom target: a `/Rotate 90` matrix
-  fixture + test — every matrix fixture is unrotated; the real pack is
-  portrait-displayed-landscape and 003 had rotation bugs here before.
+- ~~⚠️ MUST before onboarding the real Eskom target: `/Rotate 90` matrix
+  fixture + test~~ **DONE 2026-07-18** (branch 006, commit 37124b7): the drill
+  found a REAL bug — pdfplumber table extraction does not normalize /Rotate
+  (90° = transposed grid, 180° = reversed text), which would have produced
+  garbage axes on the real Eskom pack. reconstruct_matrix/extract_grids now
+  detect on a derotated copy and map cell bboxes back into visual space;
+  7 rotation tests pin 90/180/270.
 - Multi-page matrix targets: interpret collapses to one axis element per kind
   (last page wins) — suggestion-tier only, guard when multi-page matrices appear.
 - Consolidate `_flat_cell_elements` vs `_grid_region_elements` duplication;
