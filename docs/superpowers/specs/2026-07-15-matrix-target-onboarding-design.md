@@ -137,7 +137,7 @@ A 7B vision model is safe here because output is index-referenced (small, constr
 gate-validated, and human-reviewed. **Pin the exact tag only after `ollama pull` confirms
 availability/size on the target hardware.** `rmu ai doctor` reports vision-model health.
 
-## Studio matrix review (Section 4) — Phase 2
+## Studio matrix review (Section 4) — Phase 2 ✅ DELIVERED 2026-07-18 (branch 006, plan docs/superpowers/plans/2026-07-18-matrix-review-phase2.md)
 
 Axis-first, extending US4 (feature 004, now in `main`): two panels (Criteria, Towers) with
 per-entry `suggested_*` shown pending + confidence; selecting a criterion highlights its
@@ -176,7 +176,7 @@ network in the suite).
 
 - **Phase 1** — data model + `analyze` matrix path + `interpret_matrix` + `--no-ai`,
   reviewed through the *existing* generic element review (CLI/YAML). Fixes topology/names.
-- **Phase 2** — the axis-first studio matrix review (SC-008 speed).
+- **Phase 2** — the axis-first studio matrix review (SC-008 speed). ✅ Delivered 2026-07-18.
 
 ## Constraint map
 

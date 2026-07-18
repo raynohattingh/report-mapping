@@ -111,6 +111,10 @@ uv run rmu studio               # binds 127.0.0.1 only; prints/opens a
 - **Visual onboarding review** — proposals reviewed on the rendered PDF with
   keyboard triage (confirm/rename/remove + auto-advance), drag/resize and draw
   missed regions; approval runs the same verify-on-approve proof.
+- **Axis-first matrix review** — a matrix proposal (grid checklist) is reviewed
+  as its two axes: Criteria and Towers panels with AI suggestions shown pending
+  (accept/reject/rename per entry, keyboard triage with auto-advance), row/column
+  band highlights on the page, cells derived — ~25 decisions instead of hundreds.
 
 Everything the studio does is one of the existing lifecycle transitions through
 the same functions the CLI calls, so a draft started in one surface is finishable
@@ -417,6 +421,11 @@ uv run rmu onboard draft-template path/to/inspection_checklist.pdf
   approval still test-renders every cell round-trip.
 - Tables that don't qualify as a matrix (too few rows/columns) still emit
   their fillable cells the old flat way — nothing is silently dropped.
+- Rotated pages (the landscape-via-`/Rotate` case) reconstruct identically:
+  detection runs derotated and cell coordinates map back to the visual space.
+- In the Mapping Studio the proposal is reviewed **axis-first**: Criteria and
+  Towers panels with pending AI suggestions, keyboard triage, and row/column
+  highlight bands on the rendered page (see [Mapping Studio](#mapping-studio)).
 
 **C. When SafeCard blocks a drifted document**, the exceptions report tells you
 the recovery path — re-onboard as a delta:

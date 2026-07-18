@@ -2,6 +2,50 @@
 
 Terse build state for the business side. Newest session first.
 
+## Session 2026-07-18 — feat(006): axis-first matrix review in the studio (Phase 2)
+
+Feature 006 (branch `006-matrix-review-phase2`, rebased onto merged 005; plan
+docs/superpowers/plans/2026-07-18-matrix-review-phase2.md): the studio now
+reviews a matrix proposal as **~25 axis decisions** instead of generic element
+blobs — the SC-008 surface. Also closed the pre-Eskom rotation must-do first
+(see 005 entry note) — the drill found pdfplumber table extraction does NOT
+normalise /Rotate (90°=transposed, 180°=reversed text); detection now runs
+derotated with bboxes mapped back to visual space (7 tests, 90/180/270).
+
+Built (subagent-driven TDD, each task reviewed; studio suite 219 green, ruff
+clean; all decisions flow through the EXISTING correct/confirm element
+lifecycle — D6 zero studio business logic, byte-parity tested):
+- **Matrix projection** — `proposal_geometry` derives criteria/towers entries
+  (+ suggestion fields, review states) and per-criterion y-bands / per-tower
+  x-ranges FROM the cells' bboxes (pure projection, nothing stored).
+- **Axis-entry routes** — rename / accept_suggestion / reject_suggestion /
+  confirm-axis, composed server-side into `corrected_payload` via the existing
+  review methods; parity-tested byte-identical to hand edits.
+- **Axis rail** — Criteria + Towers panels (pending tier-T2 chips with
+  confidence, mono field ids, per-axis confirm), cells shown derived; the
+  generic rail keeps cells/cardinality/extra axes (projected pair deduped).
+- **Keyboard triage + band highlights** — arrows/A(ccept)/R(eject)/E(rename)/
+  Y(confirm) with auto-advance; selecting a criterion highlights its row band,
+  a tower its column, a cell focuses both (bands drawn into the lazy per-page
+  overlay layers; regions.js drag-editor preserved via chained hook).
+- **Journey e2e** — upload → seeded suggestions → rename/accept/reject over
+  HTTP → confirm all → approve → registered schema carries the renamed AND
+  accepted labels; CLI still loads the draft (FR-002).
+
+**Bugs the reviews/e2e caught and fixed:** duplicate axis-pair rendering in
+the generic rail; a band-layer race on fast-cached PDF mounts (hook now chains
+synchronously); `axis_confirm` after entry edits silently discarded
+`corrected_payload` (confirm now no-ops on corrected elements — matching the
+CLI hand-edit contract). Also: `save_draft` aligned to the repo's
+`allow_unicode` convention ("×" in cell labels).
+
+**Manual checklist (browser, not automatable):** band paint position, drag-
+editor coexistence on cached reloads, exemplar-switch flash — listed in the
+phase-2 plan + task-4 report.
+
+**Housekeeping:** `.claude/` ruflo auto-generated tooling gitignored (speckit
+skills remain tracked).
+
 ## Session 2026-07-16 — feat(005): matrix-aware target onboarding, Phase 1 built
 
 Feature 005 Phase 1 (branch `005-matrix-target-onboarding`, design + plan in
